@@ -1,5 +1,4 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
 import { Providers } from './providers';
 import { ShopifyNavigationSync } from '@/components/ShopifyNavigationSync';
 import AppBridgeProvider from '@/components/AppBridgeProvider';
@@ -23,10 +22,7 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning>
       <head>
         <meta name="shopify-api-key" content={shopifyApiKey} />
-        <Script
-          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-          strategy="beforeInteractive"
-        />
+        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" />
       </head>
       <body>
         <AppBridgeProvider>
