@@ -2,6 +2,8 @@ import type { Metadata } from 'next';
 import Script from 'next/script';
 import { Providers } from './providers';
 import { ShopifyNavigationSync } from '@/components/ShopifyNavigationSync';
+import AppBridgeProvider from '@/components/AppBridgeProvider';
+import PolarisProvider from '@/components/PolarisProvider';
 import './globals.css';
 
 const shopifyApiKey =
@@ -25,14 +27,14 @@ export default function RootLayout({
           src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
           strategy="beforeInteractive"
         />
-        <Script
-          src="https://cdn.shopify.com/shopifycloud/polaris.js"
-          strategy="beforeInteractive"
-        />
       </head>
       <body>
-        <ShopifyNavigationSync />
-        <Providers>{children}</Providers>
+        <AppBridgeProvider>
+          <ShopifyNavigationSync />
+          <PolarisProvider>
+            <Providers>{children}</Providers>
+          </PolarisProvider>
+        </AppBridgeProvider>
       </body>
     </html>
   );

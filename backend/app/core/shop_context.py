@@ -6,10 +6,26 @@ import redis
 import json
 import logging
 from typing import Optional
-from fastapi import Request
+from fastapi import Request, Depends
+from sqlalchemy.orm import Session
 from app.config import settings
+from app.database import get_db
+from app.models.shop import Shop
 
 logger = logging.getLogger(__name__)
+
+
+def resolve_shop_by_domain(shop_domain: str, db: Session) -> Optional[Shop]:
+    """
+    Sucht Shop in DB anhand der Domain (z.B. example.myshopify.com).
+    Gibt None zurück wenn kein Shop gefunden.
+    """
+    if not shop_domain or not isinstance(shop_domain, str):
+        return None
+    domain = shop_domain.strip().replace("https://", "").replace("http://", "").rstrip("/")
+    if not domain:
+        return None
+    return db.query(Shop).filter(Shop.shop_url == domain, Shop.is_active == True).first()
 
 # In-Memory Fallback (immer initialisiert)
 _memory_store = {}
@@ -268,18 +284,18 @@ class ShopContext:
 def get_session_id(request: Request) -> str:
     """
     Extrahiere Session-ID aus Request.
-    Nutzt Cookie oder Header, Fallback auf IP+User-Agent Hash.
+    Reihenfolge: Cookie → Header X-Session-ID → Fallback MD5(IP+User-Agent).
     """
-    # 1. Versuche Cookie
+    # 1. Cookie session_id
     session_id = request.cookies.get("session_id")
     if session_id:
         return session_id
-    
-    # 2. Versuche Header
+
+    # 2. Header X-Session-ID
     session_id = request.headers.get("X-Session-ID")
     if session_id:
         return session_id
-    
+
     # 3. Fallback: Hash aus IP + User-Agent
     import hashlib
     client_ip = request.client.host if request.client else "unknown"
@@ -289,18 +305,127 @@ def get_session_id(request: Request) -> str:
     return session_id
 
 
-def get_shop_context(request: Request) -> ShopContext:
+def _extract_shop_id_from_token(request: Request, db) -> Optional[int]:
+    """Extrahiert shop_id aus Bearer Token (Shopify Session oder App JWT)."""
+    auth = request.headers.get("Authorization")
+    if not auth or not auth.startswith("Bearer "):
+        return None
+    token = auth.replace("Bearer ", "")
+    if not token:
+        return None
+
+    try:
+        # Shopify Session Token (dest claim)
+        from app.utils.shopify_token_validator import validate_shopify_session_token
+        payload = validate_shopify_session_token(token)
+        if payload.get("dest"):
+            shop_url = payload["dest"].replace("https://", "").replace("http://", "").strip().rstrip("/")
+            from app.models.shop import Shop
+            shop = db.query(Shop).filter(Shop.shop_url == shop_url).first()
+            return shop.id if shop else None
+    except (ValueError, Exception):
+        pass
+
+    try:
+        # App JWT Token (shop_id claim)
+        from app.core.jwt_manager import verify_token
+        payload = verify_token(token, token_type="access")
+        return payload.get("shop_id")
+    except Exception:
+        return None
+
+
+def get_active_shop_for_request(request: Request, db: Session) -> tuple[int, bool]:
+    """
+    Ermittelt (shop_id, is_demo) mit Priorität (Shop-Auth Fix):
+
+    1. X-Shop-ID Header → direkt verwenden
+    2. X-Shop-Domain Header → Shop in DB suchen
+    3. Bearer Token → shop aus token["dest"] in DB suchen
+    4. Query Parameter ?shop=xxx.myshopify.com → Shop in DB suchen
+    5. session_id Cookie/Header → ShopContext
+    6. Fallback MD5 → Demo (999, True)
+    """
+    # 1. X-Shop-ID Header (direkt)
+    x_shop_id = request.headers.get("X-Shop-ID")
+    if x_shop_id:
+        try:
+            sid = int(x_shop_id.strip())
+            if sid > 0:
+                logger.info(f"[ACTIVE_SHOP] X-Shop-ID Header: shop_id={sid}, demo=False")
+                return (sid, False)
+        except ValueError:
+            pass
+
+    # 2. X-Shop-Domain Header
+    shop_domain = request.headers.get("X-Shop-Domain")
+    if shop_domain:
+        shop = resolve_shop_by_domain(shop_domain, db)
+        if shop:
+            logger.info(f"[ACTIVE_SHOP] X-Shop-Domain Header: shop_id={shop.id}, demo=False")
+            return (shop.id, False)
+
+    # 3. Bearer Token
+    shop_id_from_token = _extract_shop_id_from_token(request, db)
+    if shop_id_from_token:
+        logger.info(f"[ACTIVE_SHOP] Bearer Token: shop_id={shop_id_from_token}, demo=False")
+        return (shop_id_from_token, False)
+
+    # 4. Query Parameter ?shop=
+    query_shop = request.query_params.get("shop")
+    if query_shop:
+        shop = resolve_shop_by_domain(query_shop, db)
+        if shop:
+            logger.info(f"[ACTIVE_SHOP] Query ?shop=: shop_id={shop.id}, demo=False")
+            return (shop.id, False)
+
+    # 5 + 6: Session-basiert (Cookie, X-Session-ID, oder MD5-Fallback)
+    session_id = get_session_id(request)
+    context = ShopContext(session_id)
+    context.load()
+    logger.info(
+        f"[ACTIVE_SHOP] Session {session_id[:8]}...: shop_id={context.active_shop_id}, demo={context.is_demo_mode}"
+    )
+    return (context.active_shop_id, context.is_demo_mode)
+
+
+def get_shop_context(request: Request, db: Session = Depends(get_db)) -> ShopContext:
     """
     Dependency: Gibt Shop-Context für aktuelle Session zurück.
+    Nutzt get_active_shop_for_request für einheitliche Priorität
+    (X-Shop-ID, X-Shop-Domain, Bearer, ?shop=, Session, Fallback).
     """
+    return _resolve_shop_context(request, db)
+
+
+def _resolve_shop_context(request: Request, db: Session) -> ShopContext:
     session_id = get_session_id(request)
-    
-    logger.debug(f"\n🏪 SHOP CONTEXT REQUEST")
-    logger.debug(f"   Session ID: {session_id}")
-    
-    context = ShopContext(session_id)
-    
-    logger.info(f"✅ Shop Context: Shop {context.active_shop_id} (Demo: {context.is_demo_mode})")
-    
-    return context
+    shop_id, is_demo = get_active_shop_for_request(request, db)
+
+    class ResolvedShopContext(ShopContext):
+        """ShopContext mit überlagerten Werten aus Request-Priorität."""
+        def __init__(self, sid: str, resolved_shop_id: int, resolved_demo: bool):
+            super().__init__(sid)
+            self._resolved_shop_id = resolved_shop_id
+            self._resolved_is_demo = resolved_demo
+
+        @property
+        def active_shop_id(self) -> int:
+            return self._resolved_shop_id
+
+        @active_shop_id.setter
+        def active_shop_id(self, value: int):
+            self._resolved_shop_id = value
+
+        @property
+        def is_demo_mode(self) -> bool:
+            return self._resolved_is_demo
+
+        @is_demo_mode.setter
+        def is_demo_mode(self, value: bool):
+            self._resolved_is_demo = value
+
+    ctx = ResolvedShopContext(session_id, shop_id, is_demo)
+    logger.info(f"✅ Shop Context: Shop {ctx.active_shop_id} (Demo: {ctx.is_demo_mode})")
+    return ctx
 

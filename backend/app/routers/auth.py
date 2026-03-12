@@ -5,7 +5,7 @@ from app.database import get_db
 from app.models.shop import Shop
 from app.utils.encryption import encrypt_token, decrypt_token
 from app.core.jwt_manager import create_access_token, create_refresh_token, refresh_access_token
-from app.core.shop_context import get_redis_client
+from app.core.shop_context import get_redis_client, ShopContext
 from app.config import settings
 from datetime import datetime
 import shopify
@@ -16,6 +16,7 @@ import logging
 import secrets
 import asyncio
 import json
+import uuid
 from typing import Optional
 from urllib.parse import urlencode
 
@@ -202,6 +203,14 @@ async def shopify_callback(
             logger.error(f"❌ Initiale Produktsync fehlgeschlagen: {e}")
             # Nicht kritisch - User kann manuell syncen
         
+        # Fix A: Session setzen – ShopContext + session_id Cookie
+        session_id = str(uuid.uuid4())
+        shop_context = ShopContext(session_id)
+        shop_context.active_shop_id = shop_obj.id
+        shop_context.is_demo_mode = False
+        shop_context.save()
+        logger.info(f"✅ ShopContext gesetzt: session={session_id[:8]}..., shop_id={shop_obj.id}, demo=False")
+
         # Redirect zu Frontend embedded Route (mit host für iFrame)
         redis_client = get_redis_client()
         stored = await get_oauth_state(state, redis_client) if state else None
@@ -211,11 +220,21 @@ async def shopify_callback(
             stored = {"shop": shop_domain, "host": ""}
         host = stored.get("host", "")
         if host:
-            redirect_url = f"{settings.FRONTEND_URL}/app?shop={stored['shop']}&host={host}&shop_id={shop_obj.id}&installed=true"
+            redirect_url = f"{settings.FRONTEND_URL}/?shop={stored['shop']}&host={host}&shop_id={shop_obj.id}&installed=true"
         else:
-            redirect_url = f"{settings.FRONTEND_URL}/auth/shopify/callback?shop_id={shop_obj.id}&installed=true"
+            redirect_url = f"{settings.FRONTEND_URL}/auth/callback?shop_id={shop_obj.id}&shop={stored['shop']}&installed=true"
         logger.info(f"Redirecting to frontend: {redirect_url}")
-        return RedirectResponse(url=redirect_url, status_code=302)
+
+        response = RedirectResponse(url=redirect_url, status_code=302)
+        response.set_cookie(
+            key="session_id",
+            value=session_id,
+            httponly=True,
+            secure=True,
+            samesite="none",
+            max_age=86400 * 7,  # 7 Tage
+        )
+        return response
     
     except requests.exceptions.HTTPError as e:
         logger.error(f"HTTP Fehler beim Token Exchange: {e}")
@@ -352,7 +371,7 @@ async def shopify_callback_public(
     refresh_token = create_refresh_token(shop_record.id)
     
     # 7. Create redirect response with cookies
-    redirect_url = f"{settings.FRONTEND_URL}/auth/shopify/callback?shop_id={shop_record.id}&installed=true"
+    redirect_url = f"{settings.FRONTEND_URL}/auth/callback?shop_id={shop_record.id}&shop={shop}&installed=true"
     response = RedirectResponse(url=redirect_url, status_code=302)
     
     # Set HTTP-only cookies (SameSite="none" für Cross-Origin)

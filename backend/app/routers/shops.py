@@ -12,7 +12,7 @@ import logging
 
 from app.database import get_db
 from app.models.shop import Shop
-from app.core.shop_context import ShopContext, get_session_id
+from app.core.shop_context import ShopContext, get_session_id, get_shop_context
 from app.core.jwt_manager import create_access_token, create_refresh_token
 from app.services.csv_demo_shop_adapter import CSVDemoShopAdapter
 
@@ -45,12 +45,6 @@ class SwitchShopRequest(BaseModel):
 class CurrentShopResponse(BaseModel):
     shop: ShopResponse
     is_demo_mode: bool
-
-
-def get_shop_context(request: FastAPIRequest) -> ShopContext:
-    """Dependency: Gibt Shop-Context für aktuelle Session zurück"""
-    session_id = get_session_id(request)
-    return ShopContext(session_id)
 
 
 @router.get("", response_model=ShopsResponse)

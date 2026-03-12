@@ -7,7 +7,7 @@ from app.models.product import Product
 from app.utils.encryption import decrypt_token
 from app.services.shopify_adapter import ShopifyDataAdapter
 from app.services.csv_demo_shop_adapter import CSVDemoShopAdapter
-from app.core.shop_context import get_shop_context, ShopContext
+from app.core.shop_context import get_active_shop_for_request
 from app.config import settings
 import logging
 
@@ -22,29 +22,17 @@ async def get_products(
     db: Session = Depends(get_db)
 ):
     """
-    Lädt alle Produkte für den aktiven Shop (aus Shop-Context).
-    Falls shop_id übergeben wird, wird dieser genutzt (Backward-Compatibility).
+    Lädt alle Produkte für den aktiven Shop (Fix C: X-Shop-ID, Bearer, Session).
+    Falls shop_id Query-Parameter übergeben wird: Backward-Compatibility.
     """
-    # Hole Shop-Context manuell, da Request nicht direkt als Dependency funktioniert
-    from app.core.shop_context import get_session_id, ShopContext
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    session_id = get_session_id(request)
-    shop_context = ShopContext(session_id)
-    
     logger.info(f"[PRODUCTS] ========== GET PRODUCTS ==========")
-    logger.info(f"[PRODUCTS] Session ID: {session_id}")
-    logger.info(f"[PRODUCTS] Context BEFORE reload: shop_id={shop_context.active_shop_id}, is_demo={shop_context.is_demo_mode}")
-    
-    # ✅ CRITICAL: Force reload from Redis/Memory
-    shop_context.load()
-    
-    logger.info(f"[PRODUCTS] Context AFTER reload: shop_id={shop_context.active_shop_id}, is_demo={shop_context.is_demo_mode}")
-    # Nutze shop_id aus Query-Parameter falls vorhanden, sonst aus Context
+
+    # Fix C: Erweiterte Priorität (X-Shop-ID, Bearer, Session)
     if shop_id is None:
-        # Nutze Shop-Context
-        if shop_context.is_demo_mode:
+        active_shop_id, is_demo_mode = get_active_shop_for_request(request, db)
+        logger.info(f"[PRODUCTS] active_shop_id={active_shop_id}, is_demo={is_demo_mode}")
+
+        if is_demo_mode:
             # Demo-Shop: Nutze CSV-Adapter
             adapter = CSVDemoShopAdapter()
             demo_products = adapter.load_products()
@@ -64,7 +52,6 @@ async def get_products(
             ]
         else:
             # Echter Shop: Aus DB laden
-            active_shop_id = shop_context.active_shop_id
             logger.info(f"[PRODUCTS] Loading products for Live Shop ID: {active_shop_id}")
             
             shop = db.query(Shop).filter(Shop.id == active_shop_id).first()
