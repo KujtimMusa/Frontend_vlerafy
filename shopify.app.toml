@@ -1,0 +1,22 @@
+client_id = "dc063520c074261e755fbfd31a2f8fb3"
+name = "vlerafy"
+application_url = "https://vlerafy.com"
+embedded = true
+
+[build]
+automatically_update_urls_on_dev = true
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2026-01"
+
+[access_scopes]
+scopes = "read_products,write_products,read_orders,read_inventory,write_inventory,read_price_rules,write_price_rules,read_analytics,read_customers,read_discounts,write_discounts,read_reports,write_reports,read_locations,read_shipping"
+optional_scopes = []
+use_legacy_install_flow = false
+
+[auth]
+redirect_urls = [
+  "https://api.vlerafy.com/auth/shopify/callback",
+  "http://localhost:8000/auth/shopify/callback"
+]
