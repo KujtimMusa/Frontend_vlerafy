@@ -15,6 +15,7 @@ function CallbackContent() {
 
   useEffect(() => {
     const shopId = searchParams.get('shop_id');
+    const shop = searchParams.get('shop'); // xxx.myshopify.com
     const error = searchParams.get('error');
 
     if (error) {
@@ -35,6 +36,9 @@ function CallbackContent() {
     if (typeof window !== 'undefined') {
       localStorage.setItem('shop_id', shopId);
       localStorage.setItem('current_shop_id', shopId);
+      if (shop) {
+        localStorage.setItem('shop_domain', shop);
+      }
     }
 
     setUser({ id: parseInt(shopId), name: 'Shop', email: null });

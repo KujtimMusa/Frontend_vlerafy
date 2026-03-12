@@ -9,6 +9,8 @@ import type {
   CategoryDefaults,
   DashboardStats,
 } from '@/types/models';
+import createApp from '@shopify/app-bridge';
+import { getSessionToken } from '@shopify/app-bridge/utilities';
 
 export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.vlerafy.com';
 
@@ -23,19 +25,77 @@ declare global {
   }
 }
 
-export async function getApiHeaders(): Promise<HeadersInit> {
+function getSessionIdFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/session_id=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getShopIdFromStorage(): string | null {
+  if (typeof window === 'undefined') return null;
+  return (
+    localStorage.getItem('current_shop_id') ||
+    localStorage.getItem('shop_id') ||
+    null
+  );
+}
+
+async function getSessionTokenForApi(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  // 1. App Bridge 4.x (CDN script): window.shopify.idToken()
   try {
-    if (typeof window !== 'undefined' && window.shopify?.idToken) {
+    if (window.shopify?.idToken) {
       const token = await window.shopify.idToken();
-      return {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      };
+      if (token) return token;
     }
   } catch {
-    // Fallback wenn kein Token (z.B. Dev außerhalb Embedded App)
+    // weiter zu Fallback
   }
-  return { 'Content-Type': 'application/json' };
+
+  // 2. App Bridge 3.x: getSessionToken(app) mit createApp
+  try {
+    const apiKey =
+      process.env.NEXT_PUBLIC_SHOPIFY_CLIENT_ID ||
+      process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ||
+      '';
+    const host = localStorage.getItem('shopify_host') ?? '';
+    if (apiKey && host) {
+      const app = createApp({ apiKey, host, forceRedirect: true });
+      const token = await getSessionToken(app);
+      if (token) return token;
+    }
+  } catch {
+    // weiter zu Fallback
+  }
+
+  return null;
+}
+
+export async function getApiHeaders(): Promise<HeadersInit> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  const token = await getSessionTokenForApi();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
+  // Fix B: session_id + shop_id mitschicken
+  const sessionId = getSessionIdFromCookie();
+  if (sessionId) headers['X-Session-ID'] = sessionId;
+
+  const shopId = getShopIdFromStorage();
+  if (shopId) headers['X-Shop-ID'] = shopId;
+
+  // 3. Fallback: X-Shop-Domain (wenn kein Bearer Token)
+  if (typeof window !== 'undefined' && !headers['Authorization']) {
+    const shopDomain = localStorage.getItem('shop_domain');
+    if (shopDomain) headers['X-Shop-Domain'] = shopDomain;
+  }
+
+  return headers;
 }
 
 // ── Dashboard ──────────────────────────────────────────

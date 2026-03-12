@@ -2,6 +2,19 @@
 
 import { useQuery } from '@tanstack/react-query';
 import { getDashboardStats, getEngineStatus } from '@/lib/api';
+import {
+  Page,
+  Card,
+  Text,
+  Badge,
+  Button,
+  ProgressBar,
+  List,
+  BlockStack,
+  InlineGrid,
+  InlineStack,
+  SkeletonPage,
+} from '@shopify/polaris';
 
 export default function AnalyticsPage() {
   const { data: stats, isLoading } = useQuery({
@@ -13,105 +26,147 @@ export default function AnalyticsPage() {
     queryFn: getEngineStatus,
   });
 
-  if (isLoading) return <s-skeleton-page />;
+  if (isLoading) return <SkeletonPage />;
 
   return (
-    <s-page title="Analysen">
-      <s-card title="Ungenutztes Potenzial">
-        <s-text variant="headingXl" tone="critical">
-          €{stats?.missed_revenue?.total?.toFixed(2) ?? '0.00'}
-        </s-text>
-        <s-layout variant="1-1-1">
-          <div>
-            <s-text variant="headingLg">
-              {stats?.missed_revenue?.product_count ?? 0}
-            </s-text>
-            <s-text>Betroffene Produkte</s-text>
-          </div>
-          <div>
-            <s-text variant="headingLg">
-              €
-              {stats?.missed_revenue?.avg_per_product?.toFixed(2) ?? '0.00'}
-            </s-text>
-            <s-text>Ø pro Produkt</s-text>
-          </div>
-          <div>
-            <s-text variant="headingLg">
-              {stats?.missed_revenue?.recommendation_count ?? 0}
-            </s-text>
-            <s-text>Ausstehende Empfehlungen</s-text>
-          </div>
-        </s-layout>
-        <s-button href="/dashboard/products">
-          Produkte optimieren →
-        </s-button>
-      </s-card>
+    <Page title="Analysen">
+      <BlockStack gap="500">
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Ungenutztes Potenzial
+            </Text>
+            <Text as="p" variant="headingXl" tone="critical">
+              €{stats?.missed_revenue?.total?.toFixed(2) ?? '0.00'}
+            </Text>
+            <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">
+                  {stats?.missed_revenue?.product_count ?? 0}
+                </Text>
+                <Text as="p" tone="subdued">
+                  Betroffene Produkte
+                </Text>
+              </BlockStack>
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">
+                  €
+                  {stats?.missed_revenue?.avg_per_product?.toFixed(2) ?? '0.00'}
+                </Text>
+                <Text as="p" tone="subdued">
+                  Ø pro Produkt
+                </Text>
+              </BlockStack>
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">
+                  {stats?.missed_revenue?.recommendation_count ?? 0}
+                </Text>
+                <Text as="p" tone="subdued">
+                  Ausstehende Empfehlungen
+                </Text>
+              </BlockStack>
+            </InlineGrid>
+            <Button url="/dashboard/products">Produkte optimieren →</Button>
+          </BlockStack>
+        </Card>
 
-      <s-card title="Empfehlungs-Übersicht">
-        <s-layout variant="1-1-1">
-          <div>
-            <s-text variant="headingLg">
-              {stats?.recommendations_pending ?? 0}
-            </s-text>
-            <s-text>Ausstehend</s-text>
-          </div>
-          <div>
-            <s-text variant="headingLg" tone="success">
-              {stats?.recommendations_applied ?? 0}
-            </s-text>
-            <s-text>Angewendet</s-text>
-          </div>
-          <div>
-            <s-text variant="headingLg">
-              {stats?.products_with_recommendations ?? 0}
-            </s-text>
-            <s-text>Produkte mit Empfehlung</s-text>
-          </div>
-        </s-layout>
-      </s-card>
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Empfehlungs-Übersicht
+            </Text>
+            <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">
+                  {stats?.recommendations_pending ?? 0}
+                </Text>
+                <Text as="p" tone="subdued">
+                  Ausstehend
+                </Text>
+              </BlockStack>
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg" tone="success">
+                  {stats?.recommendations_applied ?? 0}
+                </Text>
+                <Text as="p" tone="subdued">
+                  Angewendet
+                </Text>
+              </BlockStack>
+              <BlockStack gap="100">
+                <Text as="p" variant="headingLg">
+                  {stats?.products_with_recommendations ?? 0}
+                </Text>
+                <Text as="p" tone="subdued">
+                  Produkte mit Empfehlung
+                </Text>
+              </BlockStack>
+            </InlineGrid>
+          </BlockStack>
+        </Card>
 
-      {engineStatus && (
-        <s-card title="ML Pricing Engine">
-          <s-badge
-            tone={
-              engineStatus.feature_flags ? 'success' : 'warning'
-            }
-          >
-            {engineStatus.feature_flags ? 'Aktiv' : 'Prüfen'}
-          </s-badge>
-          <s-text>
-            Engine: XGBoost v1.2 + Meta-Labeler
-          </s-text>
-        </s-card>
-      )}
+        {engineStatus && (
+          <Card>
+            <BlockStack gap="400">
+              <Text as="h2" variant="headingMd">
+                ML Pricing Engine
+              </Text>
+              <InlineStack gap="200">
+                <Badge
+                  tone={
+                    engineStatus.feature_flags ? 'success' : 'warning'
+                  }
+                >
+                  {engineStatus.feature_flags ? 'Aktiv' : 'Prüfen'}
+                </Badge>
+                <Text as="p">
+                  Engine: XGBoost v1.2 + Meta-Labeler
+                </Text>
+              </InlineStack>
+            </BlockStack>
+          </Card>
+        )}
 
-      <s-card title="Optimierungs-Fortschritt">
-        <s-badge
-          tone={
-            stats?.progress.level === 'platinum'
-              ? 'success'
-              : stats?.progress.level === 'gold'
-                ? 'warning'
-                : stats?.progress.level === 'silver'
-                  ? 'info'
-                  : 'new'
-          }
-        >
-          {stats?.progress.level?.toUpperCase() ?? 'BRONZE'}
-        </s-badge>
-        <s-progress-bar
-          value={stats?.progress.points ?? 0}
-          max={stats?.progress.next_level_points ?? 100}
-        />
-        <s-text>
-          {stats?.progress.points_needed ?? 0} Punkte bis nächstes Level
-        </s-text>
-        {stats?.progress.pending_steps?.map((step) => (
-          <s-list-item key={step.text}>
-            {step.text} <s-badge>+{step.points} Punkte</s-badge>
-          </s-list-item>
-        ))}
-      </s-card>
-    </s-page>
+        <Card>
+          <BlockStack gap="400">
+            <Text as="h2" variant="headingMd">
+              Optimierungs-Fortschritt
+            </Text>
+            <Badge
+              tone={
+                stats?.progress.level === 'platinum'
+                  ? 'success'
+                  : stats?.progress.level === 'gold'
+                    ? 'warning'
+                    : stats?.progress.level === 'silver'
+                      ? 'info'
+                      : 'attention'
+              }
+            >
+              {stats?.progress.level?.toUpperCase() ?? 'BRONZE'}
+            </Badge>
+            <ProgressBar
+              progress={
+                (stats?.progress.next_level_points ?? 100) > 0
+                  ? ((stats?.progress.points ?? 0) /
+                      (stats?.progress.next_level_points ?? 100)) *
+                    100
+                  : 0
+              }
+              size="small"
+            />
+            <Text as="p">
+              {stats?.progress.points_needed ?? 0} Punkte bis nächstes Level
+            </Text>
+            <List type="bullet">
+              {stats?.progress.pending_steps?.map((step) => (
+                <List.Item key={step.text}>
+                  {step.text} <Badge tone="info">{`+${step.points} Punkte`}</Badge>
+                </List.Item>
+              ))}
+            </List>
+          </BlockStack>
+        </Card>
+      </BlockStack>
+    </Page>
   );
 }

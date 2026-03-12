@@ -16,6 +16,8 @@ function HomePageContent() {
       if (typeof window !== 'undefined') {
         localStorage.setItem('shop_id', shopId);
         localStorage.setItem('current_shop_id', shopId);
+        if (shop) localStorage.setItem('shop_domain', shop);
+        if (host) localStorage.setItem('shopify_host', host);
       }
       const dest = host ? `/dashboard?shop=${shop}&host=${host}&shop_id=${shopId}` : `/dashboard?shop_id=${shopId}`;
       router.replace(dest);
