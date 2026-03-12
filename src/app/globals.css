@@ -1,3 +1,5 @@
+@import '@shopify/polaris/build/esm/styles.css';
+
 /* Basis-Styles – Polaris bringt eigene Styles */
 * {
   box-sizing: border-box;
