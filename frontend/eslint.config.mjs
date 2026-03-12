@@ -20,6 +20,12 @@ const eslintConfig = [
       "next-env.d.ts",
     ],
   },
+  {
+    files: ["src/app/layout.tsx"],
+    rules: {
+      "@next/next/no-sync-scripts": "off",
+    },
+  },
 ];
 
 export default eslintConfig;
