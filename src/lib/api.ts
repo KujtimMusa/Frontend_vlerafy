@@ -23,19 +23,43 @@ declare global {
   }
 }
 
+function getSessionIdFromCookie(): string | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(/session_id=([^;]+)/);
+  return match ? decodeURIComponent(match[1]) : null;
+}
+
+function getShopIdFromStorage(): string | null {
+  if (typeof window === 'undefined') return null;
+  return (
+    localStorage.getItem('current_shop_id') ||
+    localStorage.getItem('shop_id') ||
+    null
+  );
+}
+
 export async function getApiHeaders(): Promise<HeadersInit> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
   try {
     if (typeof window !== 'undefined' && window.shopify?.idToken) {
       const token = await window.shopify.idToken();
-      return {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      };
+      headers['Authorization'] = `Bearer ${token}`;
     }
   } catch {
     // Fallback wenn kein Token (z.B. Dev außerhalb Embedded App)
   }
-  return { 'Content-Type': 'application/json' };
+
+  // Fix B: session_id + shop_id mitschicken
+  const sessionId = getSessionIdFromCookie();
+  if (sessionId) headers['X-Session-ID'] = sessionId;
+
+  const shopId = getShopIdFromStorage();
+  if (shopId) headers['X-Shop-ID'] = shopId;
+
+  return headers;
 }
 
 // ── Dashboard ──────────────────────────────────────────
