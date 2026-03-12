@@ -23,12 +23,21 @@ export default function DashboardPage() {
   });
 
   if (isLoading)
-    return <Page title="Dashboard">{/* Skeleton could go here */}</Page>;
+    return (
+      <Page title="Dashboard">
+        <Card>
+          <Text as="p">Lade Dashboard...</Text>
+        </Card>
+      </Page>
+    );
   if (error || !stats)
     return (
-      <Banner tone="critical" title="Fehler beim Laden">
-        Dashboard konnte nicht geladen werden.
-      </Banner>
+      <Page title="Dashboard">
+        <Banner tone="critical" title="Fehler beim Laden">
+          Dashboard konnte nicht geladen werden.
+          {error instanceof Error && ` (${error.message})`}
+        </Banner>
+      </Page>
     );
 
   const nextLevel =
