@@ -239,6 +239,41 @@ export async function markRecommendationApplied(id: number) {
   return res.json();
 }
 
+export async function explainPrice(data: {
+  current_price: number;
+  recommended_price: number;
+  confidence: number;
+  price_change_pct: number;
+  strategies?: Record<string, unknown>;
+  competitor_avg?: number;
+  break_even?: number;
+  inventory?: number;
+  product_title?: string;
+  currency?: string;
+}) {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/api/ai/explain-price${params ? `?${params}` : ''}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || 'KI-Erklärung fehlgeschlagen'
+    );
+  }
+  return res.json() as Promise<{
+    explanation: string;
+    key_reason: string;
+    confidence_text: string;
+    action_hint: string;
+  }>;
+}
+
 export async function getEngineStatus() {
   const headers = await getApiHeaders();
   const res = await fetch(`${API_URL}/recommendations/engine-status`, {

@@ -14,6 +14,7 @@ import {
   saveProductCosts,
   calculateMargin,
   applyPrice,
+  explainPrice,
   getCategoryDefaults,
 } from '@/lib/api';
 import { showToast } from '@/lib/toast';
@@ -37,6 +38,8 @@ import {
   SkeletonBodyText,
   Layout,
   Divider,
+  Spinner,
+  Icon,
 } from '@shopify/polaris';
 import {
   ArrowRightIcon,
@@ -45,6 +48,7 @@ import {
   PackageIcon,
   CheckIcon,
   RefreshIcon,
+  MagicIcon,
 } from '@shopify/polaris-icons';
 import { PreisverlaufChart } from '@/components/PreisverlaufChart';
 
@@ -94,6 +98,14 @@ export default function ProductDetailPage() {
     category: 'fashion',
   });
   const [showCostForm, setShowCostForm] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<{
+    explanation: string;
+    key_reason: string;
+    confidence_text: string;
+    action_hint: string;
+  } | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -230,6 +242,31 @@ export default function ProductDetailPage() {
     }));
   };
 
+  const handleAiExplain = async () => {
+    if (!recommendation) return;
+    setAiLoading(true);
+    setAiError(false);
+    try {
+      const result = await explainPrice({
+        current_price: recommendation.current_price,
+        recommended_price: recommendation.recommended_price,
+        confidence: recommendation.confidence ?? 0,
+        price_change_pct: recommendation.price_change_pct ?? 0,
+        strategies: recommendation.reasoning_object?.strategies as Record<string, unknown> | undefined,
+        competitor_avg: recommendation.competitor_avg_price,
+        break_even: margin?.break_even_price,
+        inventory: product?.inventory ?? recommendation?.days_of_stock ?? undefined,
+        product_title: product?.title,
+        currency: 'EUR',
+      });
+      setAiExplanation(result);
+    } catch {
+      setAiError(true);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   if (!product) return <SkeletonPage />;
 
   const raw =
@@ -347,6 +384,93 @@ export default function ProductDetailPage() {
                         : 'Lückenhafte Daten – Kostendaten und Verkäufe hinterlegen'}
                     </Text>
                   </BlockStack>
+
+                  {/* KI-Erklärung */}
+                  {!aiExplanation && !aiLoading && (
+                    <Button
+                      onClick={handleAiExplain}
+                      variant="plain"
+                      icon={MagicIcon}
+                      size="slim"
+                    >
+                      KI-Erklärung anzeigen
+                    </Button>
+                  )}
+                  {aiLoading && (
+                    <InlineStack gap="200" blockAlign="center">
+                      <Spinner size="small" />
+                      <Text as="p" variant="bodySm" tone="subdued">
+                        KI analysiert...
+                      </Text>
+                    </InlineStack>
+                  )}
+                  {aiError && (
+                    <Text as="p" variant="bodySm" tone="critical">
+                      KI-Erklärung nicht verfügbar – bitte versuche es später erneut.
+                    </Text>
+                  )}
+                  {aiExplanation && (
+                    <div
+                      style={{
+                        background: 'linear-gradient(135deg, #F5F3FF 0%, #EEF2FF 100%)',
+                        borderRadius: 12,
+                        padding: '16px',
+                        border: '1px solid #DDD6FE',
+                      }}
+                    >
+                      <BlockStack gap="300">
+                        <InlineStack gap="200" blockAlign="center">
+                          <div
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: 8,
+                              background: '#7C3AED',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Icon source={MagicIcon} tone="base" />
+                          </div>
+                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                            KI-Analyse
+                          </Text>
+                          <Badge tone="info">{aiExplanation.confidence_text}</Badge>
+                        </InlineStack>
+                        <Text as="p" variant="bodySm" tone="subdued">
+                          {aiExplanation.explanation}
+                        </Text>
+                        <div
+                          style={{
+                            background: 'white',
+                            borderRadius: 8,
+                            padding: '8px 12px',
+                            border: '1px solid #DDD6FE',
+                          }}
+                        >
+                          <InlineStack gap="200" blockAlign="center">
+                            <Text as="span" variant="bodySm">💡</Text>
+                            <Text as="p" variant="bodySm" fontWeight="semibold">
+                              {aiExplanation.key_reason}
+                            </Text>
+                          </InlineStack>
+                        </div>
+                        <InlineStack align="space-between" blockAlign="center">
+                          <Text as="p" variant="bodySm" tone="subdued">
+                            {aiExplanation.action_hint}
+                          </Text>
+                          <Button
+                            variant="plain"
+                            size="micro"
+                            onClick={() => setAiExplanation(null)}
+                          >
+                            Schließen
+                          </Button>
+                        </InlineStack>
+                      </BlockStack>
+                    </div>
+                  )}
 
                   <Divider />
 
