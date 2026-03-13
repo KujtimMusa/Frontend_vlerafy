@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  Card,
-  BlockStack,
-  Text,
-  Badge,
-  ProgressBar,
-} from '@shopify/polaris';
-import { CheckCircleIcon, BulletIcon } from '@shopify/polaris-icons';
+import { Card, BlockStack, Text, Badge, ProgressBar } from '@shopify/polaris';
 import type { DashboardStats } from '@/types/models';
 
 interface FortschrittsCardProps {
@@ -63,19 +56,58 @@ export function FortschrittsCard({ progress }: FortschrittsCardProps) {
         <div className="task-list">
           {(progress.completed_steps ?? []).map((step) => (
             <div key={step} className="task-item task-done">
-              <CheckCircleIcon />
-              <Text as="span" tone="subdued">
-                <s>{String(step).replace(/^✅\s*/, '')}</s>
-              </Text>
+              <div
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  background: '#10B981',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ color: 'white', fontSize: 11 }}>✓</span>
+              </div>
+              <span
+                style={{
+                  fontSize: 13,
+                  color: '#9CA3AF',
+                  textDecoration: 'line-through',
+                  flex: 1,
+                }}
+              >
+                {String(step).replace(/^✅\s*/, '')}
+              </span>
             </div>
           ))}
           {(progress.pending_steps ?? []).map((step) => (
             <div key={step.text} className="task-item task-pending">
-              <BulletIcon />
-              <Text as="span">
+              <div
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: '50%',
+                  background: '#E2E8F0',
+                  flexShrink: 0,
+                }}
+              />
+              <span style={{ fontSize: 13, color: '#374151', flex: 1 }}>
                 {step.text}
-              </Text>
-              <Badge tone="info">{`+${step.points} Pkt.`}</Badge>
+              </span>
+              <span
+                style={{
+                  fontSize: 11,
+                  fontWeight: 600,
+                  color: '#6366F1',
+                  background: '#EEF2FF',
+                  padding: '2px 8px',
+                  borderRadius: 99,
+                }}
+              >
+                +{step.points} Pkt.
+              </span>
             </div>
           ))}
         </div>

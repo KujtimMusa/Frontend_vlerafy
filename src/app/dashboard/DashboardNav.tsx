@@ -76,7 +76,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
         style={{
           width: 240,
           minWidth: 240,
-          background: '#1e1b4b',
+          background: '#0F172A',
           padding: '16px 12px',
           flexShrink: 0,
         }}
@@ -85,16 +85,25 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           <InlineStack gap="200" blockAlign="center">
             <div
               style={{
-                width: 32,
-                height: 32,
-                background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-                borderRadius: 8,
+                width: 36,
+                height: 36,
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
+                flexShrink: 0,
               }}
             >
-              <span style={{ color: 'white', fontSize: 14, fontWeight: 700 }}>
+              <span
+                style={{
+                  color: 'white',
+                  fontSize: 16,
+                  fontWeight: 700,
+                  letterSpacing: '-0.5px',
+                }}
+              >
                 v
               </span>
             </div>
@@ -121,19 +130,21 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                     padding: '10px 12px',
                     borderRadius: 8,
                     background: isSelected
-                      ? 'rgba(99, 102, 241, 0.25)'
+                      ? 'rgba(99, 102, 241, 0.2)'
                       : 'transparent',
-                    color: isSelected ? '#ffffff' : '#c7d2fe',
+                    color: isSelected ? '#A5B4FC' : '#94A3B8',
                     transition: 'background 0.15s',
                   }}
                   onMouseEnter={(e) => {
                     if (!isSelected) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
+                      e.currentTarget.style.color = '#E2E8F0';
                     }
                   }}
                   onMouseLeave={(e) => {
                     if (!isSelected) {
                       e.currentTarget.style.background = 'transparent';
+                      e.currentTarget.style.color = '#94A3B8';
                     }
                   }}
                 >
@@ -151,7 +162,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Hauptbereich */}
-      <main style={{ flex: 1, background: '#f8f9fb', padding: 24 }}>
+      <main style={{ flex: 1, background: '#F8FAFC', padding: 24 }}>
         <BlockStack gap="400">
           <ShopVerbindungBanner />
           <Box paddingBlockStart="200">{children}</Box>

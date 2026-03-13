@@ -1,50 +1,78 @@
 /* vlerafy Premium Design System */
 :root {
-  /* Primärfarbe: Sattes Indigo statt Shopify-Grün */
+  /* EINE Primärfarbe: Indigo */
+  --vlerafy-primary: #6366f1;
+  --vlerafy-primary-dark: #4f46e5;
+  --vlerafy-primary-bg: #eef2ff;
+
+  /* Hintergründe */
+  --vlerafy-bg: #f8fafc;
+  --vlerafy-surface: #ffffff;
+  --vlerafy-border: #e2e8f0;
+
+  /* Status-Farben */
+  --vlerafy-success: #10b981;
+  --vlerafy-warning: #f59e0b;
+  --vlerafy-danger: #ef4444;
+
+  /* Text */
+  --vlerafy-text: #0f172a;
+  --vlerafy-text-muted: #64748b;
+
+  /* Polaris Overrides (Legacy) */
   --p-color-bg-interactive: #4f46e5;
   --p-color-bg-interactive-hover: #4338ca;
   --p-color-bg-interactive-active: #3730a3;
   --p-color-text-interactive: #4f46e5;
   --p-color-border-interactive: #4f46e5;
-
-  /* Hintergrund: Leichtes Grau statt reines Weiß */
-  --p-color-bg: #f8f9fb;
+  --p-color-bg: #f8fafc;
   --p-color-bg-surface: #ffffff;
-  --p-color-bg-surface-secondary: #f3f4f8;
-
-  /* Cards: Subtiler Schatten + scharfe Kanten */
+  --p-color-bg-surface-secondary: #f1f5f9;
   --p-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08),
     0 1px 2px rgba(0, 0, 0, 0.04);
   --p-border-radius-200: 10px;
   --p-border-radius-300: 14px;
-
-  /* Typography: Schärfer */
   --p-font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
   --p-font-weight-bold: 650;
-
-  /* Success: Satteres Grün */
   --p-color-text-success: #059669;
   --p-color-bg-fill-success: #ecfdf5;
-
-  /* Warning: Warmes Amber */
   --p-color-text-caution: #d97706;
   --p-color-bg-fill-caution: #fffbeb;
-
-  /* Critical: Klares Rot */
   --p-color-text-critical: #dc2626;
   --p-color-bg-fill-critical: #fef2f2;
 }
 
-/* Polaris Button: Abgerundeter + Schatten */
+/* Primär-Button: Indigo */
 .Polaris-Button--primary {
+  background: var(--vlerafy-primary-dark) !important;
+  border-color: var(--vlerafy-primary-dark) !important;
+  color: white !important;
   border-radius: 8px !important;
   font-weight: 600 !important;
   box-shadow: 0 1px 2px rgba(79, 70, 229, 0.3) !important;
   transition: all 0.15s ease !important;
 }
 .Polaris-Button--primary:hover {
+  background: #4338ca !important;
+  border-color: #4338ca !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35) !important;
+}
+
+/* Links: Indigo */
+.Polaris-Link {
+  color: var(--vlerafy-primary) !important;
+}
+
+/* Banner Warning: Amber */
+.Polaris-Banner--warning {
+  background: #fffbeb !important;
+  border-left: 4px solid var(--vlerafy-warning) !important;
+}
+
+/* Page Hintergrund */
+.Polaris-Frame__Main {
+  background: var(--vlerafy-bg) !important;
 }
 
 /* Polaris Card: Premium-Schatten */
@@ -59,24 +87,28 @@
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
-/* Navigation: Dunkler Sidebar */
+/* Navigation: Dunkles Slate */
+.Polaris-Navigation,
 .Polaris-Frame__Navigation {
-  background: #1e1b4b !important;
+  background: #0f172a !important;
   border-right: none !important;
 }
 .Polaris-Navigation__Text {
-  color: #c7d2fe !important;
+  color: #94a3b8 !important;
 }
 .Polaris-Navigation__Item--selected .Polaris-Navigation__Text {
-  color: #ffffff !important;
+  color: #a5b4fc !important;
 }
 .Polaris-Navigation__Item--selected {
-  background: rgba(99, 102, 241, 0.25) !important;
+  background: rgba(99, 102, 241, 0.2) !important;
   border-radius: 8px !important;
 }
 .Polaris-Navigation__Item:hover {
-  background: rgba(255, 255, 255, 0.08) !important;
+  background: rgba(255, 255, 255, 0.06) !important;
   border-radius: 8px !important;
+}
+.Polaris-Navigation__Item:hover .Polaris-Navigation__Text {
+  color: #e2e8f0 !important;
 }
 
 /* Badge: Runder */
@@ -89,7 +121,7 @@
 
 /* IndexTable: Sauberere Zeilen */
 .Polaris-IndexTable__TableRow:hover td {
-  background: #f5f3ff !important;
+  background: var(--vlerafy-primary-bg) !important;
   cursor: pointer;
 }
 
@@ -99,19 +131,19 @@
   border-radius: 99px !important;
 }
 
-/* Task-List für FortschrittsCard */
+/* Task-List für FortschrittsCard – kompakt */
 .task-item {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 6px 0;
+  border-bottom: 1px solid #f1f5f9;
   transition: background 0.15s;
 }
 .task-item:hover {
-  background: #f5f3ff;
+  background: var(--vlerafy-primary-bg);
   border-radius: 6px;
-  padding: 8px 6px;
+  padding: 6px 6px;
 }
 .task-item:last-child {
   border-bottom: none;

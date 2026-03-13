@@ -18,13 +18,12 @@ export function StatKarte({
   tone = 'neutral',
   trend,
 }: StatKarteProps) {
-  const toneMap = {
-    neutral: { bg: '#f3f4f6', color: '#374151' },
-    success: { bg: '#ecfdf5', color: '#059669' },
-    warning: { bg: '#fffbeb', color: '#d97706' },
-    critical: { bg: '#fef2f2', color: '#dc2626' },
+  const toneBackground: Record<typeof tone, string> = {
+    neutral: '#F1F5F9',
+    warning: '#FFFBEB',
+    critical: '#FEF2F2',
+    success: '#F0FDF4',
   };
-  const t = toneMap[tone];
 
   return (
     <Card>
@@ -41,14 +40,14 @@ export function StatKarte({
           </Text>
           <div
             style={{
-              width: 40,
-              height: 40,
-              borderRadius: 10,
-              background: t.bg,
-              color: t.color,
+              width: 32,
+              height: 32,
+              borderRadius: 8,
+              background: toneBackground[tone],
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
+              flexShrink: 0,
             }}
           >
             {icon}
