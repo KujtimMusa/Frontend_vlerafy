@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   fetchProducts,
   getRecommendation,
@@ -15,6 +15,7 @@ import {
   calculateMargin,
   applyPrice,
   explainPrice,
+  chatWithAI,
   getCategoryDefaults,
 } from '@/lib/api';
 import { showToast } from '@/lib/toast';
@@ -106,6 +107,12 @@ export default function ProductDetailPage() {
   } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
+  const [chatMessages, setChatMessages] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string }>
+  >([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const { data: products = [] } = useQuery({
     queryKey: ['products'],
@@ -264,6 +271,49 @@ export default function ProductDetailPage() {
       setAiError(true);
     } finally {
       setAiLoading(false);
+    }
+  };
+
+  const handleChatSend = async () => {
+    const msg = chatInput.trim();
+    if (!msg || chatLoading) return;
+    const newMessages = [
+      ...chatMessages,
+      { role: 'user' as const, content: msg },
+    ];
+    setChatMessages(newMessages);
+    setChatInput('');
+    setChatLoading(true);
+    try {
+      const result = await chatWithAI({
+        message: msg,
+        product_title: product?.title,
+        current_price: recommendation?.current_price,
+        recommended_price: recommendation?.recommended_price,
+        confidence: recommendation?.confidence,
+        competitor_avg: recommendation?.competitor_avg_price,
+        break_even: margin?.break_even_price,
+        history: chatMessages.slice(-6),
+      });
+      setChatMessages([
+        ...newMessages,
+        { role: 'assistant', content: result.reply },
+      ]);
+    } catch {
+      setChatMessages([
+        ...newMessages,
+        {
+          role: 'assistant',
+          content:
+            'Tut mir leid, ich konnte deine Frage gerade nicht beantworten.',
+        },
+      ]);
+    } finally {
+      setChatLoading(false);
+      setTimeout(
+        () => chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' }),
+        100
+      );
     }
   };
 
@@ -469,6 +519,210 @@ export default function ProductDetailPage() {
                           </Button>
                         </InlineStack>
                       </BlockStack>
+                    </div>
+                  )}
+
+                  {/* Chat UI – nur wenn KI-Erklärung angezeigt */}
+                  {aiExplanation && (
+                    <div
+                      style={{
+                        border: '1px solid #DDD6FE',
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        marginTop: 8,
+                      }}
+                    >
+                      <div
+                        style={{
+                          background:
+                            'linear-gradient(135deg, #F5F3FF, #EEF2FF)',
+                          padding: '10px 16px',
+                          borderBottom: '1px solid #DDD6FE',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 8,
+                        }}
+                      >
+                        <span>💬</span>
+                        <span
+                          style={{
+                            fontSize: 13,
+                            fontWeight: 600,
+                            color: '#4C1D95',
+                          }}
+                        >
+                          Frag die KI
+                        </span>
+                        <span
+                          style={{ fontSize: 12, color: '#7C3AED' }}
+                        >
+                          · Stelle Fragen zur Preisempfehlung
+                        </span>
+                      </div>
+
+                      {chatMessages.length > 0 && (
+                        <div
+                          style={{
+                            maxHeight: 280,
+                            overflowY: 'auto',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: 10,
+                            background: '#FAFAFA',
+                          }}
+                        >
+                          {chatMessages.map((msg, i) => (
+                            <div
+                              key={i}
+                              style={{
+                                display: 'flex',
+                                justifyContent:
+                                  msg.role === 'user'
+                                    ? 'flex-end'
+                                    : 'flex-start',
+                              }}
+                            >
+                              <div
+                                style={{
+                                  maxWidth: '80%',
+                                  padding: '8px 12px',
+                                  borderRadius:
+                                    msg.role === 'user'
+                                      ? '12px 12px 2px 12px'
+                                      : '12px 12px 12px 2px',
+                                  background:
+                                    msg.role === 'user'
+                                      ? '#6366F1'
+                                      : 'white',
+                                  color:
+                                    msg.role === 'user'
+                                      ? 'white'
+                                      : '#0F172A',
+                                  fontSize: 13,
+                                  lineHeight: 1.5,
+                                  boxShadow:
+                                    '0 1px 3px rgba(0,0,0,0.08)',
+                                  border:
+                                    msg.role === 'assistant'
+                                      ? '1px solid #E2E8F0'
+                                      : 'none',
+                                }}
+                              >
+                                {msg.content}
+                              </div>
+                            </div>
+                          ))}
+                          {chatLoading && (
+                            <InlineStack gap="200" blockAlign="center">
+                              <Spinner size="small" />
+                              <Text as="span" variant="bodySm" tone="subdued">
+                                KI denkt nach...
+                              </Text>
+                            </InlineStack>
+                          )}
+                          <div ref={chatBottomRef} />
+                        </div>
+                      )}
+
+                      {chatMessages.length === 0 && (
+                        <div
+                          style={{
+                            padding: '12px 16px',
+                            display: 'flex',
+                            flexWrap: 'wrap',
+                            gap: 8,
+                            background: '#FAFAFA',
+                            borderBottom: '1px solid #E2E8F0',
+                          }}
+                        >
+                          {[
+                            'Warum soll ich den Preis senken?',
+                            'Ist die Empfehlung sicher?',
+                            'Was passiert wenn ich nichts ändere?',
+                          ].map((q) => (
+                            <button
+                              key={q}
+                              onClick={() => setChatInput(q)}
+                              style={{
+                                background: 'white',
+                                border: '1px solid #DDD6FE',
+                                borderRadius: 20,
+                                padding: '4px 12px',
+                                fontSize: 12,
+                                color: '#6366F1',
+                                cursor: 'pointer',
+                                fontWeight: 500,
+                              }}
+                            >
+                              {q}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+
+                      <div
+                        style={{
+                          display: 'flex',
+                          gap: 8,
+                          padding: '12px 16px',
+                          background: 'white',
+                          borderTop: '1px solid #E2E8F0',
+                        }}
+                      >
+                        <input
+                          value={chatInput}
+                          onChange={(e) =>
+                            setChatInput(e.target.value)
+                          }
+                          onKeyDown={(e) =>
+                            e.key === 'Enter' &&
+                            !e.shiftKey &&
+                            handleChatSend()
+                          }
+                          placeholder="Frage zur Preisempfehlung..."
+                          style={{
+                            flex: 1,
+                            border: '1px solid #E2E8F0',
+                            borderRadius: 8,
+                            padding: '8px 12px',
+                            fontSize: 13,
+                            outline: 'none',
+                            background: '#F8FAFC',
+                          }}
+                          onFocus={(e) =>
+                            (e.target.style.borderColor = '#6366F1')
+                          }
+                          onBlur={(e) =>
+                            (e.target.style.borderColor = '#E2E8F0')
+                          }
+                        />
+                        <button
+                          onClick={handleChatSend}
+                          disabled={
+                            !chatInput.trim() || chatLoading
+                          }
+                          style={{
+                            background: chatInput.trim()
+                              ? '#6366F1'
+                              : '#E2E8F0',
+                            color: chatInput.trim()
+                              ? 'white'
+                              : '#94A3B8',
+                            border: 'none',
+                            borderRadius: 8,
+                            padding: '8px 16px',
+                            fontWeight: 600,
+                            fontSize: 13,
+                            cursor: chatInput.trim()
+                              ? 'pointer'
+                              : 'not-allowed',
+                            transition: 'all 0.15s',
+                          }}
+                        >
+                          Senden
+                        </button>
+                      </div>
                     </div>
                   )}
 

@@ -274,6 +274,34 @@ export async function explainPrice(data: {
   }>;
 }
 
+export async function chatWithAI(data: {
+  message: string;
+  product_title?: string;
+  current_price?: number;
+  recommended_price?: number;
+  confidence?: number;
+  competitor_avg?: number;
+  break_even?: number;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+}) {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/api/ai/chat${params ? `?${params}` : ''}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || 'Chat nicht verfügbar'
+    );
+  }
+  return res.json() as Promise<{ reply: string }>;
+}
+
 export async function getEngineStatus() {
   const headers = await getApiHeaders();
   const res = await fetch(`${API_URL}/recommendations/engine-status`, {
