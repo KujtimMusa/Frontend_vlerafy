@@ -10,17 +10,9 @@ import type {
   DashboardStats,
 } from '@/types/models';
 
-const BACKEND_API_URL = 'https://api.vlerafy.com';
-
-// WICHTIG: API muss auf Backend zeigen, NICHT auf Frontend (vlerafy.com).
-// Wenn NEXT_PUBLIC_API_URL fehlt, leer oder auf Frontend zeigt → 404 bei /products.
-export const API_URL =
-  (typeof window !== 'undefined' &&
-    (process.env.NEXT_PUBLIC_API_URL === '' ||
-      process.env.NEXT_PUBLIC_API_URL === undefined ||
-      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') === window.location.origin))
-    ? BACKEND_API_URL
-    : (process.env.NEXT_PUBLIC_API_URL || BACKEND_API_URL);
+// API-Backend (Railway). NIEMALS vlerafy.com – dort ist nur Frontend (Next.js).
+// Fest auf Backend – NEXT_PUBLIC_API_URL ignoriert, da oft falsch konfiguriert.
+export const API_URL = 'https://api.vlerafy.com';
 
 declare global {
   interface Window {
