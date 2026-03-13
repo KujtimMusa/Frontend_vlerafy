@@ -3,7 +3,8 @@
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { InlineStack, Box } from '@shopify/polaris';
+import { InlineStack, Box, BlockStack } from '@shopify/polaris';
+import { ShopVerbindungBanner } from '@/components/ShopVerbindungBanner';
 
 export default function DashboardLayout({
   children,
@@ -28,12 +29,15 @@ export default function DashboardLayout({
 
   return (
     <Box padding="400">
-      <InlineStack gap="400" blockAlign="center">
-        <Link href="/dashboard">Dashboard</Link>
-        <Link href="/dashboard/products">Produkte</Link>
-        <Link href="/dashboard/analytics">Analysen</Link>
-      </InlineStack>
-      <Box paddingBlockStart="400">{children}</Box>
+      <BlockStack gap="400">
+        <InlineStack gap="400" blockAlign="center">
+          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/dashboard/products">Produkte</Link>
+          <Link href="/dashboard/analytics">Analysen</Link>
+        </InlineStack>
+        <ShopVerbindungBanner />
+        <Box paddingBlockStart="200">{children}</Box>
+      </BlockStack>
     </Box>
   );
 }
