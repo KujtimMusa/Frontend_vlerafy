@@ -1,0 +1,159 @@
+/* vlerafy Premium Design System */
+:root {
+  /* Primärfarbe: Sattes Indigo statt Shopify-Grün */
+  --p-color-bg-interactive: #4f46e5;
+  --p-color-bg-interactive-hover: #4338ca;
+  --p-color-bg-interactive-active: #3730a3;
+  --p-color-text-interactive: #4f46e5;
+  --p-color-border-interactive: #4f46e5;
+
+  /* Hintergrund: Leichtes Grau statt reines Weiß */
+  --p-color-bg: #f8f9fb;
+  --p-color-bg-surface: #ffffff;
+  --p-color-bg-surface-secondary: #f3f4f8;
+
+  /* Cards: Subtiler Schatten + scharfe Kanten */
+  --p-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.04);
+  --p-border-radius-200: 10px;
+  --p-border-radius-300: 14px;
+
+  /* Typography: Schärfer */
+  --p-font-family-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --p-font-weight-bold: 650;
+
+  /* Success: Satteres Grün */
+  --p-color-text-success: #059669;
+  --p-color-bg-fill-success: #ecfdf5;
+
+  /* Warning: Warmes Amber */
+  --p-color-text-caution: #d97706;
+  --p-color-bg-fill-caution: #fffbeb;
+
+  /* Critical: Klares Rot */
+  --p-color-text-critical: #dc2626;
+  --p-color-bg-fill-critical: #fef2f2;
+}
+
+/* Polaris Button: Abgerundeter + Schatten */
+.Polaris-Button--primary {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 1px 2px rgba(79, 70, 229, 0.3) !important;
+  transition: all 0.15s ease !important;
+}
+.Polaris-Button--primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.35) !important;
+}
+
+/* Polaris Card: Premium-Schatten */
+.Polaris-Card {
+  border-radius: 12px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+  transition: box-shadow 0.2s ease !important;
+  animation: fadeInUp 0.25s ease forwards;
+}
+.Polaris-Card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08) !important;
+}
+
+/* Navigation: Dunkler Sidebar */
+.Polaris-Frame__Navigation {
+  background: #1e1b4b !important;
+  border-right: none !important;
+}
+.Polaris-Navigation__Text {
+  color: #c7d2fe !important;
+}
+.Polaris-Navigation__Item--selected .Polaris-Navigation__Text {
+  color: #ffffff !important;
+}
+.Polaris-Navigation__Item--selected {
+  background: rgba(99, 102, 241, 0.25) !important;
+  border-radius: 8px !important;
+}
+.Polaris-Navigation__Item:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+}
+
+/* Badge: Runder */
+.Polaris-Badge {
+  border-radius: 99px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  letter-spacing: 0.02em !important;
+}
+
+/* IndexTable: Sauberere Zeilen */
+.Polaris-IndexTable__TableRow:hover td {
+  background: #f5f3ff !important;
+  cursor: pointer;
+}
+
+/* ProgressBar: Indigo */
+.Polaris-ProgressBar__Indicator {
+  background: linear-gradient(90deg, #4f46e5, #7c3aed) !important;
+  border-radius: 99px !important;
+}
+
+/* Task-List für FortschrittsCard */
+.task-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  transition: background 0.15s;
+}
+.task-item:hover {
+  background: #f5f3ff;
+  border-radius: 6px;
+  padding: 8px 6px;
+}
+.task-item:last-child {
+  border-bottom: none;
+}
+.task-done {
+  opacity: 0.6;
+}
+
+/* Micro-Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes valuePulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+    transform: scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.stat-value-updating {
+  animation: valuePulse 0.4s ease;
+}
+
+.Polaris-Button:active {
+  transform: scale(0.98) !important;
+}
+
+main {
+  animation: fadeInUp 0.2s ease;
+}

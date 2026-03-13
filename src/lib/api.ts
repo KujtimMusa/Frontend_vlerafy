@@ -150,7 +150,6 @@ export async function fetchProducts(shopId?: number): Promise<Product[]> {
   if (typeof window !== 'undefined') {
     const h = headers as Record<string, string>;
     if (!params || url === baseUrl || window.location.search.includes('debug=1')) {
-      // eslint-disable-next-line no-console
       console.log('[API DEBUG] fetchProducts:', {
         url,
         params: params || '(LEER – Shop wird evtl. nicht erkannt)',
@@ -166,7 +165,6 @@ export async function fetchProducts(shopId?: number): Promise<Product[]> {
   const data = await res.json();
   const products = Array.isArray(data) ? data : data.products ?? [];
   if (typeof window !== 'undefined' && window.location.search.includes('debug=1') && products.length === 0) {
-    // eslint-disable-next-line no-console
     console.warn('[API DEBUG] Leere Antwort. Prüfe ob Backend Shop erkannt hat (Railway Logs).');
   }
   return products;
@@ -244,6 +242,41 @@ export async function getEngineStatus() {
     headers,
     credentials: 'include',
   });
+  return res.json();
+}
+
+export async function getRecommendationsList(
+  status: 'pending' | 'applied' | 'all' = 'pending'
+): Promise<{ recommendations: Array<{
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_title: string;
+  current_price: number;
+  recommended_price: number;
+  price_change_pct: number;
+  confidence: number;
+  strategy: string;
+  reasoning: string;
+  applied_at: string | null;
+}> }> {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/recommendations/list?status=${status}${params ? `&${params}` : ''}`;
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) throw new Error('Empfehlungen laden fehlgeschlagen');
+  return res.json();
+}
+
+export async function getMarginHistory(
+  productId: string,
+  days = 30
+): Promise<{ product_id: string; days: number; history: Array<{ date: string; selling_price: number; margin_euro: number; margin_percent: number }> }> {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/margin/history/${productId}?days=${days}${params ? `&${params}` : ''}`;
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) throw new Error('Preishistorie laden fehlgeschlagen');
   return res.json();
 }
 

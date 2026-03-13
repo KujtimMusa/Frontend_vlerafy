@@ -1,22 +1,44 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { getDashboardStats, getEngineStatus } from '@/lib/api';
+import { useSearchParams } from 'next/navigation';
+import {
+  getDashboardStats,
+  getEngineStatus,
+  fetchProducts,
+  getMarginHistory,
+} from '@/lib/api';
 import {
   Page,
   Card,
   Text,
   Badge,
-  Button,
-  ProgressBar,
-  List,
   BlockStack,
   InlineGrid,
   InlineStack,
   SkeletonPage,
 } from '@shopify/polaris';
+import { AlertCircleIcon, CheckCircleIcon, ChartLineIcon } from '@shopify/polaris-icons';
+import { StatKarte } from '@/components/StatKarte';
+import { FortschrittsCard } from '@/components/FortschrittsCard';
+import { PreisverlaufChart } from '@/components/PreisverlaufChart';
+
+function useShopSuffix(): string {
+  const searchParams = useSearchParams();
+  const shop = searchParams.get('shop') ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain') : null) ?? '';
+  const host = searchParams.get('host') ?? (typeof window !== 'undefined' ? localStorage.getItem('shopify_host') : null) ?? '';
+  const shopId = searchParams.get('shop_id') ?? (typeof window !== 'undefined' ? localStorage.getItem('current_shop_id') : null) ?? '';
+  const idToken = searchParams.get('id_token') ?? '';
+  const p = new URLSearchParams();
+  if (shop) p.set('shop', shop);
+  if (host) p.set('host', host);
+  if (shopId) p.set('shop_id', shopId);
+  if (idToken) p.set('id_token', idToken);
+  return p.toString() ? `?${p.toString()}` : '';
+}
 
 export default function AnalyticsPage() {
+  const suffix = useShopSuffix();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
     queryFn: getDashboardStats,
@@ -25,147 +47,94 @@ export default function AnalyticsPage() {
     queryKey: ['engine-status'],
     queryFn: getEngineStatus,
   });
+  const { data: products = [] } = useQuery({
+    queryKey: ['products'],
+    queryFn: () => fetchProducts(),
+  });
+  const topProduct = products[0];
+  const { data: historyData } = useQuery({
+    queryKey: ['margin-history', topProduct?.shopify_product_id],
+    queryFn: () =>
+      getMarginHistory(topProduct!.shopify_product_id, 30),
+    enabled: !!topProduct?.shopify_product_id,
+  });
+
+  const chartData =
+    historyData?.history?.map((h) => ({
+      date: new Date(h.date).toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+      price: h.selling_price,
+    })) ?? [];
 
   if (isLoading) return <SkeletonPage />;
 
   return (
-    <Page title="Analysen">
+    <Page
+      title="Analysen"
+      primaryAction={{
+        content: 'Produkte optimieren',
+        url: `/dashboard/pricing${suffix}`,
+      }}
+    >
       <BlockStack gap="500">
-        <Card>
-          <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">
-              Ungenutztes Potenzial
-            </Text>
-            <Text as="p" variant="headingXl" tone="critical">
-              €{stats?.missed_revenue?.total?.toFixed(2) ?? '0.00'}
-            </Text>
-            <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
-              <BlockStack gap="100">
-                <Text as="p" variant="headingLg">
-                  {stats?.missed_revenue?.product_count ?? 0}
-                </Text>
-                <Text as="p" tone="subdued">
-                  Betroffene Produkte
-                </Text>
-              </BlockStack>
-              <BlockStack gap="100">
-                <Text as="p" variant="headingLg">
-                  €
-                  {stats?.missed_revenue?.avg_per_product?.toFixed(2) ?? '0.00'}
-                </Text>
-                <Text as="p" tone="subdued">
-                  Ø pro Produkt
-                </Text>
-              </BlockStack>
-              <BlockStack gap="100">
-                <Text as="p" variant="headingLg">
-                  {stats?.missed_revenue?.recommendation_count ?? 0}
-                </Text>
-                <Text as="p" tone="subdued">
-                  Ausstehende Empfehlungen
-                </Text>
-              </BlockStack>
-            </InlineGrid>
-            <Button url="/dashboard/products">Produkte optimieren →</Button>
-          </BlockStack>
-        </Card>
+        <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
+          <StatKarte
+            value={stats?.recommendations_pending ?? 0}
+            label="Ausstehend"
+            icon={<AlertCircleIcon />}
+            tone="warning"
+          />
+          <StatKarte
+            value={stats?.recommendations_applied ?? 0}
+            label="Umgesetzt"
+            icon={<CheckCircleIcon />}
+            tone="success"
+          />
+          <StatKarte
+            value={stats?.products_with_recommendations ?? 0}
+            label="Analysiert"
+            icon={<ChartLineIcon />}
+            tone="neutral"
+          />
+          <StatKarte
+            value={`€${stats?.missed_revenue?.total?.toFixed(0) ?? '0'}`}
+            label="Potenzial"
+            icon={<ChartLineIcon />}
+            tone="critical"
+          />
+        </InlineGrid>
 
-        <Card>
-          <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">
-              Empfehlungs-Übersicht
-            </Text>
-            <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
-              <BlockStack gap="100">
-                <Text as="p" variant="headingLg">
-                  {stats?.recommendations_pending ?? 0}
-                </Text>
-                <Text as="p" tone="subdued">
-                  Ausstehend
-                </Text>
-              </BlockStack>
-              <BlockStack gap="100">
-                <Text as="p" variant="headingLg" tone="success">
-                  {stats?.recommendations_applied ?? 0}
-                </Text>
-                <Text as="p" tone="subdued">
-                  Angewendet
-                </Text>
-              </BlockStack>
-              <BlockStack gap="100">
-                <Text as="p" variant="headingLg">
-                  {stats?.products_with_recommendations ?? 0}
-                </Text>
-                <Text as="p" tone="subdued">
-                  Produkte mit Empfehlung
-                </Text>
-              </BlockStack>
-            </InlineGrid>
-          </BlockStack>
-        </Card>
+        <PreisverlaufChart
+          data={chartData}
+          title="Preisentwicklung"
+          subtitle="Letzte 30 Tage (erstes Produkt)"
+        />
 
         {engineStatus && (
           <Card>
             <BlockStack gap="400">
               <Text as="h2" variant="headingMd">
-                ML Pricing Engine
+                Preisanalyse-Engine
               </Text>
               <InlineStack gap="200">
                 <Badge
-                  tone={
-                    engineStatus.feature_flags ? 'success' : 'warning'
-                  }
+                  tone={engineStatus.feature_flags ? 'success' : 'warning'}
                 >
                   {engineStatus.feature_flags ? 'Aktiv' : 'Prüfen'}
                 </Badge>
                 <Text as="p">
-                  Engine: XGBoost v1.2 + Meta-Labeler
+                  Datenbasierte Preisanalyse v1.2
                 </Text>
               </InlineStack>
             </BlockStack>
           </Card>
         )}
 
-        <Card>
-          <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">
-              Optimierungs-Fortschritt
-            </Text>
-            <Badge
-              tone={
-                stats?.progress.level === 'platinum'
-                  ? 'success'
-                  : stats?.progress.level === 'gold'
-                    ? 'warning'
-                    : stats?.progress.level === 'silver'
-                      ? 'info'
-                      : 'attention'
-              }
-            >
-              {stats?.progress.level?.toUpperCase() ?? 'BRONZE'}
-            </Badge>
-            <ProgressBar
-              progress={
-                (stats?.progress.next_level_points ?? 100) > 0
-                  ? ((stats?.progress.points ?? 0) /
-                      (stats?.progress.next_level_points ?? 100)) *
-                    100
-                  : 0
-              }
-              size="small"
-            />
-            <Text as="p">
-              {stats?.progress.points_needed ?? 0} Punkte bis nächstes Level
-            </Text>
-            <List type="bullet">
-              {stats?.progress.pending_steps?.map((step) => (
-                <List.Item key={step.text}>
-                  {step.text} <Badge tone="info">{`+${step.points} Punkte`}</Badge>
-                </List.Item>
-              ))}
-            </List>
-          </BlockStack>
-        </Card>
+        {stats?.progress && (
+          <FortschrittsCard progress={stats.progress} />
+        )}
       </BlockStack>
     </Page>
   );

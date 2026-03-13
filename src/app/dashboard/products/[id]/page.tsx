@@ -1,12 +1,13 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useParams } from 'next/navigation';
+import { useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   fetchProducts,
   getRecommendation,
   generateRecommendation,
+  getMarginHistory,
   getCompetitorAnalysis,
   searchCompetitors,
   getProductCosts,
@@ -37,6 +38,7 @@ import {
   SkeletonBodyText,
   Layout,
 } from '@shopify/polaris';
+import { PreisverlaufChart } from '@/components/PreisverlaufChart';
 
 const PAYMENT_PROVIDERS = [
   { label: 'Stripe (2.9% + 0.30€)', value: 'stripe' },
@@ -53,10 +55,25 @@ const CATEGORIES = [
   { label: 'Food', value: 'food' },
 ];
 
+function useShopSuffix(): string {
+  const searchParams = useSearchParams();
+  const shop = searchParams.get('shop') ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain') : null) ?? '';
+  const host = searchParams.get('host') ?? (typeof window !== 'undefined' ? localStorage.getItem('shopify_host') : null) ?? '';
+  const shopId = searchParams.get('shop_id') ?? (typeof window !== 'undefined' ? localStorage.getItem('current_shop_id') : null) ?? '';
+  const idToken = searchParams.get('id_token') ?? '';
+  const p = new URLSearchParams();
+  if (shop) p.set('shop', shop);
+  if (host) p.set('host', host);
+  if (shopId) p.set('shop_id', shopId);
+  if (idToken) p.set('id_token', idToken);
+  return p.toString() ? `?${p.toString()}` : '';
+}
+
 export default function ProductDetailPage() {
   const { id } = useParams();
   const productId = Number(id);
   const qc = useQueryClient();
+  const suffix = useShopSuffix();
 
   const [costForm, setCostForm] = useState({
     purchase_cost: '',
@@ -111,6 +128,20 @@ export default function ProductDetailPage() {
       });
     }
   }, [existingCosts]);
+
+  const { data: marginHistory } = useQuery({
+    queryKey: ['margin-history', product?.shopify_product_id],
+    queryFn: () => getMarginHistory(product!.shopify_product_id, 30),
+    enabled: !!product?.shopify_product_id,
+  });
+  const chartData =
+    marginHistory?.history?.map((h) => ({
+      date: new Date(h.date).toLocaleDateString('de-DE', {
+        day: '2-digit',
+        month: '2-digit',
+      }),
+      price: h.selling_price,
+    })) ?? [];
 
   const { data: margin } = useQuery({
     queryKey: [
@@ -232,14 +263,14 @@ export default function ProductDetailPage() {
   return (
     <Page
       title={product.title}
-      backAction={{ content: 'Produkte', url: '/dashboard/products' }}
+      backAction={{ content: 'Produkte', url: `/dashboard/products${suffix}` }}
     >
       <Layout>
         <Layout.Section>
           <Card>
             <BlockStack gap="400">
               <Text as="h2" variant="headingMd">
-                KI-Preisempfehlung
+                Preisempfehlung
               </Text>
               {recLoading ? (
                 <SkeletonBodyText />
@@ -277,7 +308,7 @@ export default function ProductDetailPage() {
                   </InlineGrid>
 
                   <Text as="h3" variant="headingMd">
-                    Konfidenz
+                    Analyse-Sicherheit
                   </Text>
                   <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
                     <BlockStack gap="100">
@@ -299,7 +330,7 @@ export default function ProductDetailPage() {
                     {mlConfidencePct != null && (
                       <BlockStack gap="100">
                         <Text as="p" tone="subdued">
-                          XGBoost
+                          Kernanalyse
                         </Text>
                         <Badge
                           tone={mlConfidencePct >= 80 ? 'success' : 'warning'}
@@ -311,7 +342,7 @@ export default function ProductDetailPage() {
                     {metaConfidencePct != null && (
                       <BlockStack gap="100">
                         <Text as="p" tone="subdued">
-                          Meta-Labeler
+                          Qualitätsprüfung
                         </Text>
                         <Badge
                           tone={
@@ -427,6 +458,14 @@ export default function ProductDetailPage() {
               )}
             </BlockStack>
           </Card>
+        </Layout.Section>
+
+        <Layout.Section>
+          <PreisverlaufChart
+            data={chartData}
+            title="Preisentwicklung"
+            subtitle="Letzte 30 Tage"
+          />
         </Layout.Section>
 
         <Layout.Section>

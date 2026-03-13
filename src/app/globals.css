@@ -1,10 +1,11 @@
 @import '@shopify/polaris/build/esm/styles.css';
+@import '../styles/vlerafy-theme.css';
 
-/* Basis-Styles – Polaris bringt eigene Styles */
+/* Basis-Styles */
 * {
   box-sizing: border-box;
 }
 body {
   margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family: var(--p-font-family-sans), system-ui, -apple-system, sans-serif;
 }
