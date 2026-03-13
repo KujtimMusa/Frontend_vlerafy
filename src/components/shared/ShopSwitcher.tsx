@@ -24,30 +24,35 @@ export function ShopSwitcher() {
     onError: () => showToast('Fehler beim Wechseln', { isError: true }),
   });
 
-  if (!shopsData?.shops?.length) return null;
+  const shops = shopsData?.shops?.filter((s) => s.type !== 'demo') ?? [];
+  if (!shops.length) return null;
 
-  const activeId = String(shopsData.active_shop_id ?? '');
+  const activeId = String(shopsData!.active_shop_id ?? '');
+  const activeExists = shops.some((s) => String(s.id) === activeId);
+  const displayValue = activeExists ? activeId : (activeId === '999' ? '999' : String(shops[0]?.id ?? ''));
 
   return (
     <label>
       Aktiver Shop
       <select
-        value={activeId}
+        value={displayValue}
         onChange={(e) => {
           const val = e.target.value;
-          if (!val) return;
-          const shop = shopsData.shops.find((s) => s.id === Number(val));
+          if (!val || val === '999') return;
+          const shop = shops.find((s) => s.id === Number(val));
           if (shop)
             mutation.mutate({
               shopId: shop.id,
-              useDemo: shop.type === 'demo',
+              useDemo: false,
             });
         }}
         disabled={mutation.isPending}
       >
-        {shopsData.shops.map((s) => (
+        {!activeExists && activeId === '999' && (
+          <option value="999">Bitte Shop verbinden</option>
+        )}
+        {shops.map((s) => (
           <option key={s.id} value={String(s.id)}>
-            {s.type === 'demo' ? `[Demo] ` : ''}
             {s.name}
           </option>
         ))}

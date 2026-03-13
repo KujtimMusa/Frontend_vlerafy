@@ -7,7 +7,6 @@ import {
   Page,
   Card,
   Text,
-  Badge,
   IndexTable,
   SkeletonPage,
   BlockStack,
@@ -73,7 +72,6 @@ export default function ProductsPage() {
               { title: 'Produkt' },
               { title: 'Preis' },
               { title: 'Lager' },
-              { title: 'Status' },
             ]}
             itemCount={products.length}
             selectable={false}
@@ -95,11 +93,6 @@ export default function ProductsPage() {
                 <IndexTable.Cell>€{product.price}</IndexTable.Cell>
                 <IndexTable.Cell>
                   {product.inventory ?? 0} Stück
-                </IndexTable.Cell>
-                <IndexTable.Cell>
-                  <Badge tone={product.is_demo ? 'info' : 'success'}>
-                    {product.is_demo ? 'Demo' : 'Live'}
-                  </Badge>
                 </IndexTable.Cell>
               </IndexTable.Row>
             ))}
