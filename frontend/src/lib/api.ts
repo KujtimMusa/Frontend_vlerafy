@@ -89,8 +89,8 @@ export async function getApiHeaders(): Promise<HeadersInit> {
   const shopId = getShopIdFromStorage();
   if (shopId) headers['X-Shop-ID'] = shopId;
 
-  // 3. Fallback: X-Shop-Domain (wenn kein Bearer Token)
-  if (typeof window !== 'undefined' && !headers['Authorization']) {
+  // X-Shop-Domain immer mitschicken wenn vorhanden (Fallback wenn Bearer fehlschlägt)
+  if (typeof window !== 'undefined') {
     const shopDomain = localStorage.getItem('shop_domain');
     if (shopDomain) headers['X-Shop-Domain'] = shopDomain;
   }

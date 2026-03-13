@@ -12,15 +12,22 @@ function HomePageContent() {
     const shopId = searchParams.get('shop_id');
     const host = searchParams.get('host');
 
-    if (shopId) {
-      if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
+      // Immer speichern wenn vorhanden – auch wenn nur shop/host (öffnen aus Shopify Admin)
+      if (shop) localStorage.setItem('shop_domain', shop);
+      if (host) localStorage.setItem('shopify_host', host);
+      if (shopId) {
         localStorage.setItem('shop_id', shopId);
         localStorage.setItem('current_shop_id', shopId);
-        if (shop) localStorage.setItem('shop_domain', shop);
-        if (host) localStorage.setItem('shopify_host', host);
       }
+    }
+
+    if (shopId) {
       const dest = host ? `/dashboard?shop=${shop}&host=${host}&shop_id=${shopId}` : `/dashboard?shop_id=${shopId}`;
       router.replace(dest);
+    } else if (shop) {
+      // Ohne shop_id: trotzdem zu Dashboard – Backend löst shop über X-Shop-Domain
+      router.replace(host ? `/dashboard?shop=${shop}&host=${host}` : `/dashboard?shop=${shop}`);
     } else {
       router.replace('/dashboard');
     }
