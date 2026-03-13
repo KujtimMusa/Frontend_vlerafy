@@ -6,7 +6,6 @@ import { useSearchParams } from 'next/navigation';
 import {
   getRecommendationsList,
   applyPrice,
-  markRecommendationApplied,
   rejectRecommendation,
   getDashboardStats,
 } from '@/lib/api';
@@ -71,15 +70,14 @@ export default function PricingPage() {
       rec: (typeof recs)[0];
       productId: number;
     }) => {
-      await applyPrice(productId, rec.recommended_price);
-      await markRecommendationApplied(rec.id);
+      await applyPrice(productId, rec.recommended_price, rec.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recommendations-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       showToast('Preis erfolgreich übernommen!', { duration: 3000 });
     },
-    onError: () => showToast('Fehler beim Übernehmen', { isError: true }),
+    onError: (err) => showToast(err.message || 'Fehler beim Übernehmen', { isError: true }),
   });
   const rejectMutation = useMutation({
     mutationFn: (recommendationId: number) =>

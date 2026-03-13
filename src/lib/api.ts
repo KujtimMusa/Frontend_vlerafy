@@ -229,11 +229,14 @@ export async function rejectRecommendation(id: number, reason?: string) {
 
 export async function markRecommendationApplied(id: number) {
   const headers = await getApiHeaders();
-  return fetch(`${API_URL}/recommendations/${id}/mark-applied`, {
+  const res = await fetch(`${API_URL}/recommendations/${id}/mark-applied`, {
     method: 'PATCH',
     headers,
     credentials: 'include',
+    body: JSON.stringify({}),
   });
+  if (!res.ok) throw new Error('Recommendation konnte nicht markiert werden');
+  return res.json();
 }
 
 export async function getEngineStatus() {
@@ -414,15 +417,39 @@ export async function autoDiscoverCompetitors(productId: number | string) {
 }
 
 // ── Shopify ────────────────────────────────────────────
-export async function applyPrice(productId: number, price: number) {
+export async function applyPrice(
+  productId: number,
+  price: number,
+  recommendationId?: number
+) {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/api/shopify/apply-price`, {
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/api/shopify/apply-price${params ? `?${params}` : ''}`;
+
+  const body: Record<string, unknown> = {
+    product_id: productId,
+    recommended_price: price,
+  };
+  if (recommendationId != null) body.recommendation_id = recommendationId;
+
+  const res = await fetch(url, {
     method: 'POST',
     headers,
     credentials: 'include',
-    body: JSON.stringify({ product_id: productId, recommended_price: price }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error('Preis übernehmen fehlgeschlagen');
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    let msg: string | undefined;
+    if (typeof err.detail === 'string') msg = err.detail;
+    else if (err.detail && typeof err.detail === 'object') {
+      msg = err.detail.message ?? err.detail.detail ?? String(err.detail.error ?? '');
+    } else {
+      msg = err.message;
+    }
+    throw new Error(msg || 'Preis übernehmen fehlgeschlagen');
+  }
   return res.json();
 }
 
