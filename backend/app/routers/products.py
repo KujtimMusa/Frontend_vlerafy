@@ -6,7 +6,6 @@ from app.models.shop import Shop
 from app.models.product import Product
 from app.utils.encryption import decrypt_token
 from app.services.shopify_adapter import ShopifyDataAdapter
-from app.services.csv_demo_shop_adapter import CSVDemoShopAdapter
 from app.core.shop_context import get_active_shop_for_request
 from app.config import settings
 import logging
@@ -33,23 +32,9 @@ async def get_products(
         logger.info(f"[PRODUCTS] active_shop_id={active_shop_id}, is_demo={is_demo_mode}")
 
         if is_demo_mode:
-            # Demo-Shop: Nutze CSV-Adapter
-            adapter = CSVDemoShopAdapter()
-            demo_products = adapter.load_products()
-            
-            # Konvertiere zu erwartetem Format
-            # WICHTIG: Konvertiere Product IDs zu int für Frontend-Kompatibilität
-            return [
-                {
-                    "id": int(p.get('id', 0)),  # Convert string to int!
-                    "title": p.get('title', ''),
-                    "price": p.get('price', 0),
-                    "inventory": p.get('inventory_quantity', 0),
-                    "shopify_product_id": p.get('shopify_product_id', ''),
-                    "is_demo": True
-                }
-                for p in demo_products
-            ]
+            # Kein echter Shop verbunden – leere Liste (Demo-Produkte entfernt)
+            logger.info("[PRODUCTS] Kein Shop verbunden – leere Produktliste")
+            return []
         else:
             # Echter Shop: Aus DB laden
             logger.info(f"[PRODUCTS] Loading products for Live Shop ID: {active_shop_id}")
@@ -165,68 +150,28 @@ async def sync_sales_history(
             detail=f"Produkt {product_id} nicht gefunden im Shop {shop_context.active_shop_id}"
         )
     
-    # Lade Adapter
-    adapter = shop_context.get_adapter()
-    
-    # Sync Sales History
+    # Sync Sales History (Demo wurde entfernt)
     if shop_context.is_demo_mode:
-        # Demo: Lade aus CSV und speichere in DB
-        # WICHTIG: CSV-Adapter hat jetzt sync_sales_history_to_db() Methode
-        if hasattr(adapter, 'sync_sales_history_to_db'):
-            saved_count = adapter.sync_sales_history_to_db(
-                db=db,
-                product_id=product.id,  # DB Product ID
-                days_back=days_back,
-                shop_id=999  # Demo Shop ID
-            )
-        else:
-            # Fallback: Manuell synchronisieren
-            sales_data = adapter.load_product_sales_history(
-                product.shopify_product_id,
-                days_back=days_back
-            )
-            service = SalesHistoryService(db)
-            
-            # Konvertiere zu Records-Format
-            # WICHTIG: Datum wird bereits korrekt von load_product_sales_history() gefiltert
-            # (relativ zu effective_now = max_date aus CSV)
-            records = []
-            for _, row in sales_data.iterrows():
-                records.append({
-                    'date': row['date'],
-                    'quantity': int(row.get('quantity', row.get('quantity_sold', 0))),
-                    'revenue': float(row.get('revenue', 0)),
-                    'price': float(row.get('price', 0)),
-                    'order_id': None,
-                    'variant_id': None,
-                    'meta_data': {'source': 'csv_demo'}
-                })
-            
-            saved_count = service.bulk_save_sales(
-                records,
-                product_id=product.id,
-                shop_id=999,  # Demo Shop ID
-                aggregate_daily=True  # WICHTIG: CSV-Daten aggregieren (keine Order IDs)
-            )
-    else:
-        # Live: Lade von Shopify API
-        shop = db.query(Shop).filter(Shop.id == shop_context.active_shop_id).first()
-        if not shop:
-            raise HTTPException(status_code=404, detail="Shop nicht gefunden")
-        
-        access_token = decrypt_token(shop.access_token)
-        
-        shopify_adapter = ShopifyDataAdapter(
-            shop_id=shop.id,
-            shop_url=shop.shop_url,
-            access_token=access_token,
-            api_version=settings.SHOPIFY_API_VERSION
+        raise HTTPException(
+            status_code=400,
+            detail="Demo-Shop wurde entfernt. Bitte verbinde einen echten Shop."
         )
-        saved_count = shopify_adapter.sync_sales_history_to_db(
-            db, 
-            product.shopify_product_id, 
-            days_back
-        )
+    shop = db.query(Shop).filter(Shop.id == shop_context.active_shop_id).first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop nicht gefunden")
+
+    access_token = decrypt_token(shop.access_token)
+    shopify_adapter = ShopifyDataAdapter(
+        shop_id=shop.id,
+        shop_url=shop.shop_url,
+        access_token=access_token,
+        api_version=settings.SHOPIFY_API_VERSION
+    )
+    saved_count = shopify_adapter.sync_sales_history_to_db(
+        db,
+        product.shopify_product_id,
+        days_back
+    )
     
     return {
         "success": True,

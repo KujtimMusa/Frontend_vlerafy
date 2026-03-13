@@ -14,8 +14,6 @@ from app.database import get_db
 from app.models.shop import Shop
 from app.core.shop_context import ShopContext, get_session_id, get_shop_context
 from app.core.jwt_manager import create_access_token, create_refresh_token
-from app.services.csv_demo_shop_adapter import CSVDemoShopAdapter
-
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/shops", tags=["shops"])
@@ -70,22 +68,7 @@ async def get_available_shops(
         logger.info(f"[AVAILABLE_SHOPS] Context AFTER reload: shop_id={shop_context.active_shop_id}, is_demo={shop_context.is_demo_mode}")
         shops = []
         
-        # 1. Demo Shop (immer verfügbar)
-        demo_adapter = CSVDemoShopAdapter()
-        demo_products = demo_adapter.load_products()
-        
-        # Demo Shop - Stelle sicher dass type="demo" und id=999
-        shops.append(ShopResponse(
-            id=999,
-            name="Demo Shop",
-            type="demo",  # WICHTIG: type muss "demo" sein!
-            shop_url=None,
-            product_count=len(demo_products),
-            is_active=shop_context.is_demo_mode and shop_context.active_shop_id == 999
-        ))
-        logger.info(f"✅ Demo Shop hinzugefügt (ID=999, Products={len(demo_products)})")
-        
-        # 2. Echte Shopify-Shops aus DB
+        # Echte Shopify-Shops aus DB (Demo-Shop entfernt)
         db_shops = db.query(Shop).filter(Shop.is_active == True).all()
         logger.info(f"Gefundene aktive Shops in DB: {len(db_shops)}")
         
@@ -120,7 +103,7 @@ async def get_available_shops(
                 f"Products: {product_count}, Active: {is_currently_active}"
             )
         
-        logger.info(f"✅ Insgesamt {len(shops)} Shops zurückgegeben (1 Demo + {len(db_shops)} Live)")
+        logger.info(f"✅ Insgesamt {len(shops)} Shops zurückgegeben")
         
         return ShopsResponse(
             shops=shops,
