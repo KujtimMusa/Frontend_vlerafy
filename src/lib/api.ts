@@ -9,10 +9,18 @@ import type {
   CategoryDefaults,
   DashboardStats,
 } from '@/types/models';
-import createApp from '@shopify/app-bridge';
-import { getSessionToken } from '@shopify/app-bridge/utilities';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.vlerafy.com';
+const BACKEND_API_URL = 'https://api.vlerafy.com';
+
+// WICHTIG: API muss auf Backend zeigen, NICHT auf Frontend (vlerafy.com).
+// Wenn NEXT_PUBLIC_API_URL fehlt, leer oder auf Frontend zeigt → 404 bei /products.
+export const API_URL =
+  (typeof window !== 'undefined' &&
+    (process.env.NEXT_PUBLIC_API_URL === '' ||
+      process.env.NEXT_PUBLIC_API_URL === undefined ||
+      process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '') === window.location.origin))
+    ? BACKEND_API_URL
+    : (process.env.NEXT_PUBLIC_API_URL || BACKEND_API_URL);
 
 declare global {
   interface Window {
@@ -40,35 +48,17 @@ function getShopIdFromStorage(): string | null {
   );
 }
 
+/** App Bridge 4.x (CDN): window.shopify.idToken() – Session Token für Bearer Header */
 async function getSessionTokenForApi(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
-
-  // 1. App Bridge 4.x (CDN script): window.shopify.idToken()
   try {
     if (window.shopify?.idToken) {
       const token = await window.shopify.idToken();
       if (token) return token;
     }
-  } catch {
-    // weiter zu Fallback
+  } catch (e) {
+    console.warn('App Bridge idToken failed:', e);
   }
-
-  // 2. App Bridge 3.x: getSessionToken(app) mit createApp
-  try {
-    const apiKey =
-      process.env.NEXT_PUBLIC_SHOPIFY_CLIENT_ID ||
-      process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ||
-      '';
-    const host = localStorage.getItem('shopify_host') ?? '';
-    if (apiKey && host) {
-      const app = createApp({ apiKey, host, forceRedirect: true });
-      const token = await getSessionToken(app);
-      if (token) return token;
-    }
-  } catch {
-    // weiter zu Fallback
-  }
-
   return null;
 }
 
@@ -98,13 +88,22 @@ export async function getApiHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+/** Shop-Parameter für API-URL – Backend kann Shop auch aus Query erkennen (falls Cookies/Header blockiert) */
+function getShopParamsForUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const shopId = getShopIdFromStorage();
+  if (shopId) return `shop_id=${shopId}`;
+  const shop = localStorage.getItem('shop_domain') || new URLSearchParams(window.location.search).get('shop');
+  if (shop) return `shop=${encodeURIComponent(shop)}`;
+  return '';
+}
+
 // ── Dashboard ──────────────────────────────────────────
 export async function getDashboardStats(): Promise<DashboardStats> {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/api/dashboard/stats`, {
-    headers,
-    credentials: 'include',
-  });
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/api/dashboard/stats?${params}` : `${API_URL}/api/dashboard/stats`;
+  const res = await fetch(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Dashboard stats fehler');
   return res.json();
 }
@@ -112,11 +111,24 @@ export async function getDashboardStats(): Promise<DashboardStats> {
 // ── Products ───────────────────────────────────────────
 export async function fetchProducts(shopId?: number): Promise<Product[]> {
   const headers = await getApiHeaders();
-  const url = shopId ? `${API_URL}/products/?shop_id=${shopId}` : `${API_URL}/products/`;
+  const baseUrl = `${API_URL}/products/`;
+  const params = shopId ? `shop_id=${shopId}` : getShopParamsForUrl();
+  const url = params ? `${baseUrl}?${params}` : baseUrl;
   const res = await fetch(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Produkte laden fehlgeschlagen');
   const data = await res.json();
   return Array.isArray(data) ? data : data.products ?? [];
+}
+
+/** Produkte von Shopify in DB synchronisieren (z.B. bei erstem Öffnen falls OAuth-Sync fehlschlug) */
+export async function syncProductsFromShopify(): Promise<{ synced: number; updated: number }> {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/products/sync?${params}` : `${API_URL}/products/sync`;
+  const res = await fetch(url, { method: 'POST', headers, credentials: 'include' });
+  if (!res.ok) throw new Error('Produktsync fehlgeschlagen');
+  const data = await res.json();
+  return { synced: data.synced ?? 0, updated: data.updated ?? 0 };
 }
 
 // ── Recommendations ────────────────────────────────────
@@ -336,20 +348,18 @@ export async function getAvailableShops(): Promise<{
   is_demo_mode: boolean;
 }> {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/shops`, {
-    headers,
-    credentials: 'include',
-  });
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/shops?${params}` : `${API_URL}/shops`;
+  const res = await fetch(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Shops laden fehlgeschlagen');
   return res.json();
 }
 
 export async function getCurrentShop() {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/shops/current`, {
-    headers,
-    credentials: 'include',
-  });
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/shops/current?${params}` : `${API_URL}/shops/current`;
+  const res = await fetch(url, { headers, credentials: 'include' });
   return res.json();
 }
 

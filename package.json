@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@shopify/app-bridge": "^3.7.11",
     "@shopify/app-bridge-react": "^4.2.10",
     "@shopify/polaris": "^13.9.5",
     "@shopify/polaris-icons": "^9.3.1",
