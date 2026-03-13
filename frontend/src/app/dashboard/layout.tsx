@@ -1,30 +1,30 @@
 'use client';
 
-import { Suspense, useEffect } from 'react';
+import { useEffect } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { InlineStack, Box } from '@shopify/polaris';
 
-function DashboardLayoutContent({
+export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const searchParams = useSearchParams();
+  const pathname = usePathname();
 
   useEffect(() => {
-    const shop = searchParams.get('shop');
-    const shopId = searchParams.get('shop_id');
-    const host = searchParams.get('host');
-    if (typeof window !== 'undefined') {
-      if (shop) localStorage.setItem('shop_domain', shop);
-      if (host) localStorage.setItem('shopify_host', host);
-      if (shopId) {
-        localStorage.setItem('shop_id', shopId);
-        localStorage.setItem('current_shop_id', shopId);
-      }
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const shop = params.get('shop');
+    const shopId = params.get('shop_id');
+    const host = params.get('host');
+    if (shop) localStorage.setItem('shop_domain', shop);
+    if (host) localStorage.setItem('shopify_host', host);
+    if (shopId) {
+      localStorage.setItem('shop_id', shopId);
+      localStorage.setItem('current_shop_id', shopId);
     }
-  }, [searchParams]);
+  }, [pathname]);
 
   return (
     <Box padding="400">
@@ -35,26 +35,5 @@ function DashboardLayoutContent({
       </InlineStack>
       <Box paddingBlockStart="400">{children}</Box>
     </Box>
-  );
-}
-
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  return (
-    <Suspense fallback={
-      <Box padding="400">
-        <InlineStack gap="400" blockAlign="center">
-          <Link href="/dashboard">Dashboard</Link>
-          <Link href="/dashboard/products">Produkte</Link>
-          <Link href="/dashboard/analytics">Analysen</Link>
-        </InlineStack>
-        <Box paddingBlockStart="400">{children}</Box>
-      </Box>
-    }>
-      <DashboardLayoutContent>{children}</DashboardLayoutContent>
-    </Suspense>
   );
 }
