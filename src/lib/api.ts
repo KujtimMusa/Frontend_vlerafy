@@ -48,12 +48,18 @@ function getShopIdFromStorage(): string | null {
   );
 }
 
-/** App Bridge 4.x (CDN): window.shopify.idToken() – Session Token für Bearer Header
- *  Timeout 2s: Request soll nicht ewig auf idToken warten, Fallback (X-Shop-Domain, ?shop=) nutzen */
+/** Session Token für Bearer Header – Priorität:
+ *  1. id_token aus URL (Shopify übergibt beim Embedding: ?id_token=...)
+ *  2. window.shopify.idToken() (App Bridge, max 2s Timeout) */
 async function getSessionTokenForApi(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
-  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
 
+  // 1. id_token aus URL – sofort verfügbar, kein App-Bridge nötig
+  const urlToken = new URLSearchParams(window.location.search).get('id_token');
+  if (urlToken) return urlToken;
+
+  // 2. App Bridge idToken (falls URL-Token fehlt)
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
   const tokenPromise = (async () => {
     try {
       if (window.shopify?.idToken) {
