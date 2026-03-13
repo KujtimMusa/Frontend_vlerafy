@@ -398,10 +398,10 @@ async def root(request: Request, db: Session = Depends(get_db)):
             logger.info(f"Redirecting to install URL: {install_url}")
             return RedirectResponse(url=install_url, status_code=302)
         
-        # Wenn authentifiziert → ins Frontend embedded /app (mit host falls vorhanden)
+        # Wenn authentifiziert → ins Frontend Root (mit host falls vorhanden)
         host = params.get("host", "")
         if host:
-            redirect_url = f"{settings.FRONTEND_URL}/app?shop={shop}&host={host}&shop_id={shop_record.id}"
+            redirect_url = f"{settings.FRONTEND_URL}/?shop={shop}&host={host}&shop_id={shop_record.id}"
         else:
             redirect_url = f"{settings.FRONTEND_URL}/dashboard?shop_id={shop_record.id}"
         logger.info(f"Shop authenticated: {shop}, redirecting to frontend")
