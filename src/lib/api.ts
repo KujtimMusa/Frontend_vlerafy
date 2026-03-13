@@ -121,6 +121,25 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   return res.json();
 }
 
+/** Redirect zu OAuth Install wenn Shop nicht in DB (401 oder Demo-Fallback). Gibt true zurück wenn Redirect ausgelöst. */
+function redirectToOAuthInstallIfNeeded(res: Response): boolean {
+  if (typeof window === 'undefined') return false;
+  const shopDomain =
+    new URLSearchParams(window.location.search).get('shop') ||
+    localStorage.getItem('shop_domain') ||
+    '';
+  if (!shopDomain) return false;
+  if (res.status === 401 || res.headers.get('X-Is-Demo') === 'true') {
+    const host = new URLSearchParams(window.location.search).get('host') || '';
+    const installUrl = host
+      ? `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shopDomain)}&host=${encodeURIComponent(host)}`
+      : `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shopDomain)}`;
+    window.location.href = installUrl;
+    return true;
+  }
+  return false;
+}
+
 // ── Products ───────────────────────────────────────────
 export async function fetchProducts(shopId?: number): Promise<Product[]> {
   const headers = await getApiHeaders();
@@ -142,6 +161,7 @@ export async function fetchProducts(shopId?: number): Promise<Product[]> {
     }
   }
   const res = await fetch(url, { headers, credentials: 'include' });
+  if (redirectToOAuthInstallIfNeeded(res)) return [];
   if (!res.ok) throw new Error('Produkte laden fehlgeschlagen');
   const data = await res.json();
   const products = Array.isArray(data) ? data : data.products ?? [];

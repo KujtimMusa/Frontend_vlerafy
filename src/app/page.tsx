@@ -23,19 +23,28 @@ function HomePageContent() {
     }
 
     const idToken = searchParams.get('id_token');
+
+    // shopId vorhanden = OAuth war erfolgreich, Shop in DB → direkt zum Dashboard
     if (shopId) {
       const q = new URLSearchParams([['shop', shop!], ['shop_id', shopId]]);
       if (host) q.set('host', host);
       if (idToken) q.set('id_token', idToken);
       router.replace(`/dashboard?${q.toString()}`);
-    } else if (shop) {
-      const q = new URLSearchParams([['shop', shop]]);
-      if (host) q.set('host', host);
-      if (idToken) q.set('id_token', idToken);
-      router.replace(`/dashboard?${q.toString()}`);
-    } else {
-      router.replace('/dashboard');
+      return;
     }
+
+    // shop vorhanden OHNE shopId = User von Shopify Admin, Shop evtl. nicht in DB
+    // → Install-Endpoint (prüft DB, startet OAuth oder leitet zu Frontend weiter)
+    if (shop) {
+      const installUrl =
+        host
+          ? `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host)}`
+          : `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
+      window.location.href = installUrl;
+      return;
+    }
+
+    router.replace('/dashboard');
   }, [router, searchParams]);
 
   return (
