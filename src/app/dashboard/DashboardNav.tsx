@@ -3,17 +3,11 @@
 import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { InlineStack, Box, BlockStack, Text } from '@shopify/polaris';
-import {
-  HomeIcon,
-  ProductIcon,
-  PriceListIcon,
-  ChartLineIcon,
-  SettingsIcon,
-} from '@shopify/polaris-icons';
+import { useQuery } from '@tanstack/react-query';
+import { Box, BlockStack } from '@shopify/polaris';
+import { getCurrentShop, getDashboardStats } from '@/lib/api';
 import { ShopVerbindungBanner } from '@/components/ShopVerbindungBanner';
 
-/** Shop/Host aus URL oder localStorage – für Link-Preserve */
 function useShopParams(): {
   shop: string;
   host: string;
@@ -38,16 +32,28 @@ function useShopParams(): {
 }
 
 const NAV_ITEMS = [
-  { label: 'Übersicht', url: '/dashboard', icon: HomeIcon },
-  { label: 'Produkte', url: '/dashboard/products', icon: ProductIcon },
-  { label: 'Preisempfehlungen', url: '/dashboard/pricing', icon: PriceListIcon },
-  { label: 'Analysen', url: '/dashboard/analytics', icon: ChartLineIcon },
-  { label: 'Einstellungen', url: '/dashboard/settings', icon: SettingsIcon },
+  { href: '/dashboard', label: 'Übersicht', icon: '▤' },
+  { href: '/dashboard/products', label: 'Produkte', icon: '◫' },
+  { href: '/dashboard/pricing', label: 'Preisempfehlungen', icon: '◈' },
+  { href: '/dashboard/analytics', label: 'Analysen', icon: '◉' },
+  { href: '/dashboard/settings', label: 'Einstellungen', icon: '◎' },
 ] as const;
 
 export function DashboardNav({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { shop, host, shopId, idToken } = useShopParams();
+
+  const { data: shopData } = useQuery({
+    queryKey: ['current-shop'],
+    queryFn: getCurrentShop,
+  });
+  const { data: stats } = useQuery({
+    queryKey: ['dashboard-stats'],
+    queryFn: getDashboardStats,
+  });
+
+  const shopName = shopData?.shop?.name ?? shopData?.shop?.shop_url ?? 'Vlerafy';
+  const openCount = stats?.recommendations_pending ?? 0;
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -71,98 +77,167 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh' }}>
-      {/* Dunkle Sidebar */}
-      <aside
+      {/* Sidebar */}
+      <nav
         style={{
-          width: 240,
-          minWidth: 240,
+          width: 200,
+          minHeight: '100vh',
           background: '#0F172A',
-          padding: '16px 12px',
-          flexShrink: 0,
+          borderRight: '1px solid #1E293B',
+          display: 'flex',
+          flexDirection: 'column',
+          padding: 0,
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          bottom: 0,
         }}
       >
-        <Box paddingBlock="400" paddingInline="300">
-          <InlineStack gap="200" blockAlign="center">
+        {/* Logo-Bereich */}
+        <div
+          style={{
+            padding: '20px 20px 16px',
+            borderBottom: '1px solid #1E293B',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+          }}
+        >
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: 8,
+              background: 'linear-gradient(135deg, #1E3A5F, #2D5282)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: 13,
+              fontWeight: 800,
+              color: 'white',
+              flexShrink: 0,
+            }}
+          >
+            {shopName?.charAt(0)?.toUpperCase() || 'V'}
+          </div>
+          <div>
             <div
               style={{
-                width: 36,
-                height: 36,
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: '0 2px 8px rgba(99,102,241,0.4)',
-                flexShrink: 0,
+                fontSize: 13,
+                fontWeight: 700,
+                color: '#F1F5F9',
+                lineHeight: 1.2,
               }}
             >
-              <span
+              {shopName || 'Vlerafy'}
+            </div>
+            <div
+              style={{
+                fontSize: 10,
+                color: '#475569',
+                fontWeight: 500,
+              }}
+            >
+              Pricing Intelligence
+            </div>
+          </div>
+        </div>
+
+        {/* Navigation */}
+        <div style={{ flex: 1, padding: '12px 10px' }}>
+          {NAV_ITEMS.map((item) => {
+            const isActive =
+              pathname === item.href ||
+              (item.href !== '/dashboard' && pathname.startsWith(item.href));
+            return (
+              <Link
+                key={item.href}
+                href={item.href + linkSuffix}
                 style={{
-                  color: 'white',
-                  fontSize: 16,
-                  fontWeight: 700,
-                  letterSpacing: '-0.5px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 12px',
+                  borderRadius: 8,
+                  marginBottom: 2,
+                  background: isActive ? '#1E293B' : 'transparent',
+                  color: isActive ? '#F1F5F9' : '#64748B',
+                  fontSize: 13,
+                  fontWeight: isActive ? 600 : 400,
+                  textDecoration: 'none',
+                  transition: 'all 0.15s',
+                  border: isActive
+                    ? '1px solid #334155'
+                    : '1px solid transparent',
+                }}
+                onMouseEnter={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = '#1E293B';
+                    e.currentTarget.style.color = '#CBD5E1';
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!isActive) {
+                    e.currentTarget.style.background = 'transparent';
+                    e.currentTarget.style.color = '#64748B';
+                  }
                 }}
               >
-                v
-              </span>
-            </div>
-            <Text variant="headingMd" as="span" fontWeight="bold">
-              vlerafy
-            </Text>
-          </InlineStack>
-        </Box>
-
-        <BlockStack gap="100">
-          {NAV_ITEMS.map((item) => {
-            const href = item.url + linkSuffix;
-            const isSelected =
-              pathname === item.url ||
-              (item.url !== '/dashboard' && pathname.startsWith(item.url));
-            const IconComponent = item.icon;
-            return (
-              <Link key={item.url} href={href} style={{ textDecoration: 'none' }}>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '10px 12px',
-                    borderRadius: 8,
-                    background: isSelected
-                      ? 'rgba(99, 102, 241, 0.2)'
-                      : 'transparent',
-                    color: isSelected ? '#A5B4FC' : '#94A3B8',
-                    transition: 'background 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
-                      e.currentTarget.style.color = '#E2E8F0';
-                    }
-                  }}
-                  onMouseLeave={(e) => {
-                    if (!isSelected) {
-                      e.currentTarget.style.background = 'transparent';
-                      e.currentTarget.style.color = '#94A3B8';
-                    }
-                  }}
+                <span
+                  style={{ fontSize: 15, opacity: isActive ? 1 : 0.6 }}
                 >
-                  <span style={{ display: 'flex', color: 'inherit' }}>
-                    <IconComponent />
+                  {item.icon}
+                </span>
+                {item.label}
+                {item.label === 'Preisempfehlungen' && openCount > 0 && (
+                  <span
+                    style={{
+                      marginLeft: 'auto',
+                      background: '#1E3A5F',
+                      color: '#93C5FD',
+                      borderRadius: 20,
+                      padding: '1px 7px',
+                      fontSize: 11,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {openCount}
                   </span>
-                  <Text as="span" variant="bodyMd" fontWeight={isSelected ? 'semibold' : 'regular'}>
-                    {item.label}
-                  </Text>
-                </div>
+                )}
               </Link>
             );
           })}
-        </BlockStack>
-      </aside>
+        </div>
 
-      {/* Hauptbereich */}
-      <main style={{ flex: 1, background: '#F8FAFC', padding: 24 }}>
+        {/* Footer */}
+        <div
+          style={{
+            padding: '12px 20px',
+            borderTop: '1px solid #1E293B',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              color: '#334155',
+              fontWeight: 500,
+              letterSpacing: '0.05em',
+            }}
+          >
+            VLERAFY · BETA
+          </div>
+        </div>
+      </nav>
+
+      {/* Hauptbereich – mit margin-left für fixed Sidebar */}
+      <main
+        style={{
+          flex: 1,
+          marginLeft: 200,
+          background: '#F8FAFC',
+          padding: 24,
+        }}
+      >
         <BlockStack gap="400">
           <ShopVerbindungBanner />
           <Box paddingBlockStart="200">{children}</Box>
