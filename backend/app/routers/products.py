@@ -7,6 +7,7 @@ from app.models.product import Product
 from app.utils.encryption import decrypt_token
 from app.services.shopify_adapter import ShopifyDataAdapter
 from app.core.shop_context import get_active_shop_for_request
+from app.dependencies import get_current_shop
 from app.config import settings
 import logging
 
@@ -78,8 +79,43 @@ async def get_products(
         ]
 
 
+@router.post("/sync")
+async def sync_products_current(
+    shop_id: str = Depends(get_current_shop),
+    db: Session = Depends(get_db)
+):
+    """
+    Synchronisiert Produkte für den aktuellen Shop (aus Bearer, X-Shop-ID, X-Shop-Domain, ?shop=, Session).
+    """
+    active_shop_id = int(shop_id)
+    shop = db.query(Shop).filter(Shop.id == active_shop_id).first()
+    if not shop:
+        raise HTTPException(status_code=404, detail="Shop nicht gefunden")
+    if not shop.is_active:
+        raise HTTPException(status_code=400, detail="Shop ist nicht aktiv")
+    try:
+        access_token = decrypt_token(shop.access_token)
+        adapter = ShopifyDataAdapter(
+            shop_id=shop.id,
+            shop_url=shop.shop_url,
+            access_token=access_token,
+            api_version=settings.SHOPIFY_API_VERSION
+        )
+        result = adapter.sync_products_to_db(db)
+        logger.info(f"✅ Produktsync (current): {result['synced']} neu, {result['updated']} aktualisiert")
+        return {
+            "success": True,
+            "synced": result["synced"],
+            "updated": result["updated"],
+            "message": f"{result['synced']} neue Produkte, {result['updated']} aktualisiert"
+        }
+    except Exception as e:
+        logger.error(f"Fehler beim Synchronisieren: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.post("/sync/{shop_id}")
-async def sync_products(shop_id: int, db: Session = Depends(get_db)):
+async def sync_products(shop_id: int, request: Request = None, db: Session = Depends(get_db)):
     """Synchronisiert Produkte von Shopify zu DB"""
     shop = db.query(Shop).filter(Shop.id == shop_id).first()
     if not shop:

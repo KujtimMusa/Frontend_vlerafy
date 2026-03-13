@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request, Cookie
+from fastapi import APIRouter, Depends, HTTPException, Request, Cookie, Query
 from fastapi.responses import RedirectResponse, JSONResponse
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -77,23 +77,42 @@ async def shopify_install(shop: str, host: str = None, request: Request = None):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+def _verify_shopify_hmac(params: dict, secret: str) -> bool:
+    """Verifiziert Shopify OAuth HMAC-Signatur."""
+    hmac_value = params.get("hmac")
+    if not hmac_value:
+        return False
+    encoded_params = {k: v for k, v in params.items() if k not in ("hmac", "signature")}
+    sorted_str = "&".join(f"{k}={v}" for k, v in sorted(encoded_params.items()))
+    digest = hmac.new(
+        secret.encode("utf-8"),
+        sorted_str.encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+    return hmac.compare_digest(digest, hmac_value)
+
+
 @router.get("/callback")
 async def shopify_callback(
+    request: Request,
     code: str,
     shop: str,
     state: str = None,
-    hmac_param: str = None,
+    hmac_param: Optional[str] = Query(None, alias="hmac"),
     db: Session = Depends(get_db),
 ):
     """
     Shopify OAuth Callback - tauscht Code gegen Access Token
     """
     try:
-        # HMAC-Validierung (optional, aber empfohlen)
-        if hmac_param:
-            # HMAC-Validierung implementieren
-            pass
-        
+        # HMAC-Validierung (Shopify sendet hmac in Query)
+        params_dict = dict(request.query_params)
+        if hmac_param or params_dict.get("hmac"):
+            hmac_to_verify = hmac_param or params_dict.get("hmac", "")
+            if not _verify_shopify_hmac(params_dict, settings.SHOPIFY_CLIENT_SECRET):
+                logger.warning("HMAC-Verifikation fehlgeschlagen")
+                raise HTTPException(status_code=400, detail="Invalid HMAC signature")
+
         # Token Exchange
         token_url = f"https://{shop}/admin/oauth/access_token"
         token_data = {
