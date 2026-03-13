@@ -127,10 +127,29 @@ export async function fetchProducts(shopId?: number): Promise<Product[]> {
   const baseUrl = `${API_URL}/products/`;
   const params = shopId ? `shop_id=${shopId}` : getShopParamsForUrl();
   const url = params ? `${baseUrl}?${params}` : baseUrl;
+  // Debug: Immer wenn params leer (Verdacht: Shop nicht erkannt)
+  if (typeof window !== 'undefined') {
+    const h = headers as Record<string, string>;
+    if (!params || url === baseUrl || window.location.search.includes('debug=1')) {
+      // eslint-disable-next-line no-console
+      console.log('[API DEBUG] fetchProducts:', {
+        url,
+        params: params || '(LEER – Shop wird evtl. nicht erkannt)',
+        hasBearer: !!h?.Authorization,
+        urlShop: new URLSearchParams(window.location.search).get('shop'),
+        lsShop: localStorage.getItem('shop_domain'),
+      });
+    }
+  }
   const res = await fetch(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Produkte laden fehlgeschlagen');
   const data = await res.json();
-  return Array.isArray(data) ? data : data.products ?? [];
+  const products = Array.isArray(data) ? data : data.products ?? [];
+  if (typeof window !== 'undefined' && window.location.search.includes('debug=1') && products.length === 0) {
+    // eslint-disable-next-line no-console
+    console.warn('[API DEBUG] Leere Antwort. Prüfe ob Backend Shop erkannt hat (Railway Logs).');
+  }
+  return products;
 }
 
 /** Produkte von Shopify in DB synchronisieren (z.B. bei erstem Öffnen falls OAuth-Sync fehlschlug) */

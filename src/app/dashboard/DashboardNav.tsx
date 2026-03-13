@@ -7,16 +7,17 @@ import { InlineStack, Box, BlockStack } from '@shopify/polaris';
 import { ShopVerbindungBanner } from '@/components/ShopVerbindungBanner';
 
 /** Shop/Host aus URL oder localStorage – für Link-Preserve */
-function useShopParams(): { shop: string; host: string; shopId: string } {
+function useShopParams(): { shop: string; host: string; shopId: string; idToken: string } {
   const searchParams = useSearchParams();
   const shop = searchParams.get('shop') ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain') : null) ?? '';
   const host = searchParams.get('host') ?? (typeof window !== 'undefined' ? localStorage.getItem('shopify_host') : null) ?? '';
   const shopId = searchParams.get('shop_id') ?? (typeof window !== 'undefined' ? localStorage.getItem('current_shop_id') : null) ?? '';
-  return { shop, host, shopId };
+  const idToken = searchParams.get('id_token') ?? '';
+  return { shop, host, shopId, idToken };
 }
 
 export function DashboardNav({ children }: { children: React.ReactNode }) {
-  const { shop, host, shopId } = useShopParams();
+  const { shop, host, shopId, idToken } = useShopParams();
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -33,8 +34,9 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
     if (shop) p.set('shop', shop);
     if (host) p.set('host', host);
     if (shopId) p.set('shop_id', shopId);
+    if (idToken) p.set('id_token', idToken);
     return p.toString();
-  }, [shop, host, shopId]);
+  }, [shop, host, shopId, idToken]);
 
   const linkSuffix = query ? `?${query}` : '';
 

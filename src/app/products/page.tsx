@@ -12,7 +12,17 @@ function ProductsRedirectContent() {
   const searchParams = useSearchParams();
 
   useEffect(() => {
-    const q = searchParams.toString();
+    let q = searchParams.toString();
+    if (!q && typeof window !== 'undefined') {
+      const p = new URLSearchParams();
+      const shop = localStorage.getItem('shop_domain');
+      const host = localStorage.getItem('shopify_host');
+      const shopId = localStorage.getItem('current_shop_id');
+      if (shop) p.set('shop', shop);
+      if (host) p.set('host', host);
+      if (shopId) p.set('shop_id', shopId);
+      q = p.toString();
+    }
     const dest = q ? `/dashboard/products?${q}` : '/dashboard/products';
     router.replace(dest);
   }, [router, searchParams]);

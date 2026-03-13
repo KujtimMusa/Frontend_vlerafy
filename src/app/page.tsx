@@ -22,12 +22,17 @@ function HomePageContent() {
       }
     }
 
+    const idToken = searchParams.get('id_token');
     if (shopId) {
-      const dest = host ? `/dashboard?shop=${shop}&host=${host}&shop_id=${shopId}` : `/dashboard?shop_id=${shopId}`;
-      router.replace(dest);
+      const q = new URLSearchParams([['shop', shop!], ['shop_id', shopId]]);
+      if (host) q.set('host', host);
+      if (idToken) q.set('id_token', idToken);
+      router.replace(`/dashboard?${q.toString()}`);
     } else if (shop) {
-      // Ohne shop_id: trotzdem zu Dashboard – Backend löst shop über X-Shop-Domain
-      router.replace(host ? `/dashboard?shop=${shop}&host=${host}` : `/dashboard?shop=${shop}`);
+      const q = new URLSearchParams([['shop', shop]]);
+      if (host) q.set('host', host);
+      if (idToken) q.set('id_token', idToken);
+      router.replace(`/dashboard?${q.toString()}`);
     } else {
       router.replace('/dashboard');
     }
