@@ -48,18 +48,25 @@ function getShopIdFromStorage(): string | null {
   );
 }
 
-/** App Bridge 4.x (CDN): window.shopify.idToken() – Session Token für Bearer Header */
+/** App Bridge 4.x (CDN): window.shopify.idToken() – Session Token für Bearer Header
+ *  Timeout 2s: Request soll nicht ewig auf idToken warten, Fallback (X-Shop-Domain, ?shop=) nutzen */
 async function getSessionTokenForApi(): Promise<string | null> {
   if (typeof window === 'undefined') return null;
-  try {
-    if (window.shopify?.idToken) {
-      const token = await window.shopify.idToken();
-      if (token) return token;
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+
+  const tokenPromise = (async () => {
+    try {
+      if (window.shopify?.idToken) {
+        const token = await window.shopify.idToken();
+        if (token) return token;
+      }
+    } catch (e) {
+      console.warn('[API] idToken failed, using fallback:', e);
     }
-  } catch (e) {
-    console.warn('App Bridge idToken failed:', e);
-  }
-  return null;
+    return null;
+  })();
+
+  return Promise.race([tokenPromise, timeout]);
 }
 
 export async function getApiHeaders(): Promise<HeadersInit> {
@@ -88,14 +95,22 @@ export async function getApiHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
-/** Shop-Parameter für API-URL – Backend kann Shop auch aus Query erkennen (falls Cookies/Header blockiert) */
+/** Shop-Parameter für API-URL – Backend kann Shop auch aus Query erkennen (falls Cookies/Header blockiert)
+ *  Priorität: ?shop=/?shop_id= aus AKTUELLER URL > localStorage */
 function getShopParamsForUrl(): string {
   if (typeof window === 'undefined') return '';
-  const shopId = getShopIdFromStorage();
-  if (shopId) return `shop_id=${shopId}`;
-  const shop = localStorage.getItem('shop_domain') || new URLSearchParams(window.location.search).get('shop');
-  if (shop) return `shop=${encodeURIComponent(shop)}`;
-  return '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const shopFromUrl = urlParams.get('shop');
+  const shopIdFromUrl = urlParams.get('shop_id');
+
+  const shop = shopFromUrl || localStorage.getItem('shop_domain') || '';
+  const shopId = shopIdFromUrl || getShopIdFromStorage() || '';
+
+  const params = new URLSearchParams();
+  if (shopId) params.set('shop_id', shopId);
+  else if (shop) params.set('shop', shop);
+
+  return params.toString();
 }
 
 // ── Dashboard ──────────────────────────────────────────
