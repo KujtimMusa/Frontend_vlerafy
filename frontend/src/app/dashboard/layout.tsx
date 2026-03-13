@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { InlineStack, Box } from '@shopify/polaris';
 
-export default function DashboardLayout({
+function DashboardLayoutContent({
   children,
 }: {
   children: React.ReactNode;
@@ -35,5 +35,26 @@ export default function DashboardLayout({
       </InlineStack>
       <Box paddingBlockStart="400">{children}</Box>
     </Box>
+  );
+}
+
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <Suspense fallback={
+      <Box padding="400">
+        <InlineStack gap="400" blockAlign="center">
+          <Link href="/dashboard">Dashboard</Link>
+          <Link href="/dashboard/products">Produkte</Link>
+          <Link href="/dashboard/analytics">Analysen</Link>
+        </InlineStack>
+        <Box paddingBlockStart="400">{children}</Box>
+      </Box>
+    }>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </Suspense>
   );
 }
