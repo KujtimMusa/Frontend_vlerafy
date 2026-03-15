@@ -636,7 +636,48 @@ export default function ProductDetailPage() {
               <div className="vlerafy-ai-header">
                 <span className="vlerafy-ai-emoji">✨</span>
                 <span className="vlerafy-ai-header-title">KI-Erklärung</span>
+                {!aiExplanation && (
+                  <s-button
+                    variant="plain"
+                    size="slim"
+                    className="vlerafy-ai-header-btn vlerafy-ai-header-btn--load"
+                    onClick={handleAiExplain}
+                  >
+                    {aiLoading ? 'Analysiere...' : 'Erklärung laden ✨'}
+                  </s-button>
+                )}
+                {aiExplanation && (
+                  <s-button
+                    variant="plain"
+                    size="slim"
+                    className="vlerafy-ai-header-btn vlerafy-ai-header-btn--reset"
+                    onClick={() => setAiExplanation(null)}
+                  >
+                    Zurücksetzen
+                  </s-button>
+                )}
               </div>
+              {aiExplanation && (
+                <div className="vlerafy-ai-explanation">
+                  <div className="vlerafy-ai-explanation-main">
+                    <p className="vlerafy-ai-explanation-text">{aiExplanation.explanation}</p>
+                  </div>
+                  <div className="vlerafy-ai-explanation-meta">
+                    <div className="vlerafy-ai-meta-item">
+                      <span className="vlerafy-ai-meta-label">Hauptgrund</span>
+                      <span className="vlerafy-ai-meta-value">{aiExplanation.key_reason}</span>
+                    </div>
+                    <div className="vlerafy-ai-meta-item">
+                      <span className="vlerafy-ai-meta-label">Sicherheit</span>
+                      <span className="vlerafy-ai-meta-value">{aiExplanation.confidence_text}</span>
+                    </div>
+                    <div className="vlerafy-ai-meta-item">
+                      <span className="vlerafy-ai-meta-label">Empfehlung</span>
+                      <span className="vlerafy-ai-meta-value">{aiExplanation.action_hint}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
               <div className="vlerafy-chat-messages">
                 {chatMessages.map((msg, i) => (
                   <div
