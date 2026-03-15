@@ -110,23 +110,22 @@ body {
 /* --- Sidebar --- */
 .vlerafy-sidebar {
   width: var(--v-sidebar-width);
-  background: var(--v-sidebar-bg);
   position: fixed;
   top: 0; left: 0; bottom: 0;
   display: flex;
   flex-direction: column;
-  padding: 20px 12px;
-  border-right: 1px solid rgba(255,255,255,0.06);
+  padding: 16px 10px 20px;
   z-index: 100;
+  overflow-y: auto;
+  background: linear-gradient(180deg, #0B1929 0%, #0D1F38 100%);
+  border-right: 1px solid rgba(255,255,255,0.06);
+  box-shadow: 4px 0 24px rgba(0,0,0,0.15);
 }
 
 .vlerafy-sidebar-logo {
-  padding: 0 8px 24px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  padding: 4px 8px 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  margin-bottom: 12px;
 }
 
 .vlerafy-nav-item {
@@ -143,14 +142,19 @@ body {
   margin-bottom: 2px;
 }
 
-.vlerafy-nav-item:hover {
-  background: rgba(255,255,255,0.06);
-  color: var(--v-gray-100);
+.vlerafy-nav-item:hover:not(.vlerafy-nav-item--active) {
+  background: rgba(255,255,255,0.04);
+  color: var(--v-gray-200);
+  transform: translateX(2px);
+  transition: all 0.15s ease;
 }
 
 .vlerafy-nav-item--active {
-  background: var(--v-navy-800);
+  background: linear-gradient(135deg, var(--v-navy-800) 0%, rgba(45,107,196,0.4) 100%);
   color: var(--v-white);
+  font-weight: 600;
+  box-shadow: 0 0 0 1px rgba(93,158,224,0.2),
+              inset 0 1px 0 rgba(255,255,255,0.06);
 }
 
 .vlerafy-nav-badge {
@@ -166,9 +170,12 @@ body {
 /* --- Page Layout --- */
 .vlerafy-main {
   margin-left: var(--v-sidebar-width);
-  background: var(--v-page-bg);
   min-height: 100vh;
-  padding: var(--v-content-padding);
+  padding: 32px 36px;
+  background: #F4F6F9;
+  background-image:
+    radial-gradient(circle at 20% 0%, rgba(27,58,107,0.04) 0%, transparent 50%),
+    radial-gradient(circle at 80% 100%, rgba(27,58,107,0.03) 0%, transparent 50%);
 }
 
 /* --- Cards / Sections --- */
@@ -234,16 +241,19 @@ s-section:hover, .vlerafy-card:hover {
 }
 
 .vlerafy-page-title {
-  font-size: 24px;
+  font-size: 22px;
   font-weight: 700;
   color: var(--v-gray-950);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  margin: 0;
+  line-height: 1.2;
 }
 
 .vlerafy-page-subtitle {
-  font-size: 14px;
-  color: var(--v-gray-500);
-  margin-top: 4px;
+  font-size: 13px;
+  color: var(--v-gray-400);
+  margin: 3px 0 0;
+  font-weight: 400;
 }
 
 /* --- Alert Inline --- */
@@ -251,14 +261,16 @@ s-section:hover, .vlerafy-card:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  background: var(--v-navy-50);
-  border: 1px solid var(--v-navy-100);
-  border-left: 3px solid var(--v-navy-800);
-  border-radius: var(--v-radius-md);
-  padding: 10px 16px;
+  background: linear-gradient(135deg, #EFF6FF 0%, #F0F7FF 100%);
+  border: 1px solid rgba(27,58,107,0.12);
+  border-left: 3px solid var(--v-navy-700);
+  border-radius: 10px;
+  padding: 11px 16px;
   font-size: 13px;
   font-weight: 500;
   color: var(--v-navy-800);
+  margin-bottom: 28px;
+  box-shadow: 0 1px 3px rgba(27,58,107,0.06);
 }
 
 .vlerafy-alert-dot {
@@ -289,36 +301,57 @@ s-section:hover, .vlerafy-card:hover {
 /* --- KPI Cards --- */
 .vlerafy-kpi-card {
   background: var(--v-white);
-  border: 1px solid var(--v-gray-200);
-  border-radius: var(--v-radius-md);
+  border: 1px solid rgba(225,229,235,0.8);
+  border-radius: 12px;
   padding: 20px 20px 20px 0;
   display: flex;
   flex-direction: row;
-  gap: 0;
-  box-shadow: var(--v-shadow-card);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04),
+              0 4px 12px rgba(0,0,0,0.04);
+  transition: all 0.2s ease;
   overflow: hidden;
+  position: relative;
+}
+
+.vlerafy-kpi-card::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
 }
 
 .vlerafy-kpi-card:hover {
-  box-shadow: var(--v-shadow-elevated);
-  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.06),
+              0 8px 24px rgba(0,0,0,0.08);
+  transform: translateY(-2px);
+  border-color: rgba(27,58,107,0.15);
 }
 
-.vlerafy-kpi-card--accent-neutral,
-.vlerafy-kpi-card--accent-success,
-.vlerafy-kpi-card--accent-warning,
-.vlerafy-kpi-card--accent-critical {
-  width: 4px;
+.vlerafy-kpi-card--accent-neutral {
+  width: 3px;
   flex-shrink: 0;
-  border-radius: 0;
   margin-right: 20px;
+  background: linear-gradient(180deg, var(--v-navy-600) 0%, var(--v-navy-800) 100%);
 }
-
-.vlerafy-kpi-card--accent-neutral  { background: var(--v-navy-700); }
-.vlerafy-kpi-card--accent-success  { background: var(--v-success); }
-.vlerafy-kpi-card--accent-warning  { background: var(--v-warning); }
-.vlerafy-kpi-card--accent-critical { background: var(--v-critical); }
+.vlerafy-kpi-card--accent-success {
+  width: 3px;
+  flex-shrink: 0;
+  margin-right: 20px;
+  background: linear-gradient(180deg, #34D399 0%, var(--v-success) 100%);
+}
+.vlerafy-kpi-card--accent-warning {
+  width: 3px;
+  flex-shrink: 0;
+  margin-right: 20px;
+  background: linear-gradient(180deg, #FBBF24 0%, var(--v-warning) 100%);
+}
+.vlerafy-kpi-card--accent-critical {
+  width: 3px;
+  flex-shrink: 0;
+  margin-right: 20px;
+  background: linear-gradient(180deg, #F87171 0%, var(--v-critical) 100%);
+}
 
 .vlerafy-kpi-body {
   display: flex;
@@ -327,21 +360,21 @@ s-section:hover, .vlerafy-card:hover {
 }
 
 .vlerafy-kpi-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--v-gray-500);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--v-gray-400);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   margin: 0;
 }
 
 .vlerafy-kpi-value {
-  font-size: 28px;
+  font-size: 30px;
   font-weight: 700;
   color: var(--v-gray-950);
-  letter-spacing: -0.03em;
+  letter-spacing: -0.04em;
   line-height: 1;
-  margin: 0;
+  margin: 6px 0 0;
 }
 
 .vlerafy-kpi-value--success { color: var(--v-success); }
@@ -363,19 +396,20 @@ s-section:hover, .vlerafy-card:hover {
 /* --- Quick Actions Card --- */
 .vlerafy-quick-actions-card {
   background: var(--v-white);
-  border: 1px solid var(--v-gray-200);
-  border-radius: var(--v-radius-md);
+  border: 1px solid rgba(225,229,235,0.8);
+  border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--v-shadow-card);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04),
+              0 4px 12px rgba(0,0,0,0.04);
 }
 
 .vlerafy-quick-actions-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--v-gray-500);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--v-gray-400);
   text-transform: uppercase;
-  letter-spacing: 0.04em;
-  margin: 0 0 16px 0;
+  letter-spacing: 0.06em;
+  margin: 0 0 14px 0;
 }
 
 .vlerafy-quick-actions-grid {
@@ -389,24 +423,25 @@ s-section:hover, .vlerafy-card:hover {
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 16px 12px;
+  padding: 14px 10px;
   background: var(--v-gray-50);
   border: 1px solid var(--v-gray-200);
-  border-radius: var(--v-radius-md);
+  border-radius: 10px;
   text-decoration: none;
-  color: var(--v-gray-700);
-  font-size: 13px;
-  font-weight: 500;
+  color: var(--v-gray-600);
+  font-size: 12px;
+  font-weight: 600;
   text-align: center;
-  transition: all 0.15s ease;
+  transition: all 0.18s ease;
+  cursor: pointer;
 }
 
 .vlerafy-quick-action-item:hover {
-  background: var(--v-navy-50);
-  border-color: var(--v-navy-100);
+  background: linear-gradient(135deg, var(--v-navy-50) 0%, #F0F7FF 100%);
+  border-color: rgba(27,58,107,0.2);
   color: var(--v-navy-800);
-  transform: translateY(-1px);
-  box-shadow: var(--v-shadow-card);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(27,58,107,0.1);
 }
 
 .vlerafy-quick-action-icon {
@@ -416,17 +451,28 @@ s-section:hover, .vlerafy-card:hover {
 
 /* --- Custom ProgressBar --- */
 .vlerafy-progress {
-  height: 6px;
+  height: 5px;
   background: var(--v-gray-200);
   border-radius: var(--v-radius-full);
   overflow: hidden;
+  margin: 10px 0 4px;
 }
 
 .vlerafy-progress-bar {
   height: 100%;
-  background: var(--v-navy-700);
+  background: linear-gradient(90deg, var(--v-navy-700) 0%, var(--v-navy-600) 100%);
   border-radius: var(--v-radius-full);
-  transition: width 0.4s ease;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+}
+
+.vlerafy-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; right: 0;
+  width: 40px; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  border-radius: var(--v-radius-full);
 }
 
 .vlerafy-progress-bar--success { background: var(--v-success); }
@@ -756,13 +802,6 @@ s-button:active {
   transform: scale(0.98);
 }
 
-/* --- Focus Rings --- */
-*:focus-visible {
-  outline: 2px solid var(--v-navy-700);
-  outline-offset: 2px;
-  border-radius: var(--v-radius-sm);
-}
-
 /* --- Card Wrapper (Shadow DOM workaround) --- */
 .vlerafy-card-wrapper {
   background: var(--v-white);
@@ -777,15 +816,6 @@ s-button:active {
   transform: translateY(-1px);
 }
 
-/* --- Page Transitions --- */
-.vlerafy-main {
-  animation: vlerafy-fadein 0.2s ease;
-}
-
-@keyframes vlerafy-fadein {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
 
 /* --- Table Row Hover (wrapper approach) --- */
 .vlerafy-table-wrapper tr:hover td {
@@ -1181,4 +1211,26 @@ s-button:active {
 
 .vlerafy-ai-emoji {
   font-size: 18px;
+}
+
+/* --- Page fade-in --- */
+.vlerafy-main {
+  animation: vlerafy-pagein 0.25s ease both;
+}
+
+@keyframes vlerafy-pagein {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Focus rings --- */
+*:focus-visible {
+  outline: 2px solid rgba(27,58,107,0.5);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* --- Smooth all transitions --- */
+s-button, a, button {
+  transition: all 0.15s ease;
 }

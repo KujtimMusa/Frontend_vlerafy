@@ -37,7 +37,7 @@ export function FortschrittsCard({ progress }: FortschrittsCardProps) {
       : 0;
 
   return (
-    <s-section>
+    <div className="vlerafy-quick-actions-card">
       <s-stack direction="block" gap="4">
         <s-heading size="md">Dein Fortschritt</s-heading>
         <s-badge tone={tone}>
@@ -129,6 +129,6 @@ export function FortschrittsCard({ progress }: FortschrittsCardProps) {
           ))}
         </div>
       </s-stack>
-    </s-section>
+    </div>
   );
 }

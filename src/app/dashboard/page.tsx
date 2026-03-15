@@ -1,10 +1,32 @@
 'use client';
 
+import React from 'react';
 import Link from 'next/link';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { getDashboardStats } from '@/lib/api';
 import { FortschrittsCard } from '@/components/FortschrittsCard';
+
+function AnimatedNumber({ value }: { value: number }) {
+  const [display, setDisplay] = React.useState(0);
+  React.useEffect(() => {
+    const duration = 800;
+    const steps = 30;
+    const increment = value / steps;
+    let current = 0;
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setDisplay(value);
+        clearInterval(timer);
+      } else {
+        setDisplay(Math.floor(current));
+      }
+    }, duration / steps);
+    return () => clearInterval(timer);
+  }, [value]);
+  return <>{display}</>;
+}
 
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
@@ -83,7 +105,9 @@ export default function DashboardPage() {
             <div className="vlerafy-kpi-card--accent-neutral" />
             <div className="vlerafy-kpi-body">
               <p className="vlerafy-kpi-label">Produkte synchronisiert</p>
-              <p className="vlerafy-kpi-value">{syncedProducts}</p>
+              <p className="vlerafy-kpi-value">
+                <AnimatedNumber value={syncedProducts} />
+              </p>
             </div>
           </div>
 
@@ -91,7 +115,9 @@ export default function DashboardPage() {
             <div className="vlerafy-kpi-card--accent-warning" />
             <div className="vlerafy-kpi-body">
               <p className="vlerafy-kpi-label">Offene Empfehlungen</p>
-              <p className="vlerafy-kpi-value">{pendingCount}</p>
+              <p className="vlerafy-kpi-value">
+                <AnimatedNumber value={pendingCount} />
+              </p>
             </div>
           </div>
 
@@ -107,7 +133,9 @@ export default function DashboardPage() {
             <div className="vlerafy-kpi-card--accent-neutral" />
             <div className="vlerafy-kpi-body">
               <p className="vlerafy-kpi-label">Empfehlungen umgesetzt</p>
-              <p className="vlerafy-kpi-value">{appliedCount}</p>
+              <p className="vlerafy-kpi-value">
+                <AnimatedNumber value={appliedCount} />
+              </p>
             </div>
           </div>
         </s-grid>
