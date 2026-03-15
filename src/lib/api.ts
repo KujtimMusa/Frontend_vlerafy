@@ -254,6 +254,9 @@ export async function explainPrice(data: {
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = `${API_URL}/api/ai/explain-price${params ? `?${params}` : ''}`;
+  if (typeof window !== 'undefined') {
+    console.log('[KI DEBUG] explainPrice →', url, 'hasAuth:', !!headers['Authorization']);
+  }
   const res = await fetch(url, {
     method: 'POST',
     headers,
@@ -262,16 +265,22 @@ export async function explainPrice(data: {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { detail?: string }).detail || 'KI-Erklärung fehlgeschlagen'
-    );
+    const msg = (err as { detail?: string }).detail || 'KI-Erklärung fehlgeschlagen';
+    if (typeof window !== 'undefined') {
+      console.error('[KI DEBUG] explainPrice FEHLER:', res.status, res.statusText, err, msg);
+    }
+    throw new Error(msg);
   }
-  return res.json() as Promise<{
+  const result = await res.json();
+  if (typeof window !== 'undefined') {
+    console.log('[KI DEBUG] explainPrice OK:', result?.explanation?.slice(0, 50) + '...');
+  }
+  return result as {
     explanation: string;
     key_reason: string;
     confidence_text: string;
     action_hint: string;
-  }>;
+  };
 }
 
 export async function chatWithAI(data: {
@@ -287,6 +296,9 @@ export async function chatWithAI(data: {
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = `${API_URL}/api/ai/chat${params ? `?${params}` : ''}`;
+  if (typeof window !== 'undefined') {
+    console.log('[KI DEBUG] chatWithAI →', url, 'msg:', data.message?.slice(0, 30), 'hasAuth:', !!headers['Authorization']);
+  }
   const res = await fetch(url, {
     method: 'POST',
     headers,
@@ -295,11 +307,31 @@ export async function chatWithAI(data: {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(
-      (err as { detail?: string }).detail || 'Chat nicht verfügbar'
-    );
+    const msg = (err as { detail?: string }).detail || 'Chat nicht verfügbar';
+    if (typeof window !== 'undefined') {
+      console.error('[KI DEBUG] chatWithAI FEHLER:', res.status, res.statusText, err, msg);
+    }
+    throw new Error(msg);
   }
-  return res.json() as Promise<{ reply: string }>;
+  const result = await res.json();
+  if (typeof window !== 'undefined') {
+    console.log('[KI DEBUG] chatWithAI OK');
+  }
+  return result as { reply: string };
+}
+
+/** Debug: Prüft ob AI (Gemini) verfügbar ist – für Railway-Logs */
+export async function getAiStatus(): Promise<{
+  ai_available: boolean;
+  model: string;
+  message: string;
+}> {
+  const res = await fetch(`${API_URL}/api/ai/status`, { credentials: 'include' });
+  const data = await res.json();
+  if (typeof window !== 'undefined') {
+    console.log('[KI DEBUG] getAiStatus:', data);
+  }
+  return data;
 }
 
 export async function getEngineStatus() {

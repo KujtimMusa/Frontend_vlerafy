@@ -238,7 +238,8 @@ export default function ProductDetailPage() {
         currency: 'EUR',
       });
       setAiExplanation(result);
-    } catch {
+    } catch (err) {
+      console.error('[KI DEBUG] handleAiExplain Fehler:', err);
       setAiError(true);
     } finally {
       setAiLoading(false);
@@ -270,7 +271,8 @@ export default function ProductDetailPage() {
         ...newMessages,
         { role: 'assistant', content: result.reply },
       ]);
-    } catch {
+    } catch (err) {
+      console.error('[KI DEBUG] handleChatSend Fehler:', err);
       setChatMessages([
         ...newMessages,
         {
@@ -493,8 +495,8 @@ export default function ProductDetailPage() {
                     </div>
                   )}
 
-                  {/* Chat UI – nur wenn KI-Erklärung angezeigt */}
-                  {aiExplanation && (
+                  {/* Chat UI – sichtbar sobald Empfehlung da (auch wenn KI-Erklärung fehlgeschlagen) */}
+                  {recommendation && (
                     <div className="vlerafy-ai-container" style={{ marginTop: 8 }}>
                       <div className="vlerafy-ai-header">
                         <span className="vlerafy-ai-header-title">💬 Frag die KI</span>
