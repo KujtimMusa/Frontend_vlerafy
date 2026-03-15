@@ -20,37 +20,7 @@ import {
 } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import type { Recommendation } from '@/types/models';
-import {
-  Page,
-  Card,
-  Text,
-  Badge,
-  Banner,
-  Button,
-  ProgressBar,
-  List,
-  BlockStack,
-  InlineStack,
-  InlineGrid,
-  IndexTable,
-  Select,
-  TextField,
-  SkeletonPage,
-  SkeletonBodyText,
-  Layout,
-  Divider,
-  Spinner,
-  Icon,
-} from '@shopify/polaris';
-import {
-  ArrowRightIcon,
-  ProductIcon,
-  CashEuroIcon,
-  PackageIcon,
-  CheckIcon,
-  RefreshIcon,
-  MagicIcon,
-} from '@shopify/polaris-icons';
+import { useRouter } from 'next/navigation';
 import { PreisverlaufChart } from '@/components/PreisverlaufChart';
 
 const PAYMENT_PROVIDERS = [
@@ -84,6 +54,7 @@ function useShopSuffix(): string {
 
 export default function ProductDetailPage() {
   const { id } = useParams();
+  const router = useRouter();
   const productId = Number(id);
   const qc = useQueryClient();
   const suffix = useShopSuffix();
@@ -317,7 +288,17 @@ export default function ProductDetailPage() {
     }
   };
 
-  if (!product) return <SkeletonPage />;
+  if (!product) {
+    return (
+      <div className="vlerafy-main">
+        <div className="vlerafy-page-header">
+          <div className="vlerafy-skeleton vlerafy-skeleton-title" />
+          <div className="vlerafy-skeleton vlerafy-skeleton-text" style={{ width: '40%' }} />
+        </div>
+        <div className="vlerafy-skeleton vlerafy-skeleton-card" style={{ marginTop: 24 }} />
+      </div>
+    );
+  }
 
   const raw =
     typeof recommendation?.reasoning === 'object'
@@ -378,264 +359,172 @@ export default function ProductDetailPage() {
     : 0;
 
   return (
-    <Page
-      title={product.title}
-      backAction={{ content: 'Produkte', url: `/dashboard/products${suffix}` }}
-    >
-      <Layout>
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="500">
-              <Text as="h2" variant="headingMd">
-                Preisempfehlung
-              </Text>
-              {recLoading ? (
-                <SkeletonBodyText />
+    <div className="vlerafy-main">
+      <div className="vlerafy-page-header" style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+        <s-button variant="plain" onClick={() => router.push(`/dashboard/products${suffix}`)}>
+          ← Produkte
+        </s-button>
+        <h1 className="vlerafy-page-title">{product.title}</h1>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr) minmax(300px,380px)', gap: 24, alignItems: 'start' }}>
+        <div>
+      <s-section>
+        <s-stack direction="block" gap="5">
+          <s-heading size="md">Preisempfehlung</s-heading>
+          {recLoading ? (
+            <div className="vlerafy-skeleton vlerafy-skeleton-text" style={{ height: 80 }} />
               ) : recommendation ? (
                 <>
                   {/* 1. Preis-Vergleich */}
-                  <InlineStack align="space-between" blockAlign="center" gap="400">
-                    <BlockStack gap="100">
-                      <Text as="p" tone="subdued" variant="bodySm">Aktueller Preis</Text>
-                      <Text as="p" variant="heading2xl">{formatPrice(currentPrice)}</Text>
-                    </BlockStack>
-                    <BlockStack gap="0" inlineAlign="center">
-                      <ArrowRightIcon />
-                      <Badge tone={diff >= 0 ? 'success' : 'critical'}>
+                  <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+                    <s-stack direction="block" gap="1">
+                      <s-paragraph tone="subdued" style={{ fontSize: 13 }}>Aktueller Preis</s-paragraph>
+                      <s-heading size="2xl">{formatPrice(currentPrice)}</s-heading>
+                    </s-stack>
+                    <s-stack direction="block" style={{ alignItems: 'center' }}>
+                      <span style={{ color: 'var(--v-gray-400)' }}>→</span>
+                      <s-badge tone={diff >= 0 ? 'success' : 'critical'}>
                         {`${diff >= 0 ? '▲' : '▼'} ${Math.abs(diffPct).toFixed(1)}%`}
-                      </Badge>
-                    </BlockStack>
-                    <BlockStack gap="100" inlineAlign="end">
-                      <Text as="p" tone="subdued" variant="bodySm">Empfohlener Preis</Text>
-                      <Text as="p" variant="heading2xl" tone={diff >= 0 ? 'success' : 'critical'}>
+                      </s-badge>
+                    </s-stack>
+                    <s-stack direction="block" gap="1" style={{ alignItems: 'flex-end' }}>
+                      <s-paragraph tone="subdued" style={{ fontSize: 13 }}>Empfohlener Preis</s-paragraph>
+                      <s-text style={{ fontSize: 24, fontWeight: 700, color: diff >= 0 ? 'var(--v-success)' : 'var(--v-critical)' }}>
                         {formatPrice(recommendedPrice)}
-                      </Text>
-                    </BlockStack>
-                  </InlineStack>
+                      </s-text>
+                    </s-stack>
+                  </s-stack>
 
                   {/* 2. Konfidenz-Balken */}
-                  <BlockStack gap="200">
-                    <InlineStack align="space-between">
-                      <Text as="p" variant="bodySm" fontWeight="semibold">Analyse-Sicherheit</Text>
-                      <Text as="p" variant="bodySm" tone={confidence >= 0.75 ? 'success' : confidence >= 0.55 ? 'caution' : 'critical'}>
+                  <s-stack direction="block" gap="2">
+                    <s-stack direction="inline" style={{ justifyContent: 'space-between' }}>
+                      <s-text fontWeight="600" style={{ fontSize: 13 }}>Analyse-Sicherheit</s-text>
+                      <s-text style={{ fontSize: 13, color: confidence >= 0.75 ? 'var(--v-success)' : confidence >= 0.55 ? 'var(--v-warning)' : 'var(--v-critical)' }}>
                         {confidence >= 0.75 ? 'Hoch' : confidence >= 0.55 ? 'Mittel' : 'Niedrig'} · {(confidence * 100).toFixed(0)}%
-                      </Text>
-                    </InlineStack>
-                    <ProgressBar
-                      progress={confidence * 100}
-                      tone={confidence >= 0.75 ? 'success' : confidence >= 0.55 ? 'highlight' : 'critical'}
-                      size="medium"
-                    />
-                    <Text as="p" variant="bodySm" tone="subdued">
+                      </s-text>
+                    </s-stack>
+                    <div className="vlerafy-progress">
+                      <div
+                        className={`vlerafy-progress-bar ${confidence >= 0.75 ? 'vlerafy-progress-bar--success' : confidence >= 0.55 ? 'vlerafy-progress-bar--warning' : 'vlerafy-progress-bar--critical'}`}
+                        style={{ width: `${confidence * 100}%` }}
+                      />
+                    </div>
+                    <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                       {confidence >= 0.75
                         ? 'Vollständige Datenbasis – Empfehlung sehr zuverlässig'
                         : confidence >= 0.55
                         ? 'Gute Datenbasis – Verkaufsdaten würden Präzision erhöhen'
                         : 'Lückenhafte Daten – Kostendaten und Verkäufe hinterlegen'}
-                    </Text>
-                  </BlockStack>
+                    </s-paragraph>
+                  </s-stack>
 
                   {/* KI-Erklärung */}
                   {!aiExplanation && !aiLoading && (
-                    <Button
-                      onClick={handleAiExplain}
+                    <s-button
                       variant="plain"
-                      icon={MagicIcon}
                       size="slim"
+                      onClick={handleAiExplain}
                     >
-                      KI-Erklärung anzeigen
-                    </Button>
+                      ✨ KI-Erklärung anzeigen
+                    </s-button>
                   )}
                   {aiLoading && (
-                    <InlineStack gap="200" blockAlign="center">
-                      <Spinner size="small" />
-                      <Text as="p" variant="bodySm" tone="subdued">
+                    <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                      <s-spinner size="small" />
+                      <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                         KI analysiert...
-                      </Text>
-                    </InlineStack>
+                      </s-paragraph>
+                    </s-stack>
                   )}
                   {aiError && (
-                    <Text as="p" variant="bodySm" tone="critical">
+                    <s-paragraph tone="critical" style={{ fontSize: 13 }}>
                       KI-Erklärung nicht verfügbar – bitte versuche es später erneut.
-                    </Text>
+                    </s-paragraph>
                   )}
                   {aiExplanation && (
                     <div
-                      style={{
-                        background: 'linear-gradient(135deg, #F5F3FF 0%, #EEF2FF 100%)',
-                        borderRadius: 12,
-                        padding: '16px',
-                        border: '1px solid #DDD6FE',
-                      }}
+                      className="vlerafy-ai-container"
+                      style={{ marginTop: 12, borderRadius: 'var(--v-radius-md)', padding: 16 }}
                     >
-                      <BlockStack gap="300">
-                        <InlineStack gap="200" blockAlign="center">
+                      <s-stack direction="block" gap="3">
+                        <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
                           <div
                             style={{
                               width: 28,
                               height: 28,
-                              borderRadius: 8,
-                              background: '#7C3AED',
+                              borderRadius: 'var(--v-radius-sm)',
+                              background: 'var(--v-indigo-600)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
+                              color: 'var(--v-white)',
                             }}
                           >
-                            <Icon source={MagicIcon} tone="base" />
+                            ✨
                           </div>
-                          <Text as="p" variant="bodySm" fontWeight="semibold">
+                          <s-text fontWeight="600" style={{ fontSize: 13 }}>
                             KI-Analyse
-                          </Text>
-                          <Badge tone="info">{aiExplanation.confidence_text}</Badge>
-                        </InlineStack>
-                        <Text as="p" variant="bodySm" tone="subdued">
+                          </s-text>
+                          <s-badge tone="info">{aiExplanation.confidence_text}</s-badge>
+                        </s-stack>
+                        <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                           {aiExplanation.explanation}
-                        </Text>
+                        </s-paragraph>
                         <div
-                          style={{
-                            background: 'white',
-                            borderRadius: 8,
-                            padding: '8px 12px',
-                            border: '1px solid #DDD6FE',
-                          }}
+                          className="vlerafy-reasoning-block"
+                          style={{ marginTop: 4 }}
                         >
-                          <InlineStack gap="200" blockAlign="center">
-                            <Text as="span" variant="bodySm">💡</Text>
-                            <Text as="p" variant="bodySm" fontWeight="semibold">
+                          <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                            <span>💡</span>
+                            <s-text fontWeight="600" style={{ fontSize: 13 }}>
                               {aiExplanation.key_reason}
-                            </Text>
-                          </InlineStack>
+                            </s-text>
+                          </s-stack>
                         </div>
-                        <InlineStack align="space-between" blockAlign="center">
-                          <Text as="p" variant="bodySm" tone="subdued">
+                        <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                          <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                             {aiExplanation.action_hint}
-                          </Text>
-                          <Button
-                            variant="plain"
-                            size="micro"
-                            onClick={() => setAiExplanation(null)}
-                          >
+                          </s-paragraph>
+                          <s-button variant="plain" size="slim" onClick={() => setAiExplanation(null)}>
                             Schließen
-                          </Button>
-                        </InlineStack>
-                      </BlockStack>
+                          </s-button>
+                        </s-stack>
+                      </s-stack>
                     </div>
                   )}
 
                   {/* Chat UI – nur wenn KI-Erklärung angezeigt */}
                   {aiExplanation && (
-                    <div
-                      style={{
-                        border: '1px solid #DDD6FE',
-                        borderRadius: 12,
-                        overflow: 'hidden',
-                        marginTop: 8,
-                      }}
-                    >
-                      <div
-                        style={{
-                          background:
-                            'linear-gradient(135deg, #F5F3FF, #EEF2FF)',
-                          padding: '10px 16px',
-                          borderBottom: '1px solid #DDD6FE',
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                      >
-                        <span>💬</span>
-                        <span
-                          style={{
-                            fontSize: 13,
-                            fontWeight: 600,
-                            color: '#4C1D95',
-                          }}
-                        >
-                          Frag die KI
-                        </span>
-                        <span
-                          style={{ fontSize: 12, color: '#7C3AED' }}
-                        >
-                          · Stelle Fragen zur Preisempfehlung
-                        </span>
+                    <div className="vlerafy-ai-container" style={{ marginTop: 8 }}>
+                      <div className="vlerafy-ai-header">
+                        <span className="vlerafy-ai-header-title">💬 Frag die KI</span>
+                        <span style={{ fontSize: 12, opacity: 0.9 }}>· Stelle Fragen zur Preisempfehlung</span>
                       </div>
 
                       {chatMessages.length > 0 && (
-                        <div
-                          style={{
-                            maxHeight: 280,
-                            overflowY: 'auto',
-                            padding: '12px 16px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: 10,
-                            background: '#FAFAFA',
-                          }}
-                        >
+                        <div className="vlerafy-chat-messages">
                           {chatMessages.map((msg, i) => (
                             <div
                               key={i}
-                              style={{
-                                display: 'flex',
-                                justifyContent:
-                                  msg.role === 'user'
-                                    ? 'flex-end'
-                                    : 'flex-start',
-                              }}
+                              className={msg.role === 'user' ? 'vlerafy-chat-bubble-user' : 'vlerafy-chat-bubble-ai'}
                             >
-                              <div
-                                style={{
-                                  maxWidth: '80%',
-                                  padding: '8px 12px',
-                                  borderRadius:
-                                    msg.role === 'user'
-                                      ? '12px 12px 2px 12px'
-                                      : '12px 12px 12px 2px',
-                                  background:
-                                    msg.role === 'user'
-                                      ? '#6366F1'
-                                      : 'white',
-                                  color:
-                                    msg.role === 'user'
-                                      ? 'white'
-                                      : '#0F172A',
-                                  fontSize: 13,
-                                  lineHeight: 1.5,
-                                  boxShadow:
-                                    '0 1px 3px rgba(0,0,0,0.08)',
-                                  border:
-                                    msg.role === 'assistant'
-                                      ? '1px solid #E2E8F0'
-                                      : 'none',
-                                }}
-                              >
-                                {msg.content}
-                              </div>
+                              {msg.content}
                             </div>
                           ))}
                           {chatLoading && (
-                            <InlineStack gap="200" blockAlign="center">
-                              <Spinner size="small" />
-                              <Text as="span" variant="bodySm" tone="subdued">
+                            <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                              <s-spinner size="small" />
+                              <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                                 KI denkt nach...
-                              </Text>
-                            </InlineStack>
+                              </s-paragraph>
+                            </s-stack>
                           )}
                           <div ref={chatBottomRef} />
                         </div>
                       )}
 
                       {chatMessages.length === 0 && (
-                        <div
-                          style={{
-                            padding: '12px 16px',
-                            display: 'flex',
-                            flexWrap: 'wrap',
-                            gap: 8,
-                            background: '#FAFAFA',
-                            borderBottom: '1px solid #E2E8F0',
-                          }}
-                        >
+                        <div className="vlerafy-chat-input-row" style={{ flexWrap: 'wrap', gap: 8 }}>
                           {[
                             'Warum soll ich den Preis senken?',
                             'Ist die Empfehlung sicher?',
@@ -643,17 +532,10 @@ export default function ProductDetailPage() {
                           ].map((q) => (
                             <button
                               key={q}
+                              type="button"
                               onClick={() => setChatInput(q)}
-                              style={{
-                                background: 'white',
-                                border: '1px solid #DDD6FE',
-                                borderRadius: 20,
-                                padding: '4px 12px',
-                                fontSize: 12,
-                                color: '#6366F1',
-                                cursor: 'pointer',
-                                fontWeight: 500,
-                              }}
+                              className="vlerafy-tab"
+                              style={{ margin: 0 }}
                             >
                               {q}
                             </button>
@@ -661,304 +543,223 @@ export default function ProductDetailPage() {
                         </div>
                       )}
 
-                      <div
-                        style={{
-                          display: 'flex',
-                          gap: 8,
-                          padding: '12px 16px',
-                          background: 'white',
-                          borderTop: '1px solid #E2E8F0',
-                        }}
-                      >
+                      <div className="vlerafy-chat-input-row">
                         <input
                           value={chatInput}
-                          onChange={(e) =>
-                            setChatInput(e.target.value)
-                          }
+                          onChange={(e) => setChatInput(e.target.value)}
                           onKeyDown={(e) =>
-                            e.key === 'Enter' &&
-                            !e.shiftKey &&
-                            handleChatSend()
+                            e.key === 'Enter' && !e.shiftKey && handleChatSend()
                           }
                           placeholder="Frage zur Preisempfehlung..."
                           style={{
                             flex: 1,
-                            border: '1px solid #E2E8F0',
-                            borderRadius: 8,
+                            border: '1px solid var(--v-gray-200)',
+                            borderRadius: 'var(--v-radius-sm)',
                             padding: '8px 12px',
                             fontSize: 13,
                             outline: 'none',
-                            background: '#F8FAFC',
+                            background: 'var(--v-gray-50)',
+                            color: 'var(--v-gray-950)',
                           }}
-                          onFocus={(e) =>
-                            (e.target.style.borderColor = '#6366F1')
-                          }
-                          onBlur={(e) =>
-                            (e.target.style.borderColor = '#E2E8F0')
-                          }
                         />
-                        <button
+                        <s-button
+                          variant="primary"
                           onClick={handleChatSend}
-                          disabled={
-                            !chatInput.trim() || chatLoading
-                          }
-                          style={{
-                            background: chatInput.trim()
-                              ? '#6366F1'
-                              : '#E2E8F0',
-                            color: chatInput.trim()
-                              ? 'white'
-                              : '#94A3B8',
-                            border: 'none',
-                            borderRadius: 8,
-                            padding: '8px 16px',
-                            fontWeight: 600,
-                            fontSize: 13,
-                            cursor: chatInput.trim()
-                              ? 'pointer'
-                              : 'not-allowed',
-                            transition: 'all 0.15s',
-                          }}
+                          disabled={!chatInput.trim() || chatLoading}
                         >
                           Senden
-                        </button>
+                        </s-button>
                       </div>
                     </div>
                   )}
 
-                  <Divider />
+                  <s-divider />
 
                   {/* 3. Warum dieser Preis? */}
-                  <Text as="h3" variant="headingSm">Warum dieser Preis?</Text>
-                  <BlockStack gap="300">
+                  <s-heading size="sm">Warum dieser Preis?</s-heading>
+                  <s-stack direction="block" gap="3">
                     {competitorStrategy && competitorAvg != null && (
-                      <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '12px 16px', border: '1px solid #E2E8F0' }}>
-                        <InlineStack gap="300" blockAlign="start">
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#EEF2FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <ProductIcon />
+                      <div style={{ background: 'var(--v-gray-50)', borderRadius: 'var(--v-radius-md)', padding: '12px 16px', border: '1px solid var(--v-gray-200)' }}>
+                        <s-stack direction="inline" gap="3" style={{ alignItems: 'flex-start' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 'var(--v-radius-sm)', background: 'var(--v-indigo-50)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            📦
                           </div>
-                          <BlockStack gap="100">
-                            <InlineStack gap="200" blockAlign="center">
-                              <Text as="p" variant="bodySm" fontWeight="semibold">Marktposition</Text>
-                              <Badge tone="info">{`Wettbewerber Ø ${formatPrice(competitorAvg)}`}</Badge>
-                            </InlineStack>
-                            <Text as="p" variant="bodySm" tone="subdued">
+                          <s-stack direction="block" gap="1">
+                            <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                              <s-text fontWeight="600" style={{ fontSize: 13 }}>Marktposition</s-text>
+                              <s-badge tone="info">{`Wettbewerber Ø ${formatPrice(competitorAvg)}`}</s-badge>
+                            </s-stack>
+                            <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                               {currentPrice > competitorAvg
                                 ? `Dein Preis liegt ${((currentPrice / competitorAvg - 1) * 100).toFixed(0)}% über dem Marktdurchschnitt. Eine Anpassung verbessert die Wettbewerbsfähigkeit.`
                                 : `Dein Preis liegt ${((1 - currentPrice / competitorAvg) * 100).toFixed(0)}% unter dem Marktdurchschnitt. Preiserhöhung möglich ohne Wettbewerbsnachteil.`}
-                            </Text>
-                          </BlockStack>
-                        </InlineStack>
+                            </s-paragraph>
+                          </s-stack>
+                        </s-stack>
                       </div>
                     )}
                     {breakEven != null && (
-                      <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '12px 16px', border: '1px solid #E2E8F0' }}>
-                        <InlineStack gap="300" blockAlign="start">
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: marginPercent > 20 ? '#F0FDF4' : '#FEF2F2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <CashEuroIcon />
+                      <div style={{ background: 'var(--v-gray-50)', borderRadius: 'var(--v-radius-md)', padding: '12px 16px', border: '1px solid var(--v-gray-200)' }}>
+                        <s-stack direction="inline" gap="3" style={{ alignItems: 'flex-start' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 'var(--v-radius-sm)', background: marginPercent > 20 ? 'var(--v-success-bg)' : 'var(--v-critical-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            💰
                           </div>
-                          <BlockStack gap="100">
-                            <InlineStack gap="200" blockAlign="center">
-                              <Text as="p" variant="bodySm" fontWeight="semibold">Marge & Rentabilität</Text>
-                              <Badge tone={marginPercent > 20 ? 'success' : 'critical'}>{`${marginPercent.toFixed(1)}% Marge`}</Badge>
-                            </InlineStack>
-                            <Text as="p" variant="bodySm" tone="subdued">
+                          <s-stack direction="block" gap="1">
+                            <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                              <s-text fontWeight="600" style={{ fontSize: 13 }}>Marge & Rentabilität</s-text>
+                              <s-badge tone={marginPercent > 20 ? 'success' : 'critical'}>{`${marginPercent.toFixed(1)}% Marge`}</s-badge>
+                            </s-stack>
+                            <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                               Break-Even bei {formatPrice(breakEven)}.
                               {recommendedPrice > breakEven
                                 ? ` Empfohlener Preis sichert ${(((recommendedPrice - breakEven) / recommendedPrice) * 100).toFixed(1)}% Marge.`
                                 : ' ⚠️ Empfohlener Preis liegt unter Break-Even – Schutzregel aktiv.'}
-                            </Text>
-                          </BlockStack>
-                        </InlineStack>
+                            </s-paragraph>
+                          </s-stack>
+                        </s-stack>
                       </div>
                     )}
                     {inventory != null && inventory !== undefined && (
-                      <div style={{ background: '#F8FAFC', borderRadius: 10, padding: '12px 16px', border: '1px solid #E2E8F0' }}>
-                        <InlineStack gap="300" blockAlign="start">
-                          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#FFFBEB', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <PackageIcon />
+                      <div style={{ background: 'var(--v-gray-50)', borderRadius: 'var(--v-radius-md)', padding: '12px 16px', border: '1px solid var(--v-gray-200)' }}>
+                        <s-stack direction="inline" gap="3" style={{ alignItems: 'flex-start' }}>
+                          <div style={{ width: 36, height: 36, borderRadius: 'var(--v-radius-sm)', background: 'var(--v-warning-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            📦
                           </div>
-                          <BlockStack gap="100">
-                            <InlineStack gap="200" blockAlign="center">
-                              <Text as="p" variant="bodySm" fontWeight="semibold">Lagerbestand</Text>
-                              <Badge tone={inventory > 20 ? 'success' : inventory > 5 ? 'warning' : 'critical'}>{`${inventory} Stück`}</Badge>
-                            </InlineStack>
-                            <Text as="p" variant="bodySm" tone="subdued">
+                          <s-stack direction="block" gap="1">
+                            <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                              <s-text fontWeight="600" style={{ fontSize: 13 }}>Lagerbestand</s-text>
+                              <s-badge tone={inventory > 20 ? 'success' : inventory > 5 ? 'warning' : 'critical'}>{`${inventory} Stück`}</s-badge>
+                            </s-stack>
+                            <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                               {inventory > 50
                                 ? 'Hoher Lagerbestand – kein Abverkaufsdruck, Preis kann stabil bleiben oder steigen.'
                                 : inventory > 10
                                 ? 'Normaler Lagerbestand – Preis basiert auf Markt und Marge.'
                                 : 'Niedriger Lagerbestand – Knappheit kann höheren Preis rechtfertigen.'}
-                            </Text>
-                          </BlockStack>
-                        </InlineStack>
+                            </s-paragraph>
+                          </s-stack>
+                        </s-stack>
                       </div>
                     )}
                     {confidence < 0.75 && (
-                      <div style={{ background: '#FFFBEB', borderRadius: 10, padding: '12px 16px', border: '1px solid #FDE68A' }}>
-                        <BlockStack gap="100">
-                          <Text as="p" variant="bodySm" fontWeight="semibold" tone="caution">💡 Empfehlung verbessern</Text>
-                          <Text as="p" variant="bodySm" tone="subdued">
+                      <div style={{ background: 'var(--v-warning-bg)', borderRadius: 'var(--v-radius-md)', padding: '12px 16px', border: '1px solid var(--v-warning-muted)' }}>
+                        <s-stack direction="block" gap="1">
+                          <s-text fontWeight="600" style={{ fontSize: 13, color: 'var(--v-warning)' }}>💡 Empfehlung verbessern</s-text>
+                          <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                             {!hasCostData && '- Kostendaten eintragen → Break-Even-Schutz aktiv\n'}
                             {sales7d === 0 && '- Erste Verkäufe abwarten → Nachfrageanalyse wird präziser\n'}
                             {!hasCompetitorData && '- Wettbewerber aktualisieren → Marktvergleich verbessert Empfehlung'}
-                          </Text>
-                        </BlockStack>
+                          </s-paragraph>
+                        </s-stack>
                       </div>
                     )}
-                  </BlockStack>
+                  </s-stack>
 
-                  <Divider />
+                  <s-divider />
 
-                  <Text as="h3" variant="headingMd">Begründung</Text>
-                  <Text as="p">{reasoningText}</Text>
+                  <s-heading size="md">Begründung</s-heading>
+                  <s-paragraph>{reasoningText}</s-paragraph>
 
-                  <InlineStack gap="300">
-                    <Button variant="primary" onClick={() => applyMutation.mutate()} loading={applyMutation.isPending} icon={CheckIcon}>
+                  <s-stack direction="inline" gap="3">
+                    <s-button variant="primary" onClick={() => applyMutation.mutate()} loading={applyMutation.isPending}>
                       Preis übernehmen ({formatPrice(recommendedPrice)})
-                    </Button>
-                    <Button onClick={() => generateMutation.mutate()} loading={generateMutation.isPending} icon={RefreshIcon}>
+                    </s-button>
+                    <s-button variant="secondary" onClick={() => generateMutation.mutate()} loading={generateMutation.isPending}>
                       Neu analysieren
-                    </Button>
-                  </InlineStack>
+                    </s-button>
+                  </s-stack>
                 </>
               ) : (
-                <BlockStack gap="400">
-                  <Text as="p" tone="subdued">
+                <s-stack direction="block" gap="4">
+                  <s-paragraph tone="subdued">
                     Noch keine Empfehlung für dieses Produkt.
-                  </Text>
-                  <Button
+                  </s-paragraph>
+                  <s-button
                     variant="primary"
                     onClick={() => generateMutation.mutate()}
                     loading={generateMutation.isPending}
                   >
                     Empfehlung generieren
-                  </Button>
-                </BlockStack>
+                  </s-button>
+                </s-stack>
               )}
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+            </s-stack>
+          </s-section>
 
-        <Layout.Section>
-          <PreisverlaufChart
-            data={chartData}
-            title="Preisentwicklung"
-            subtitle="Letzte 30 Tage"
-          />
-        </Layout.Section>
-
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Margen-Analyse
-              </Text>
+      <s-section style={{ marginTop: 24 }}>
+        <s-stack direction="block" gap="4">
+          <s-heading size="md">
+            Margen-Analyse
+          </s-heading>
               {margin?.has_cost_data ? (
                 <>
-                  <InlineGrid columns={{ xs: 1, sm: 2 }} gap="400">
-                    <BlockStack gap="100">
-                      <Text as="p" tone="subdued">
-                        Verkaufspreis
-                      </Text>
-                      <Text as="p" variant="headingLg">
-                        €{margin.selling_price}
-                      </Text>
-                    </BlockStack>
-                    <BlockStack gap="100">
-                      <Text as="p" tone="subdued">
-                        Nettoerlös
-                      </Text>
-                      <Text as="p" variant="headingLg">
-                        €{margin.net_revenue.toFixed(2)}
-                      </Text>
-                    </BlockStack>
-                  </InlineGrid>
+                  <s-grid columns="2" gap="4" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 16 }}>
+                    <s-stack direction="block" gap="1">
+                      <s-paragraph tone="subdued">Verkaufspreis</s-paragraph>
+                      <s-heading size="lg">€{margin.selling_price}</s-heading>
+                    </s-stack>
+                    <s-stack direction="block" gap="1">
+                      <s-paragraph tone="subdued">Nettoerlös</s-paragraph>
+                      <s-heading size="lg">€{margin.net_revenue.toFixed(2)}</s-heading>
+                    </s-stack>
+                  </s-grid>
 
-                  <Text as="h3" variant="headingMd">
-                    Kostenaufstellung
-                  </Text>
-                  <List type="bullet">
-                    <List.Item>
-                      Einkauf: €{margin.costs.purchase.toFixed(2)}
-                    </List.Item>
-                    <List.Item>
-                      Versand: €{margin.costs.shipping.toFixed(2)}
-                    </List.Item>
-                    <List.Item>
-                      Verpackung: €{margin.costs.packaging.toFixed(2)}
-                    </List.Item>
-                    <List.Item>
-                      Zahlungsgebühr ({margin.payment_provider}): €
-                      {margin.costs.payment_fee.toFixed(2)}
-                    </List.Item>
-                    <List.Item>
-                      <strong>
-                        Gesamt: €{margin.costs.total_variable.toFixed(2)}
-                      </strong>
-                    </List.Item>
-                  </List>
+                  <s-heading size="md">Kostenaufstellung</s-heading>
+                  <s-list>
+                    <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--v-gray-700)' }}>
+                      <li>Einkauf: €{margin.costs.purchase.toFixed(2)}</li>
+                      <li>Versand: €{margin.costs.shipping.toFixed(2)}</li>
+                      <li>Verpackung: €{margin.costs.packaging.toFixed(2)}</li>
+                      <li>Zahlungsgebühr ({margin.payment_provider}): €{margin.costs.payment_fee.toFixed(2)}</li>
+                      <li><strong>Gesamt: €{margin.costs.total_variable.toFixed(2)}</strong></li>
+                    </ul>
+                  </s-list>
 
-                  <Text as="p" variant="headingMd">
-                    Deckungsbeitrag: €{margin.margin.euro.toFixed(2)} (
-                    {margin.margin.percent.toFixed(1)}%)
-                  </Text>
-                  <ProgressBar
-                    progress={margin.margin.percent}
-                    size="small"
-                  />
+                  <s-text style={{ fontSize: 18, fontWeight: 600 }}>
+                    Deckungsbeitrag: €{margin.margin.euro.toFixed(2)} ({margin.margin.percent.toFixed(1)}%)
+                  </s-text>
+                  <div className="vlerafy-progress">
+                    <div className="vlerafy-progress-bar" style={{ width: `${Math.min(100, margin.margin.percent)}%` }} />
+                  </div>
 
-                  <Text as="h3" variant="headingMd">
-                    Preis-Benchmarks
-                  </Text>
-                  <List type="bullet">
-                    <List.Item>
-                      Break-Even: €{margin.break_even_price.toFixed(2)}{' '}
-                      <Badge
-                        tone={
-                          margin.is_above_break_even ? 'success' : 'critical'
-                        }
-                      >
+                  <s-heading size="md">Preis-Benchmarks</s-heading>
+                  <ul style={{ margin: 0, paddingLeft: 20, color: 'var(--v-gray-700)' }}>
+                    <li>Break-Even: €{margin.break_even_price.toFixed(2)}{' '}
+                      <s-badge tone={margin.is_above_break_even ? 'success' : 'critical'}>
                         {margin.is_above_break_even ? '✓ OK' : '✗ Unter Break-Even'}
-                      </Badge>
-                    </List.Item>
-                    <List.Item>
-                      Mindestpreis (20% Marge): €
-                      {margin.recommended_min_price.toFixed(2)}{' '}
-                      <Badge
-                        tone={
-                          margin.is_above_min_margin ? 'success' : 'warning'
-                        }
-                      >
+                      </s-badge>
+                    </li>
+                    <li>Mindestpreis (20% Marge): €{margin.recommended_min_price.toFixed(2)}{' '}
+                      <s-badge tone={margin.is_above_min_margin ? 'success' : 'warning'}>
                         {margin.is_above_min_margin ? '✓ OK' : '⚠ Unter Mindestmarge'}
-                      </Badge>
-                    </List.Item>
-                    <List.Item>
-                      MwSt: {margin.vat_rate}% ({margin.country_code})
-                    </List.Item>
-                  </List>
+                      </s-badge>
+                    </li>
+                    <li>MwSt: {margin.vat_rate}% ({margin.country_code})</li>
+                  </ul>
 
-                  <Divider />
+                  <s-divider />
 
-                  <Text as="h3" variant="headingMd">Rentabilitäts-Übersicht</Text>
-                  <InlineGrid columns={{ xs: 2, md: 4 }} gap="300">
+                  <s-heading size="md">Rentabilitäts-Übersicht</s-heading>
+                  <s-grid columns="4" gap="3" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12 }}>
                     {[
                       { label: 'Nettoumsatz', value: formatPrice(margin.net_revenue), hint: 'Nach MwSt-Abzug' },
                       { label: 'Rohgewinn', value: formatPrice(margin.margin.euro), tone: margin.margin.euro > 0 ? 'success' : 'critical' },
                       { label: 'Marge', value: margin.margin.percent.toFixed(1) + '%', tone: margin.margin.percent >= 20 ? 'success' : 'critical' },
                       { label: 'ROI', value: (margin.costs.total_variable > 0 ? (margin.margin.euro / margin.costs.total_variable) * 100 : 0).toFixed(0) + '%', hint: 'Return on Investment' },
                     ].map((item, i) => (
-                      <BlockStack key={i} gap="100">
-                        <Text as="p" tone="subdued" variant="bodySm">{item.label}</Text>
-                        <Text as="p" variant="headingLg" tone={item.tone as 'success' | 'critical' | undefined}>{item.value}</Text>
-                        {item.hint && <Text as="p" variant="bodySm" tone="subdued">{item.hint}</Text>}
-                      </BlockStack>
+                      <s-stack key={i} direction="block" gap="1">
+                        <s-paragraph tone="subdued" style={{ fontSize: 13 }}>{item.label}</s-paragraph>
+                        <s-text style={{ fontSize: 18, fontWeight: 600, color: (item as { tone?: string }).tone === 'success' ? 'var(--v-success)' : (item as { tone?: string }).tone === 'critical' ? 'var(--v-critical)' : undefined }}>
+                          {item.value}
+                        </s-text>
+                        {(item as { hint?: string }).hint && <s-paragraph tone="subdued" style={{ fontSize: 12 }}>{(item as { hint?: string }).hint}</s-paragraph>}
+                      </s-stack>
                     ))}
-                  </InlineGrid>
+                  </s-grid>
 
-                  <Text as="h3" variant="headingMd">Preis-Szenarien</Text>
-                  <Text as="p" tone="subdued" variant="bodySm">Was passiert bei verschiedenen Preisen?</Text>
-                  <BlockStack gap="100">
+                  <s-heading size="md">Preis-Szenarien</s-heading>
+                  <s-paragraph tone="subdued" style={{ fontSize: 13 }}>Was passiert bei verschiedenen Preisen?</s-paragraph>
+                  <s-stack direction="block" gap="1">
                     {[
                       { label: 'Break-Even', price: margin.break_even_price, margin: 0 },
                       { label: 'Ziel-Marge (20%)', price: margin.recommended_min_price, margin: 20 },
@@ -966,134 +767,136 @@ export default function ProductDetailPage() {
                       ...(recommendation ? [{ label: 'Empfohlener Preis', price: recommendation.recommended_price, margin: ((recommendation.recommended_price / (1 + (margin.vat_rate || 19) / 100) - margin.costs.total_variable) / (recommendation.recommended_price / (1 + (margin.vat_rate || 19) / 100))) * 100 }] : []),
                       ...(competitors?.competitor_avg ? [{ label: 'Wettbewerber Ø', price: competitors.competitor_avg, margin: ((competitors.competitor_avg / (1 + (margin.vat_rate || 19) / 100) - margin.costs.total_variable) / (competitors.competitor_avg / (1 + (margin.vat_rate || 19) / 100))) * 100 }] : []),
                     ].map((scenario, i) => (
-                      <div key={i} style={{ padding: '8px 12px', background: (scenario as { highlight?: boolean }).highlight ? '#F5F3FF' : 'transparent', borderRadius: 6 }}>
-                      <InlineStack align="space-between" gap="200" blockAlign="center">
-                        <Text as="p" variant="bodySm">{(scenario as { label: string }).label}</Text>
-                        <Text as="p" variant="bodySm" fontWeight="semibold">{formatPrice((scenario as { price: number }).price)}</Text>
-                        <Badge tone={((scenario as { margin: number }).margin >= 20 ? 'success' : (scenario as { margin: number }).margin >= 0 ? 'warning' : 'critical') as 'success' | 'warning' | 'critical'}>
-                          {`${(scenario as { margin: number }).margin.toFixed(1)}% Marge`}
-                        </Badge>
-                      </InlineStack>
+                      <div key={i} style={{ padding: '8px 12px', background: (scenario as { highlight?: boolean }).highlight ? 'var(--v-indigo-50)' : 'transparent', borderRadius: 6 }}>
+                        <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                          <s-paragraph style={{ fontSize: 13 }}>{(scenario as { label: string }).label}</s-paragraph>
+                          <s-text fontWeight="600" style={{ fontSize: 13 }}>{formatPrice((scenario as { price: number }).price)}</s-text>
+                          <s-badge tone={((scenario as { margin: number }).margin >= 20 ? 'success' : (scenario as { margin: number }).margin >= 0 ? 'warning' : 'critical') as 'success' | 'warning' | 'critical'}>
+                            {(scenario as { margin: number }).margin.toFixed(1)}% Marge
+                          </s-badge>
+                        </s-stack>
                       </div>
                     ))}
-                  </BlockStack>
+                  </s-stack>
 
-                  <Button onClick={() => setShowCostForm(true)}>
+                  <s-button onClick={() => setShowCostForm(true)}>
                     Kosten bearbeiten
-                  </Button>
+                  </s-button>
                 </>
               ) : (
-                <Banner tone="info" title="Keine Kostendaten">
+                <s-banner tone="info" title="Keine Kostendaten">
                   Füge Kostendaten hinzu um die Marge zu berechnen.
-                </Banner>
+                </s-banner>
               )}
 
               {(showCostForm || !margin?.has_cost_data) && (
-                <Card>
-                  <BlockStack gap="400">
-                    <Text as="h3" variant="headingMd">
-                      Kostendaten eingeben
-                    </Text>
-                    <Select
-                      label="Kategorie (lädt Standardwerte)"
-                      options={CATEGORIES}
-                      value={costForm.category}
-                      onChange={(v) => loadCategoryDefaults(v || 'fashion')}
-                    />
-                    <TextField
+                <s-section style={{ marginTop: 16 }}>
+                  <s-stack direction="block" gap="4">
+                    <s-heading size="md">Kostendaten eingeben</s-heading>
+                    <s-stack direction="block" gap="2">
+                      <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--v-gray-700)' }}>Kategorie (lädt Standardwerte)</label>
+                      <select
+                        value={costForm.category}
+                        onChange={(e) => loadCategoryDefaults(e.target.value)}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid var(--v-gray-200)',
+                          borderRadius: 'var(--v-radius-sm)',
+                          fontSize: 13,
+                          background: 'var(--v-white)',
+                          color: 'var(--v-gray-950)',
+                        }}
+                      >
+                        {CATEGORIES.map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                    </s-stack>
+                    <s-text-field
                       label="Einkaufspreis (€)"
                       type="number"
                       value={costForm.purchase_cost}
-                      onChange={(v) =>
-                        setCostForm((p) => ({ ...p, purchase_cost: v }))
-                      }
-                      autoComplete="off"
+                      onChange={(e) => setCostForm((p) => ({ ...p, purchase_cost: (e.target as HTMLInputElement).value }))}
                     />
-                    <TextField
+                    <s-text-field
                       label="Versandkosten (€)"
                       type="number"
                       value={costForm.shipping_cost}
-                      onChange={(v) =>
-                        setCostForm((p) => ({ ...p, shipping_cost: v }))
-                      }
-                      autoComplete="off"
+                      onChange={(e) => setCostForm((p) => ({ ...p, shipping_cost: (e.target as HTMLInputElement).value }))}
                     />
-                    <TextField
+                    <s-text-field
                       label="Verpackungskosten (€)"
                       type="number"
                       value={costForm.packaging_cost}
-                      onChange={(v) =>
-                        setCostForm((p) => ({ ...p, packaging_cost: v }))
-                      }
-                      autoComplete="off"
+                      onChange={(e) => setCostForm((p) => ({ ...p, packaging_cost: (e.target as HTMLInputElement).value }))}
                     />
-                    <Select
-                      label="Zahlungsanbieter"
-                      options={PAYMENT_PROVIDERS}
-                      value={costForm.payment_provider}
-                      onChange={(v) =>
-                        setCostForm((p) => ({
-                          ...p,
-                          payment_provider: v || 'stripe',
-                        }))
-                      }
-                    />
-                    <InlineStack gap="300">
-                      <Button
-                        variant="primary"
-                        onClick={() => saveCostsMutation.mutate()}
-                        loading={saveCostsMutation.isPending}
+                    <s-stack direction="block" gap="2">
+                      <label style={{ fontSize: 13, fontWeight: 500, color: 'var(--v-gray-700)' }}>Zahlungsanbieter</label>
+                      <select
+                        value={costForm.payment_provider}
+                        onChange={(e) => setCostForm((p) => ({ ...p, payment_provider: e.target.value }))}
+                        style={{
+                          padding: '8px 12px',
+                          border: '1px solid var(--v-gray-200)',
+                          borderRadius: 'var(--v-radius-sm)',
+                          fontSize: 13,
+                          background: 'var(--v-white)',
+                          color: 'var(--v-gray-950)',
+                        }}
                       >
+                        {PAYMENT_PROVIDERS.map((c) => (
+                          <option key={c.value} value={c.value}>{c.label}</option>
+                        ))}
+                      </select>
+                    </s-stack>
+                    <s-stack direction="inline" gap="3">
+                      <s-button variant="primary" onClick={() => saveCostsMutation.mutate()} loading={saveCostsMutation.isPending}>
                         Speichern & Marge berechnen
-                      </Button>
+                      </s-button>
                       {showCostForm && (
-                        <Button onClick={() => setShowCostForm(false)}>
+                        <s-button variant="plain" onClick={() => setShowCostForm(false)}>
                           Abbrechen
-                        </Button>
+                        </s-button>
                       )}
-                    </InlineStack>
-                  </BlockStack>
-                </Card>
+                    </s-stack>
+                  </s-stack>
+                </s-section>
               )}
-            </BlockStack>
-          </Card>
-        </Layout.Section>
+            </s-stack>
+          </s-section>
 
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Wettbewerbsanalyse
-              </Text>
-              {compLoading ? (
-                <SkeletonBodyText />
+      <s-section style={{ marginTop: 24 }}>
+        <s-stack direction="block" gap="4">
+          <s-heading size="md">Wettbewerbsanalyse</s-heading>
+          {compLoading ? (
+            <div className="vlerafy-skeleton vlerafy-skeleton-text" style={{ height: 100 }} />
               ) : competitors?.has_data ? (
                 <>
-                  <InlineGrid columns={{ xs: 1, sm: 3 }} gap="400">
-                    <BlockStack gap="100">
-                      <Text as="p" tone="subdued">Dein Preis</Text>
-                      <Text as="p" variant="headingLg">{formatPrice(competitors.current_price)}</Text>
-                    </BlockStack>
-                    <BlockStack gap="100">
-                      <Text as="p" tone="subdued">Marktdurchschnitt</Text>
-                      <Text as="p" variant="headingLg">{formatPrice(competitors.competitor_avg ?? 0)}</Text>
-                      <Text as="p" tone="subdued">{competitors.competitor_count} Anbieter</Text>
-                    </BlockStack>
-                    <BlockStack gap="100">
-                      <Text as="p" tone="subdued">Preisspanne</Text>
-                      <Text as="p" variant="headingLg">
+                  <s-grid columns="3" gap="4" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+                    <s-stack direction="block" gap="1">
+                      <s-paragraph tone="subdued">Dein Preis</s-paragraph>
+                      <s-heading size="lg">{formatPrice(competitors.current_price)}</s-heading>
+                    </s-stack>
+                    <s-stack direction="block" gap="1">
+                      <s-paragraph tone="subdued">Marktdurchschnitt</s-paragraph>
+                      <s-heading size="lg">{formatPrice(competitors.competitor_avg ?? 0)}</s-heading>
+                      <s-paragraph tone="subdued" style={{ fontSize: 12 }}>{competitors.competitor_count} Anbieter</s-paragraph>
+                    </s-stack>
+                    <s-stack direction="block" gap="1">
+                      <s-paragraph tone="subdued">Preisspanne</s-paragraph>
+                      <s-heading size="lg">
                         {formatPrice(competitors.competitor_min ?? 0)} – {formatPrice(competitors.competitor_max ?? 0)}
-                      </Text>
-                    </BlockStack>
-                  </InlineGrid>
+                      </s-heading>
+                    </s-stack>
+                  </s-grid>
 
                   {/* Marktposition visuell */}
                   {competitors.competitor_min != null && competitors.competitor_max != null && competitors.competitor_avg != null && (
-                    <Card>
-                      <BlockStack gap="300">
-                        <Text as="h3" variant="headingMd">Marktposition</Text>
-                        <div style={{ position: 'relative', height: 60 }}>
-                          <div style={{ position: 'absolute', top: 24, left: 0, right: 0, height: 8, background: '#E2E8F0', borderRadius: 4 }} />
+                    <div className="vlerafy-market-position" style={{ marginTop: 16 }}>
+                      <s-stack direction="block" gap="3">
+                        <s-heading size="md">Marktposition</s-heading>
+                        <div className="vlerafy-market-bar" style={{ position: 'relative', height: 60 }}>
+                          <div style={{ position: 'absolute', top: 24, left: 0, right: 0, height: 8, background: 'var(--v-gray-200)', borderRadius: 4 }} />
                           {(() => {
                             const minP = competitors.competitor_min!;
                             const maxP = competitors.competitor_max!;
@@ -1103,107 +906,111 @@ export default function ProductDetailPage() {
                             const myLeft = toPercent(myPrice);
                             return (
                               <>
-                                <div style={{ position: 'absolute', top: 24, height: 8, left: 0, width: '100%', background: 'linear-gradient(90deg, #86EFAC, #4ADE80)', borderRadius: 4, opacity: 0.6 }} />
-                                <div style={{ position: 'absolute', left: `${avgLeft}%`, top: 16, transform: 'translateX(-50%)', width: 4, height: 24, background: '#10B981', borderRadius: 2 }} title={`Marktdurchschnitt: ${formatPrice(competitors.competitor_avg!)}`} />
-                                <div style={{ position: 'absolute', left: `${myLeft}%`, top: 14, transform: 'translateX(-50%)', width: 20, height: 20, borderRadius: '50%', background: '#6366F1', border: '3px solid white', boxShadow: '0 0 0 2px #6366F1' }} title={`Dein Preis: ${formatPrice(myPrice)}`} />
+                                <div style={{ position: 'absolute', top: 24, height: 8, left: 0, width: '100%', background: 'linear-gradient(90deg, var(--v-success-muted), var(--v-success))', borderRadius: 4, opacity: 0.6 }} />
+                                <div style={{ position: 'absolute', left: `${avgLeft}%`, top: 16, transform: 'translateX(-50%)', width: 4, height: 24, background: 'var(--v-success)', borderRadius: 2 }} title={`Marktdurchschnitt: ${formatPrice(competitors.competitor_avg!)}`} />
+                                <div className="vlerafy-market-indicator" style={{ left: `${myLeft}%` }} title={`Dein Preis: ${formatPrice(myPrice)}`} />
                               </>
                             );
                           })()}
                         </div>
-                        <InlineStack gap="400">
-                          <InlineStack gap="100">
-                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: '#6366F1' }} />
-                            <Text as="p" variant="bodySm">Dein Preis {formatPrice(myPrice)}</Text>
-                          </InlineStack>
-                          <InlineStack gap="100">
-                            <div style={{ width: 12, height: 4, background: '#10B981', marginTop: 4, borderRadius: 2 }} />
-                            <Text as="p" variant="bodySm">Markt Ø {formatPrice(competitors.competitor_avg!)}</Text>
-                          </InlineStack>
-                        </InlineStack>
-                        <Banner tone={(() => {
+                        <s-stack direction="inline" gap="4" style={{ flexWrap: 'wrap' }}>
+                          <s-stack direction="inline" gap="1" style={{ alignItems: 'center' }}>
+                            <div style={{ width: 12, height: 12, borderRadius: '50%', background: 'var(--v-navy-700)' }} />
+                            <s-paragraph style={{ fontSize: 13 }}>Dein Preis {formatPrice(myPrice)}</s-paragraph>
+                          </s-stack>
+                          <s-stack direction="inline" gap="1" style={{ alignItems: 'center' }}>
+                            <div style={{ width: 12, height: 4, background: 'var(--v-success)', marginTop: 4, borderRadius: 2 }} />
+                            <s-paragraph style={{ fontSize: 13 }}>Markt Ø {formatPrice(competitors.competitor_avg!)}</s-paragraph>
+                          </s-stack>
+                        </s-stack>
+                        <s-banner tone={(() => {
                           const avg = competitors.competitor_avg ?? 0;
                           if (avg <= 0) return 'info';
                           return myPrice > avg * 1.1 ? 'warning' : myPrice < avg * 0.9 ? 'info' : 'success';
-                        })()}>
-                          {(() => {
-                            const avg = competitors.competitor_avg ?? 0;
-                            if (avg <= 0) return 'Kein Marktdurchschnitt verfügbar.';
-                            if (myPrice > avg * 1.1) return `Dein Preis liegt ${((myPrice / avg - 1) * 100).toFixed(0)}% über dem Marktdurchschnitt – prüfe ob dein Produkt diesen Aufpreis rechtfertigt.`;
-                            if (myPrice < avg * 0.9) return `Dein Preis liegt ${((1 - myPrice / avg) * 100).toFixed(0)}% unter dem Marktdurchschnitt – Potenzial für Preiserhöhung vorhanden.`;
-                            return 'Dein Preis liegt im Marktdurchschnitt – gute Wettbewerbsposition.';
-                          })()}
-                        </Banner>
-                      </BlockStack>
-                    </Card>
+                        })()}
+                        title=""
+                      >
+                        {(() => {
+                          const avg = competitors.competitor_avg ?? 0;
+                          if (avg <= 0) return 'Kein Marktdurchschnitt verfügbar.';
+                          if (myPrice > avg * 1.1) return `Dein Preis liegt ${((myPrice / avg - 1) * 100).toFixed(0)}% über dem Marktdurchschnitt – prüfe ob dein Produkt diesen Aufpreis rechtfertigt.`;
+                          if (myPrice < avg * 0.9) return `Dein Preis liegt ${((1 - myPrice / avg) * 100).toFixed(0)}% unter dem Marktdurchschnitt – Potenzial für Preiserhöhung vorhanden.`;
+                          return 'Dein Preis liegt im Marktdurchschnitt – gute Wettbewerbsposition.';
+                        })()}
+                      </s-banner>
+                      </s-stack>
+                    </div>
                   )}
 
-                  <IndexTable
-                    resourceName={{ singular: 'Wettbewerber', plural: 'Wettbewerber' }}
-                    headings={[
-                      { title: 'Anbieter' },
-                      { title: 'Preis' },
-                      { title: 'Abweichung' },
-                      { title: 'Quelle' },
-                      { title: 'Letzte Abfrage' },
-                    ]}
-                    itemCount={compDisplay.length}
-                    selectable={false}
-                  >
-                    {compDisplay.map((c, i) => (
-                      <IndexTable.Row key={c.url || i} id={String(i)} position={i}>
-                        <IndexTable.Cell>#{i + 1} {c.title}</IndexTable.Cell>
-                        <IndexTable.Cell>{formatPrice(c.price)}</IndexTable.Cell>
-                        <IndexTable.Cell>
-                          <Badge tone={(c.deviation > 10 ? 'critical' : c.deviation < -10 ? 'success' : 'warning') as 'critical' | 'success' | 'warning'}>
-                            {`${c.deviation > 0 ? '▲' : '▼'} ${Math.abs(c.deviation).toFixed(1)}%`}
-                          </Badge>
-                        </IndexTable.Cell>
-                        <IndexTable.Cell>{c.source}</IndexTable.Cell>
-                        <IndexTable.Cell>
-                          {c.scraped_at ? (
-                            <Text as="p" variant="bodySm" tone="subdued">
-                              {new Date(c.scraped_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })}
-                            </Text>
-                          ) : (
-                            <Text as="p" variant="bodySm" tone="subdued">–</Text>
-                          )}
-                        </IndexTable.Cell>
-                      </IndexTable.Row>
-                    ))}
-                  </IndexTable>
+                  <s-table>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr style={{ borderBottom: '1px solid var(--v-gray-200)' }}>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: 'var(--v-gray-500)', fontWeight: 600 }}>Anbieter</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 13, color: 'var(--v-gray-500)', fontWeight: 600 }}>Preis</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'right', fontSize: 13, color: 'var(--v-gray-500)', fontWeight: 600 }}>Abweichung</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: 'var(--v-gray-500)', fontWeight: 600 }}>Quelle</th>
+                          <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: 13, color: 'var(--v-gray-500)', fontWeight: 600 }}>Letzte Abfrage</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {compDisplay.map((c, i) => (
+                          <tr key={c.url || i} className="vlerafy-table-row" style={{ borderBottom: '1px solid var(--v-gray-100)' }}>
+                            <td style={{ padding: '12px 16px', fontSize: 14, color: 'var(--v-gray-950)' }}>#{i + 1} {c.title}</td>
+                            <td style={{ padding: '12px 16px', fontSize: 14, textAlign: 'right', color: 'var(--v-gray-950)' }}>{formatPrice(c.price)}</td>
+                            <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                              <s-badge tone={(c.deviation > 10 ? 'critical' : c.deviation < -10 ? 'success' : 'warning') as 'critical' | 'success' | 'warning'}>
+                                {`${c.deviation > 0 ? '▲' : '▼'} ${Math.abs(c.deviation).toFixed(1)}%`}
+                              </s-badge>
+                            </td>
+                            <td style={{ padding: '12px 16px', fontSize: 14, color: 'var(--v-gray-950)' }}>{c.source}</td>
+                            <td style={{ padding: '12px 16px', fontSize: 13, color: 'var(--v-gray-500)' }}>
+                              {c.scraped_at ? new Date(c.scraped_at).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '–'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </s-table>
 
                   {compDisplay.length > 0 && (
-                    <Card>
-                      <BlockStack gap="100">
-                        <Text as="h3" variant="headingSm">Handlungsempfehlung</Text>
-                        <Text as="p" tone="subdued" variant="bodySm">
+                    <s-section style={{ marginTop: 16 }}>
+                      <s-stack direction="block" gap="1">
+                        <s-heading size="sm">Handlungsempfehlung</s-heading>
+                        <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
                           {cheapestBelowUs && cheapestCompetitor
                             ? `${cheapestCompetitor.title} bietet ${formatPrice(cheapestCompetitor.price)} an – ${Math.abs(cheapestDeviation).toFixed(0)}% günstiger als du. Prüfe ob Qualitätsunterschiede den Preisabstand rechtfertigen.`
                             : 'Du bist einer der günstigsten Anbieter. Preiserhöhung auf Ø ' + formatPrice(competitors.competitor_avg ?? 0) + ' möglich ohne Wettbewerbsnachteil.'}
-                        </Text>
-                      </BlockStack>
-                    </Card>
+                        </s-paragraph>
+                      </s-stack>
+                    </s-section>
                   )}
                 </>
               ) : (
-                <Text as="p" tone="subdued">
-                  Noch keine Wettbewerbsdaten. Suche starten um Konkurrenten zu
-                  finden.
-                </Text>
+                <s-paragraph tone="subdued">
+                  Noch keine Wettbewerbsdaten. Suche starten um Konkurrenten zu finden.
+                </s-paragraph>
               )}
 
-              <Button
+              <s-button
                 onClick={() => competitorSearchMutation.mutate()}
                 loading={competitorSearchMutation.isPending}
+                variant="primary"
               >
-                {competitors?.has_data
-                  ? 'Wettbewerber aktualisieren'
-                  : 'Wettbewerber suchen (Serper)'}
-              </Button>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+                {competitors?.has_data ? 'Wettbewerber aktualisieren' : 'Wettbewerber suchen (Serper)'}
+              </s-button>
+            </s-stack>
+          </s-section>
+        </div>
+
+        <div>
+          <PreisverlaufChart
+            data={chartData}
+            title="Preisentwicklung"
+            subtitle="Letzte 30 Tage"
+          />
+        </div>
+      </div>
+    </div>
   );
 }

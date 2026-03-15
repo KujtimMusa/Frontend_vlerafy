@@ -3,7 +3,6 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
-import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { showToast } from '@/lib/toast';
 
 function CallbackContent() {
@@ -15,7 +14,7 @@ function CallbackContent() {
 
   useEffect(() => {
     const shopId = searchParams.get('shop_id');
-    const shop = searchParams.get('shop'); // xxx.myshopify.com
+    const shop = searchParams.get('shop');
     const error = searchParams.get('error');
 
     if (error) {
@@ -50,19 +49,66 @@ function CallbackContent() {
   }, [searchParams, router, setUser, setShopId]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 px-4">
-      <div className="w-full max-w-md border border-slate-700 rounded-lg bg-slate-900/50 p-6 text-center">
-        <div className="flex justify-center mb-4">
-          {status === 'loading' && <Loader2 className="w-16 h-16 text-blue-500 animate-spin" />}
-          {status === 'success' && <CheckCircle className="w-16 h-16 text-green-500" />}
-          {status === 'error' && <XCircle className="w-16 h-16 text-red-500" />}
+    <div className="vlerafy-auth-page">
+      <div className="vlerafy-auth-card">
+        <div style={{ marginBottom: 20 }}>
+          {status === 'loading' && (
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                border: '3px solid var(--v-gray-200)',
+                borderTopColor: 'var(--v-navy-700)',
+                borderRadius: '50%',
+                animation: 'spin 0.8s linear infinite',
+              }}
+            />
+          )}
+          {status === 'success' && (
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                margin: '0 auto',
+                borderRadius: '50%',
+                background: 'var(--v-success-bg)',
+                color: 'var(--v-success)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 32,
+              }}
+            >
+              ✓
+            </div>
+          )}
+          {status === 'error' && (
+            <div
+              style={{
+                width: 64,
+                height: 64,
+                margin: '0 auto',
+                borderRadius: '50%',
+                background: 'var(--v-critical-bg)',
+                color: 'var(--v-critical)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 32,
+              }}
+            >
+              ✗
+            </div>
+          )}
         </div>
-        <h2 className="text-xl font-semibold mb-2">
-          {status === 'loading' && 'Verbinde...'}
-          {status === 'success' && 'Erfolgreich!'}
+        <h2 className="vlerafy-auth-title">
+          {status === 'loading' && 'Verbinde Shop...'}
+          {status === 'success' && 'Erfolgreich verbunden!'}
           {status === 'error' && 'Fehler'}
         </h2>
-        <p className="text-slate-400">{errorMessage || 'Weiterleitung...'}</p>
+        <p className="vlerafy-auth-subtitle">
+          {errorMessage || (status === 'loading' ? 'Bitte warten' : 'Weiterleitung...')}
+        </p>
       </div>
     </div>
   );
@@ -70,7 +116,29 @@ function CallbackContent() {
 
 export default function CallbackPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen flex justify-center items-center"><Loader2 className="w-8 h-8 animate-spin" /></div>}>
+    <Suspense
+      fallback={
+        <div className="vlerafy-auth-page">
+          <div className="vlerafy-auth-card">
+            <div style={{ marginBottom: 20 }}>
+              <div
+                style={{
+                  width: 40,
+                  height: 40,
+                  border: '3px solid var(--v-gray-200)',
+                  borderTopColor: 'var(--v-navy-700)',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite',
+                  margin: '0 auto',
+                }}
+              />
+            </div>
+            <h2 className="vlerafy-auth-title">Verbinde Shop...</h2>
+            <p className="vlerafy-auth-subtitle">Bitte warten</p>
+          </div>
+        </div>
+      }
+    >
       <CallbackContent />
     </Suspense>
   );

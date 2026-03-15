@@ -1,19 +1,22 @@
 'use client';
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Page,
-  Card,
-  Text,
-  BlockStack,
-  InlineStack,
-  Button,
-  Layout,
-  Divider,
-  Badge,
-} from '@shopify/polaris';
-import { RefreshIcon } from '@shopify/polaris-icons';
+import { useSearchParams } from 'next/navigation';
 import { getCurrentShop, syncProductsFromShopify } from '@/lib/api';
+
+function useShopSuffix(): string {
+  const searchParams = useSearchParams();
+  const shop = searchParams.get('shop') ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain') : null) ?? '';
+  const host = searchParams.get('host') ?? (typeof window !== 'undefined' ? localStorage.getItem('shopify_host') : null) ?? '';
+  const shopId = searchParams.get('shop_id') ?? (typeof window !== 'undefined' ? localStorage.getItem('current_shop_id') : null) ?? '';
+  const idToken = searchParams.get('id_token') ?? '';
+  const p = new URLSearchParams();
+  if (shop) p.set('shop', shop);
+  if (host) p.set('host', host);
+  if (shopId) p.set('shop_id', shopId);
+  if (idToken) p.set('id_token', idToken);
+  return p.toString() ? `?${p.toString()}` : '';
+}
 
 function formatDate(iso: string | null | undefined): string {
   if (!iso) return '–';
@@ -30,6 +33,7 @@ function formatDate(iso: string | null | undefined): string {
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  void useShopSuffix(); // kept for future link suffix
   const { data: shopData, isLoading } = useQuery({
     queryKey: ['current-shop'],
     queryFn: getCurrentShop,
@@ -50,91 +54,82 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <Page title="Einstellungen">
-        <Card>
-          <Text as="p">Lade Einstellungen...</Text>
-        </Card>
-      </Page>
+      <div className="vlerafy-main">
+        <s-page title="Einstellungen" />
+        <s-section>
+          <s-stack direction="block" gap="4">
+            <s-paragraph tone="subdued">Lade Einstellungen...</s-paragraph>
+          </s-stack>
+        </s-section>
+      </div>
     );
   }
 
   return (
-    <Page title="Einstellungen">
-      <Layout>
-        <Layout.Section>
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Shop-Informationen
-              </Text>
-              <Divider />
-              {[
-                ['Shop-URL', shopDomain],
-                ['Shop-ID', String(shopId)],
-                ['Verbunden seit', formatDate(installedAt)],
-                ['Produkte synchronisiert', String(productCount)],
-              ].map(([label, value]) => (
-                <InlineStack key={String(label)} align="space-between">
-                  <Text as="span" tone="subdued">{label}</Text>
-                  <Text as="span" fontWeight="semibold">{value}</Text>
-                </InlineStack>
-              ))}
-            </BlockStack>
-          </Card>
+    <div className="vlerafy-main">
+      <s-page title="Einstellungen" />
+      <div className="vlerafy-page-header">
+        <h1 className="vlerafy-page-title">Einstellungen</h1>
+        <p className="vlerafy-page-subtitle">Shop-Verbindung und Synchronisation</p>
+      </div>
+      <s-grid columns="1" gap="4">
+        <s-section>
+          <s-stack direction="block" gap="4">
+            <s-heading size="md">Shop-Informationen</s-heading>
+            <s-divider />
+            {[
+              ['Shop-URL', shopDomain],
+              ['Shop-ID', String(shopId)],
+              ['Verbunden seit', formatDate(installedAt)],
+              ['Produkte synchronisiert', String(productCount)],
+            ].map(([label, value]) => (
+              <s-stack key={String(label)} direction="inline" gap="2" style={{ justifyContent: 'space-between' }}>
+                <s-paragraph tone="subdued">{label}</s-paragraph>
+                <s-text font-weight="semibold">{value}</s-text>
+              </s-stack>
+            ))}
+          </s-stack>
+        </s-section>
 
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Produkt-Synchronisation
-              </Text>
-              <Text as="p" tone="subdued">
-                Synchronisiere deine Shopify-Produkte für aktuelle
-                Preisempfehlungen.
-              </Text>
-              <Button
-                onClick={() => syncMutation.mutate()}
-                loading={syncMutation.isPending}
-                variant="primary"
-                icon={RefreshIcon}
+        <s-section>
+          <s-stack direction="block" gap="4">
+            <s-heading size="md">Produkt-Synchronisation</s-heading>
+            <s-paragraph tone="subdued">
+              Synchronisiere deine Shopify-Produkte für aktuelle Preisempfehlungen.
+            </s-paragraph>
+            <s-button
+              variant="primary"
+              onClick={() => syncMutation.mutate()}
+              disabled={syncMutation.isPending}
+              loading={syncMutation.isPending ? 'true' : undefined}
+            >
+              Jetzt synchronisieren
+            </s-button>
+          </s-stack>
+        </s-section>
+
+        <s-section>
+          <s-stack direction="block" gap="3">
+            <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+              <div
+                className="vlerafy-empty-state-icon"
+                style={{ width: 28, height: 28, margin: 0 }}
               >
-                Jetzt synchronisieren
-              </Button>
-            </BlockStack>
-          </Card>
-
-          <Card>
-            <BlockStack gap="300">
-              <InlineStack gap="200" blockAlign="center">
-                <div
-                  style={{
-                    width: 28,
-                    height: 28,
-                    background: 'linear-gradient(135deg, #4F46E5, #7C3AED)',
-                    borderRadius: 6,
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <span style={{ color: '#fff', fontSize: 13, fontWeight: 700 }}>
-                    v
-                  </span>
-                </div>
-                <Text as="h2" variant="headingMd">Über vlerafy</Text>
-              </InlineStack>
-              <Text as="p" tone="subdued">
-                vlerafy analysiert deine Produktpreise automatisch und schlägt
-                datenbasierte Optimierungen vor – damit du immer den richtigen
-                Preis zur richtigen Zeit hast.
-              </Text>
-              <InlineStack align="space-between">
-                <Text as="span" tone="subdued">Version</Text>
-                <Badge>1.0</Badge>
-              </InlineStack>
-            </BlockStack>
-          </Card>
-        </Layout.Section>
-      </Layout>
-    </Page>
+                <span style={{ color: 'var(--v-navy-700)', fontSize: 13, fontWeight: 700 }}>v</span>
+              </div>
+              <s-heading size="md">Über vlerafy</s-heading>
+            </s-stack>
+            <s-paragraph tone="subdued">
+              vlerafy analysiert deine Produktpreise automatisch und schlägt datenbasierte
+              Optimierungen vor – damit du immer den richtigen Preis zur richtigen Zeit hast.
+            </s-paragraph>
+            <s-stack direction="inline" gap="2" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <s-paragraph tone="subdued">Version</s-paragraph>
+              <s-badge>1.0</s-badge>
+            </s-stack>
+          </s-stack>
+        </s-section>
+      </s-grid>
+    </div>
   );
 }

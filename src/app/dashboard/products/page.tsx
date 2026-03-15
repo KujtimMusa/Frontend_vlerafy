@@ -9,7 +9,6 @@ import {
   getRecommendationsList,
   syncProductsFromShopify,
 } from '@/lib/api';
-import type { Product } from '@/types/models';
 
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
@@ -82,48 +81,29 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: 24 }}>
-        <div style={{ height: 60, background: '#F1F5F9', borderRadius: 12, marginBottom: 20 }} />
-        <div style={{ height: 200, background: '#F1F5F9', borderRadius: 12 }} />
+      <div className="vlerafy-main">
+        <div className="vlerafy-skeleton vlerafy-skeleton-title" style={{ marginBottom: 20 }} />
+        <div className="vlerafy-skeleton vlerafy-skeleton-card" />
       </div>
     );
   }
 
   if (products.length === 0 && !syncMutation.isPending) {
     return (
-      <div style={{ padding: 24 }}>
-        <div
-          style={{
-            background: 'white',
-            borderRadius: 12,
-            border: '1px solid #E2E8F0',
-            padding: 48,
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: 48, marginBottom: 16 }}>📦</div>
-          <div style={{ fontSize: 16, fontWeight: 600, color: '#0F172A', marginBottom: 8 }}>
-            Noch keine Produkte geladen
-          </div>
-          <div style={{ fontSize: 14, color: '#64748B', marginBottom: 20 }}>
+      <div className="vlerafy-main">
+        <div className="vlerafy-empty-state">
+          <div className="vlerafy-empty-state-icon">📦</div>
+          <p className="vlerafy-empty-state-title">Noch keine Produkte geladen</p>
+          <p className="vlerafy-empty-state-text">
             Verbinde deinen Shopify-Shop um smarte Preisempfehlungen zu erhalten.
-          </div>
-          <button
+          </p>
+          <s-button
+            variant="primary"
             onClick={handleSync}
             disabled={syncMutation.isPending}
-            style={{
-              background: '#1E3A5F',
-              color: 'white',
-              border: 'none',
-              borderRadius: 8,
-              padding: '10px 20px',
-              fontSize: 14,
-              fontWeight: 600,
-              cursor: syncMutation.isPending ? 'wait' : 'pointer',
-            }}
           >
-            {syncMutation.isPending ? 'Synchronisiere...' : 'Produkte synchronisieren'}
-          </button>
+            Produkte synchronisieren
+          </s-button>
         </div>
       </div>
     );
@@ -133,45 +113,45 @@ export default function ProductsPage() {
     {
       label: 'Produkte gesamt',
       value: String(totalProducts),
-      valueColor: '#0F172A',
+      valueColor: 'var(--v-gray-950)',
       icon: '◫',
       sub: null as string | null,
     },
     {
       label: 'Mit Empfehlung',
       value: String(withRecommendation),
-      valueColor: '#1E3A5F',
+      valueColor: 'var(--v-navy-800)',
       icon: '◈',
       sub: totalProducts > 0 ? `${Math.round((withRecommendation / totalProducts) * 100)}% aller Produkte` : null,
     },
     {
       label: 'Kein Lagerbestand',
       value: String(outOfStock),
-      valueColor: outOfStock > 0 ? '#EF4444' : '#10B981',
+      valueColor: outOfStock > 0 ? 'var(--v-critical)' : 'var(--v-success)',
       icon: '◎',
       sub: outOfStock > 0 ? 'Produkte prüfen' : 'Alles vorrätig',
     },
     {
       label: 'Möglicher Mehrumsatz',
       value: '+€' + displayPotential.toLocaleString('de-DE', { maximumFractionDigits: 0 }),
-      valueColor: '#10B981',
+      valueColor: 'var(--v-success)',
       icon: '◉',
       sub: 'bei Umsetzung aller Empfehlungen',
     },
   ];
 
   return (
-    <div style={{ padding: 24, background: '#F8FAFC', minHeight: '100vh' }}>
+    <div className="vlerafy-main">
       {syncMutation.isPending && (
         <div
           style={{
-            background: '#EFF6FF',
-            border: '1px solid #BFDBFE',
-            borderRadius: 8,
+            background: 'var(--v-info-bg)',
+            border: '1px solid var(--v-navy-100)',
+            borderRadius: 'var(--v-radius-sm)',
             padding: '12px 18px',
             marginBottom: 20,
             fontSize: 14,
-            color: '#1E3A5F',
+            color: 'var(--v-navy-700)',
           }}
         >
           Produkte werden von deinem Shopify-Shop synchronisiert...
@@ -180,13 +160,13 @@ export default function ProductsPage() {
       {syncMutation.isError && (
         <div
           style={{
-            background: '#FEF2F2',
-            border: '1px solid #FECACA',
-            borderRadius: 8,
+            background: 'var(--v-critical-bg)',
+            border: '1px solid var(--v-critical-muted)',
+            borderRadius: 'var(--v-radius-sm)',
             padding: '12px 18px',
             marginBottom: 20,
             fontSize: 14,
-            color: '#B91C1C',
+            color: 'var(--v-critical)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -194,110 +174,43 @@ export default function ProductsPage() {
           }}
         >
           <span>Sync fehlgeschlagen. Bitte erneut versuchen.</span>
-          <button
+          <s-button
+            variant="destructive"
+            size="slim"
             onClick={() => syncMutation.mutate()}
-            style={{
-              background: '#EF4444',
-              color: 'white',
-              border: 'none',
-              borderRadius: 6,
-              padding: '6px 12px',
-              fontSize: 13,
-              fontWeight: 600,
-              cursor: 'pointer',
-            }}
           >
             Erneut versuchen
-          </button>
+          </s-button>
         </div>
       )}
 
-      <div style={{ marginBottom: 24 }}>
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 12,
-          }}
-        >
+      <div className="vlerafy-page-header">
+        <s-stack direction="inline" align-items="center" justify-content="space-between" style={{ flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <h1
-              style={{
-                fontSize: 22,
-                fontWeight: 700,
-                color: '#0F172A',
-                margin: 0,
-              }}
-            >
-              Produkte
-            </h1>
-            <p style={{ fontSize: 13, color: '#94A3B8', margin: '3px 0 0' }}>
+            <h1 className="vlerafy-page-title">Produkte</h1>
+            <p className="vlerafy-page-subtitle">
               {totalProducts} Produkte · {withRecommendation} mit Empfehlung
             </p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={handleAnalyzeAll}
-              style={{
-                background: 'white',
-                color: '#1E3A5F',
-                border: '1px solid #BFDBFE',
-                borderRadius: 8,
-                padding: '7px 14px',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
+          <s-stack direction="inline" gap="2">
+            <s-button variant="secondary" onClick={handleAnalyzeAll}>
               Alle analysieren
-            </button>
-            <button
+            </s-button>
+            <s-button
+              variant="primary"
               onClick={handleSync}
               disabled={syncMutation.isPending}
-              style={{
-                background: '#0F172A',
-                color: '#F1F5F9',
-                border: '1px solid #1E293B',
-                borderRadius: 8,
-                padding: '7px 14px',
-                fontSize: 13,
-                fontWeight: 600,
-                cursor: syncMutation.isPending ? 'wait' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: 6,
-              }}
+              loading={syncMutation.isPending}
             >
-              🔄 Synchronisieren
-            </button>
-          </div>
-        </div>
+              Synchronisieren
+            </s-button>
+          </s-stack>
+        </s-stack>
       </div>
 
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))',
-          gap: 12,
-          marginBottom: 20,
-        }}
-      >
+      <s-grid columns="4" gap="4" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(195px, 1fr))', gap: 12, marginBottom: 20 }}>
         {statsData.map((stat) => (
-          <div
-            key={stat.label}
-            style={{
-              background: 'white',
-              borderRadius: 12,
-              padding: '16px 18px',
-              border: '1px solid #E2E8F0',
-              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-              transition: 'box-shadow 0.15s',
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.boxShadow = '0 3px 12px rgba(0,0,0,0.07)')}
-            onMouseLeave={(e) => (e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.03)')}
-          >
+          <div key={stat.label} className="vlerafy-stat-card">
             <div
               style={{
                 display: 'flex',
@@ -309,7 +222,7 @@ export default function ProductsPage() {
               <span
                 style={{
                   fontSize: 11,
-                  color: '#94A3B8',
+                  color: 'var(--v-gray-400)',
                   fontWeight: 500,
                   textTransform: 'uppercase',
                   letterSpacing: '0.04em',
@@ -317,234 +230,190 @@ export default function ProductsPage() {
               >
                 {stat.label}
               </span>
-              <span style={{ fontSize: 16, color: '#CBD5E1' }}>{stat.icon}</span>
+              <span style={{ fontSize: 16, color: 'var(--v-gray-300)' }}>{stat.icon}</span>
             </div>
-            <div
-              style={{
-                fontSize: 26,
-                fontWeight: 800,
-                color: stat.valueColor,
-                lineHeight: 1,
-                marginBottom: stat.sub ? 6 : 0,
-              }}
-            >
+            <p className="vlerafy-stat-value" style={{ color: stat.valueColor, marginBottom: stat.sub ? 6 : 0 }}>
               {stat.value}
-            </div>
-            {stat.sub && <div style={{ fontSize: 11, color: '#94A3B8' }}>{stat.sub}</div>}
+            </p>
+            {stat.sub && (
+              <span style={{ fontSize: 11, color: 'var(--v-gray-400)' }}>{stat.sub}</span>
+            )}
           </div>
         ))}
-      </div>
+      </s-grid>
 
-      <div
-        style={{
-          background: 'white',
-          borderRadius: 12,
-          border: '1px solid #E2E8F0',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            padding: '12px 18px',
-            borderBottom: '1px solid #F1F5F9',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 12,
-          }}
-        >
-          <div style={{ position: 'relative' }}>
-            <span
-              style={{
-                position: 'absolute',
-                left: 9,
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: '#94A3B8',
-                fontSize: 13,
-                pointerEvents: 'none',
-              }}
-            >
-              🔍
-            </span>
-            <input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Produkt suchen..."
-              style={{
-                paddingLeft: 28,
-                paddingRight: 12,
-                paddingTop: 6,
-                paddingBottom: 6,
-                border: '1px solid #E2E8F0',
-                borderRadius: 7,
-                fontSize: 13,
-                outline: 'none',
-                background: '#F8FAFC',
-                color: '#0F172A',
-                width: 220,
-              }}
-              onFocus={(e) => (e.target.style.borderColor = '#93C5FD')}
-              onBlur={(e) => (e.target.style.borderColor = '#E2E8F0')}
-            />
-          </div>
-          <span style={{ fontSize: 12, color: '#94A3B8' }}>{filteredProducts.length} Produkte</span>
-        </div>
-
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '1fr 120px 100px 130px 90px',
-            padding: '9px 18px',
-            background: '#F8FAFC',
-            borderBottom: '1px solid #F1F5F9',
-          }}
-        >
-          {['Produkt', 'Preis', 'Lager', 'Empfehlung', ''].map((col) => (
-            <span
-              key={col}
-              style={{
-                fontSize: 10,
-                fontWeight: 700,
-                color: '#94A3B8',
-                textTransform: 'uppercase',
-                letterSpacing: '0.06em',
-              }}
-            >
-              {col}
-            </span>
-          ))}
-        </div>
-
-        {filteredProducts.map((product, i) => (
+      <s-section>
+        <s-stack direction="block" gap="0">
           <div
-            key={product.id}
-            onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
+            style={{
+              padding: '12px 18px',
+              borderBottom: '1px solid var(--v-gray-100)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+            }}
+          >
+            <div style={{ position: 'relative' }}>
+              <span
+                style={{
+                  position: 'absolute',
+                  left: 9,
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  color: 'var(--v-gray-400)',
+                  fontSize: 13,
+                  pointerEvents: 'none',
+                }}
+              >
+                🔍
+              </span>
+              <input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Produkt suchen..."
+                style={{
+                  paddingLeft: 28,
+                  paddingRight: 12,
+                  paddingTop: 6,
+                  paddingBottom: 6,
+                  border: '1px solid var(--v-gray-200)',
+                  borderRadius: 'var(--v-radius-sm)',
+                  fontSize: 13,
+                  outline: 'none',
+                  background: 'var(--v-gray-50)',
+                  color: 'var(--v-gray-950)',
+                  width: 220,
+                }}
+              />
+            </div>
+            <span style={{ fontSize: 12, color: 'var(--v-gray-400)' }}>
+              {filteredProducts.length} Produkte
+            </span>
+          </div>
+
+          <div
             style={{
               display: 'grid',
               gridTemplateColumns: '1fr 120px 100px 130px 90px',
-              padding: '12px 18px',
-              borderBottom: i < filteredProducts.length - 1 ? '1px solid #F8FAFC' : 'none',
-              alignItems: 'center',
-              cursor: 'pointer',
-              transition: 'background 0.12s',
+              padding: '9px 18px',
+              background: 'var(--v-gray-50)',
+              borderBottom: '1px solid var(--v-gray-100)',
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = '#F8FAFC')}
-            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <div
+            {['Produkt', 'Preis', 'Lager', 'Empfehlung', ''].map((col) => (
+              <span
+                key={col}
                 style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 7,
-                  background: '#F1F5F9',
-                  flexShrink: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: 14,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: 'var(--v-gray-400)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
                 }}
               >
-                📦
+                {col}
+              </span>
+            ))}
+          </div>
+
+          {filteredProducts.map((product, i) => (
+            <div
+              key={product.id}
+              onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
+              className="vlerafy-table-row"
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 120px 100px 130px 90px',
+                padding: '12px 18px',
+                borderBottom: i < filteredProducts.length - 1 ? '1px solid var(--v-gray-100)' : 'none',
+                alignItems: 'center',
+                cursor: 'pointer',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div
+                  style={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: 'var(--v-radius-sm)',
+                    background: 'var(--v-gray-100)',
+                    flexShrink: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 14,
+                  }}
+                >
+                  📦
+                </div>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 500,
+                    color: 'var(--v-gray-950)',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {product.title}
+                </span>
               </div>
+
+              <span style={{ fontSize: 13, color: 'var(--v-gray-950)', fontWeight: 500 }}>
+                {product.price?.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
+              </span>
+
               <span
                 style={{
                   fontSize: 13,
-                  fontWeight: 500,
-                  color: '#0F172A',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  fontWeight: 600,
+                  color:
+                    (product.inventory ?? 0) === 0
+                      ? 'var(--v-critical)'
+                      : (product.inventory ?? 0) < 10
+                        ? 'var(--v-warning)'
+                        : 'var(--v-gray-500)',
                 }}
               >
-                {product.title}
+                {(product.inventory ?? 0) === 0
+                  ? '⚠ 0 Stück'
+                  : `${product.inventory ?? 0} Stück`}
               </span>
+
+              <div>
+                {productIdsWithRec.has(product.id) ? (
+                  <s-badge tone="info">Vorhanden</s-badge>
+                ) : (
+                  <span style={{ color: 'var(--v-gray-300)', fontSize: 13 }}>—</span>
+                )}
+              </div>
+
+              <s-button
+                variant="plain"
+                size="slim"
+                onClick={(e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  router.push(`/dashboard/products/${product.id}${suffix}`);
+                }}
+              >
+                Ansehen →
+              </s-button>
             </div>
+          ))}
 
-            <span style={{ fontSize: 13, color: '#0F172A', fontWeight: 500 }}>
-              {product.price?.toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })}
-            </span>
-
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 600,
-                color:
-                  (product.inventory ?? 0) === 0
-                    ? '#EF4444'
-                    : (product.inventory ?? 0) < 10
-                      ? '#F59E0B'
-                      : '#64748B',
-              }}
-            >
-              {(product.inventory ?? 0) === 0
-                ? '⚠ 0 Stück'
-                : `${product.inventory ?? 0} Stück`}
-            </span>
-
-            <div>
-              {productIdsWithRec.has(product.id) ? (
-                <span
-                  style={{
-                    background: '#EFF6FF',
-                    color: '#1E3A5F',
-                    border: '1px solid #BFDBFE',
-                    borderRadius: 20,
-                    padding: '2px 10px',
-                    fontSize: 11,
-                    fontWeight: 600,
-                  }}
-                >
-                  ◈ Vorhanden
-                </span>
-              ) : (
-                <span style={{ color: '#CBD5E1', fontSize: 13 }}>—</span>
-              )}
+          {filteredProducts.length === 0 && (
+            <div className="vlerafy-empty-state" style={{ padding: 40 }}>
+              <div className="vlerafy-empty-state-icon" style={{ fontSize: 32 }}>🔍</div>
+              <p className="vlerafy-empty-state-title">Keine Produkte gefunden</p>
+              <p className="vlerafy-empty-state-text">
+                Keine Produkte für „{searchQuery}“
+              </p>
             </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                router.push(`/dashboard/products/${product.id}${suffix}`);
-              }}
-              style={{
-                background: 'transparent',
-                color: '#1E3A5F',
-                border: '1px solid #BFDBFE',
-                borderRadius: 7,
-                padding: '4px 12px',
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.12s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.background = '#1E3A5F';
-                e.currentTarget.style.color = 'white';
-                e.currentTarget.style.borderColor = '#1E3A5F';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = '#1E3A5F';
-                e.currentTarget.style.borderColor = '#BFDBFE';
-              }}
-            >
-              Ansehen →
-            </button>
-          </div>
-        ))}
-
-        {filteredProducts.length === 0 && (
-          <div style={{ padding: '40px 20px', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 8 }}>🔍</div>
-            <div style={{ fontSize: 14, color: '#64748B' }}>
-              Keine Produkte gefunden für „{searchQuery}"
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </s-stack>
+      </s-section>
     </div>
   );
 }

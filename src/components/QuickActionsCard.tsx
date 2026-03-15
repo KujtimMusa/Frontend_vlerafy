@@ -1,7 +1,6 @@
 'use client';
 
-import { Card, BlockStack, Text, Button } from '@shopify/polaris';
-import { PriceListIcon, RefreshIcon, ChartLineIcon } from '@shopify/polaris-icons';
+import { useRouter } from 'next/navigation';
 
 interface QuickActionsCardProps {
   pendingCount: number;
@@ -16,38 +15,42 @@ export function QuickActionsCard({
   isSyncing,
   suffix,
 }: QuickActionsCardProps) {
+  const router = useRouter();
   return (
-    <Card>
-      <BlockStack gap="400">
-        <Text as="h2" variant="headingMd">
-          Schnellaktionen
-        </Text>
-        <Button
-          variant="primary"
-          url={`/dashboard/pricing${suffix}`}
-          fullWidth
-          icon={PriceListIcon}
-        >
-          {`${pendingCount} Preise optimieren`}
-        </Button>
-        <Button
-          variant="secondary"
-          onClick={onSync}
-          loading={isSyncing}
-          fullWidth
-          icon={RefreshIcon}
-        >
-          Produkte synchronisieren
-        </Button>
-        <Button
-          variant="plain"
-          url={`/dashboard/analytics${suffix}`}
-          fullWidth
-          icon={ChartLineIcon}
-        >
-          Analysen anzeigen
-        </Button>
-      </BlockStack>
-    </Card>
+    <s-section>
+      <s-stack direction="block" gap="4">
+        <s-heading size="md">Schnellaktionen</s-heading>
+        <s-stack direction="block" gap="3">
+          <div style={{ width: '100%' }}>
+            <s-button
+              variant="primary"
+              style={{ width: '100%' }}
+              onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+            >
+              {`${pendingCount} Preise optimieren`}
+            </s-button>
+          </div>
+          <div style={{ width: '100%' }}>
+            <s-button
+              variant="secondary"
+              onClick={onSync}
+              loading={isSyncing}
+              style={{ width: '100%' }}
+            >
+              Produkte synchronisieren
+            </s-button>
+          </div>
+          <div style={{ width: '100%' }}>
+            <s-button
+              variant="plain"
+              style={{ width: '100%' }}
+              onClick={() => router.push(`/dashboard/analytics${suffix}`)}
+            >
+              Analysen anzeigen
+            </s-button>
+          </div>
+        </s-stack>
+      </s-stack>
+    </s-section>
   );
 }

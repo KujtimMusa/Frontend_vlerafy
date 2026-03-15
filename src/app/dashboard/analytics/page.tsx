@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -8,17 +9,6 @@ import {
   fetchProducts,
   getMarginHistory,
 } from '@/lib/api';
-import {
-  Page,
-  Card,
-  Text,
-  Badge,
-  BlockStack,
-  InlineGrid,
-  InlineStack,
-  SkeletonPage,
-} from '@shopify/polaris';
-import { AlertCircleIcon, CheckCircleIcon, ChartLineIcon } from '@shopify/polaris-icons';
 import { StatKarte } from '@/components/StatKarte';
 import { FortschrittsCard } from '@/components/FortschrittsCard';
 import { PreisverlaufChart } from '@/components/PreisverlaufChart';
@@ -38,6 +28,7 @@ function useShopSuffix(): string {
 }
 
 export default function AnalyticsPage() {
+  const router = useRouter();
   const suffix = useShopSuffix();
   const { data: stats, isLoading } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -68,43 +59,63 @@ export default function AnalyticsPage() {
       price: h.selling_price,
     })) ?? [];
 
-  if (isLoading) return <SkeletonPage />;
+  if (isLoading) {
+    return (
+      <div className="vlerafy-main">
+        <div className="vlerafy-page-header">
+          <div className="vlerafy-skeleton vlerafy-skeleton-title" />
+          <div
+            className="vlerafy-skeleton vlerafy-skeleton-text"
+            style={{ width: '60%' }}
+          />
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="vlerafy-skeleton vlerafy-skeleton-card" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <Page
-      title="Analysen"
-      primaryAction={{
-        content: 'Produkte optimieren',
-        url: `/dashboard/pricing${suffix}`,
-      }}
-    >
-      <BlockStack gap="500">
-        <InlineGrid columns={{ xs: 1, sm: 2, md: 4 }} gap="400">
+    <div className="vlerafy-main">
+      <div className="vlerafy-page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+        <h1 className="vlerafy-page-title">Analysen</h1>
+        <s-button
+          variant="primary"
+          onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+        >
+          Produkte optimieren
+        </s-button>
+      </div>
+      <s-stack direction="block" gap="5">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
           <StatKarte
             value={stats?.recommendations_pending ?? 0}
             label="Ausstehend"
-            icon={<AlertCircleIcon />}
+            icon={<span style={{ fontSize: 18 }}>⚠️</span>}
             tone="warning"
           />
           <StatKarte
             value={stats?.recommendations_applied ?? 0}
             label="Umgesetzt"
-            icon={<CheckCircleIcon />}
+            icon={<span style={{ fontSize: 18 }}>✓</span>}
             tone="success"
           />
           <StatKarte
             value={stats?.products_with_recommendations ?? 0}
             label="Analysiert"
-            icon={<ChartLineIcon />}
+            icon={<span style={{ fontSize: 18 }}>📊</span>}
             tone="neutral"
           />
           <StatKarte
             value={`€${stats?.missed_revenue?.total?.toFixed(0) ?? '0'}`}
             label="Potenzial"
-            icon={<ChartLineIcon />}
+            icon={<span style={{ fontSize: 18 }}>📈</span>}
             tone="critical"
           />
-        </InlineGrid>
+        </div>
 
         <PreisverlaufChart
           data={chartData}
@@ -113,29 +124,23 @@ export default function AnalyticsPage() {
         />
 
         {engineStatus && (
-          <Card>
-            <BlockStack gap="400">
-              <Text as="h2" variant="headingMd">
-                Preisanalyse-Engine
-              </Text>
-              <InlineStack gap="200">
-                <Badge
-                  tone={engineStatus.feature_flags ? 'success' : 'warning'}
-                >
+          <s-section>
+            <s-stack direction="block" gap="4">
+              <s-heading size="md">Preisanalyse-Engine</s-heading>
+              <s-stack direction="inline" gap="2" style={{ alignItems: 'center' }}>
+                <s-badge tone={engineStatus.feature_flags ? 'success' : 'warning'}>
                   {engineStatus.feature_flags ? 'Aktiv' : 'Prüfen'}
-                </Badge>
-                <Text as="p">
-                  Datenbasierte Preisanalyse v1.2
-                </Text>
-              </InlineStack>
-            </BlockStack>
-          </Card>
+                </s-badge>
+                <s-paragraph tone="subdued">Datenbasierte Preisanalyse v1.2</s-paragraph>
+              </s-stack>
+            </s-stack>
+          </s-section>
         )}
 
         {stats?.progress && (
           <FortschrittsCard progress={stats.progress} />
         )}
-      </BlockStack>
-    </Page>
+      </s-stack>
+    </div>
   );
 }

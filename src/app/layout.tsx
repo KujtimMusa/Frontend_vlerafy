@@ -3,7 +3,6 @@ import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import { ShopifyNavigationSync } from '@/components/ShopifyNavigationSync';
 import AppBridgeProvider from '@/components/AppBridgeProvider';
-import PolarisProvider from '@/components/PolarisProvider';
 import './globals.css';
 
 const inter = Inter({ subsets: ['latin'], display: 'swap' });
@@ -25,14 +24,23 @@ export default function RootLayout({
     <html lang="de" suppressHydrationWarning className={inter.className}>
       <head>
         <meta name="shopify-api-key" content={shopifyApiKey} />
-        <script src="https://cdn.shopify.com/shopifycloud/app-bridge.js" />
+        <script
+          src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
+          data-api-key={shopifyApiKey}
+        />
+        <link
+          rel="stylesheet"
+          href="https://cdn.shopify.com/shopifycloud/polaris/latest/build/esm/styles.css"
+        />
+        <script
+          type="module"
+          src="https://cdn.shopify.com/shopifycloud/polaris/latest/polaris.js"
+        />
       </head>
       <body>
         <AppBridgeProvider>
           <ShopifyNavigationSync />
-          <PolarisProvider>
-            <Providers>{children}</Providers>
-          </PolarisProvider>
+          <Providers>{children}</Providers>
         </AppBridgeProvider>
       </body>
     </html>

@@ -1,6 +1,5 @@
 'use client';
 
-import { Card, BlockStack, Text, InlineStack } from '@shopify/polaris';
 import {
   AreaChart,
   Area,
@@ -28,14 +27,12 @@ export function PreisverlaufChart({
   subtitle = 'Letzte 30 Tage',
 }: PreisverlaufChartProps) {
   return (
-    <Card>
-      <BlockStack gap="300">
-        <InlineStack align="space-between">
-          <Text as="h3" variant="headingMd">{title}</Text>
-          <Text as="span" tone="subdued" variant="bodySm">
-            {subtitle}
-          </Text>
-        </InlineStack>
+    <s-section>
+      <s-stack direction="block" gap="3">
+        <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <s-heading size="md">{title}</s-heading>
+          <s-paragraph tone="subdued">{subtitle}</s-paragraph>
+        </s-stack>
         {data.length > 0 ? (
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart
@@ -44,11 +41,11 @@ export function PreisverlaufChart({
             >
               <defs>
                 <linearGradient id="priceGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4F46E5" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#4F46E5" stopOpacity={0} />
+                  <stop offset="5%" stopColor="var(--v-navy-700)" stopOpacity={0.15} />
+                  <stop offset="95%" stopColor="var(--v-navy-700)" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--v-gray-200)" />
               <XAxis dataKey="date" tick={{ fontSize: 11 }} />
               <YAxis
                 tick={{ fontSize: 11 }}
@@ -61,25 +58,25 @@ export function PreisverlaufChart({
                 ]}
                 contentStyle={{
                   borderRadius: 8,
-                  border: '1px solid #e5e7eb',
+                  border: '1px solid var(--v-gray-200)',
                 }}
               />
               <Area
                 type="monotone"
                 dataKey="price"
-                stroke="#4F46E5"
+                stroke="var(--v-navy-700)"
                 strokeWidth={2}
                 fill="url(#priceGradient)"
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <Text as="p" tone="subdued">
+          <s-paragraph tone="subdued">
             Noch keine Preishistorie vorhanden. Preisänderungen werden hier
             angezeigt.
-          </Text>
+          </s-paragraph>
         )}
-      </BlockStack>
-    </Card>
+      </s-stack>
+    </s-section>
   );
 }

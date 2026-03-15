@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { Banner, TextField, Button, BlockStack, Text } from '@shopify/polaris';
 
 export function ShopVerbindungBanner() {
   const [show, setShow] = useState(false);
@@ -42,26 +41,30 @@ export function ShopVerbindungBanner() {
   if (!show) return null;
 
   return (
-    <Banner tone="warning" title="Shop nicht verbunden">
-      <BlockStack gap="300">
-        <Text as="p">
-          Kein Shop wurde erkannt. Öffne die App über den Shopify Admin, oder
-          gib deine Shop-Domain ein:
-        </Text>
-        <BlockStack gap="200">
-          <TextField
+    <s-banner tone="warning" title="Shop nicht verbunden">
+      <s-stack direction="block" gap="3">
+        <s-paragraph>
+          Kein Shop wurde erkannt. Öffne die App über den Shopify Admin, oder gib
+          deine Shop-Domain ein:
+        </s-paragraph>
+        <s-stack direction="block" gap="2">
+          <s-text-field
             label=""
             value={domain}
-            onChange={setDomain}
             placeholder="dein-shop.myshopify.com"
-            error={error}
-            autoComplete="off"
+            onChange={(e) => {
+              const ev = e as unknown as { target?: { value?: string }; detail?: { value?: string } };
+              setDomain(ev.target?.value ?? ev.detail?.value ?? '');
+            }}
           />
-          <Button variant="primary" onClick={handleConnect}>
+          <s-button variant="primary" onClick={handleConnect}>
             Shop verbinden
-          </Button>
-        </BlockStack>
-      </BlockStack>
-    </Banner>
+          </s-button>
+        </s-stack>
+        {error && (
+          <s-paragraph tone="critical">{error}</s-paragraph>
+        )}
+      </s-stack>
+    </s-banner>
   );
 }
