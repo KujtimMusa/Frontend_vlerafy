@@ -26,30 +26,57 @@ function useShopSuffix(): string {
   return q ? `?${q}` : '';
 }
 
-function formatPrice(v: number): string {
-  return new Intl.NumberFormat('de-DE', {
-    style: 'currency',
-    currency: 'EUR',
-  }).format(v);
+function getReasoningText(reasoning: unknown): string {
+  if (!reasoning) return '';
+  if (typeof reasoning === 'string') return reasoning;
+  if (typeof reasoning === 'object' && reasoning !== null) {
+    const obj = reasoning as Record<string, unknown>;
+    return (
+      (obj.explanation as string) ||
+      (obj.text as string) ||
+      (obj.reasoning as string) ||
+      ((obj.demand as Record<string, unknown>)?.reasoning as string) ||
+      ((obj.inventory as Record<string, unknown>)?.reasoning as string) ||
+      ''
+    );
+  }
+  return String(reasoning);
 }
 
-const TABS = [
-  { id: 'pending', content: 'Ausstehend', index: 0 },
-  { id: 'applied', content: 'Umgesetzt', index: 1 },
-  { id: 'all', content: 'Alle', index: 2 },
-];
+function getStrategyText(strategy: unknown): string {
+  if (!strategy) return 'ML-optimiert';
+  if (typeof strategy === 'string') return strategy;
+  if (typeof strategy === 'object' && strategy !== null) {
+    const obj = strategy as Record<string, unknown>;
+    return (obj.name as string) || (obj.strategy as string) || 'ML-optimiert';
+  }
+  return String(strategy);
+}
+
+type RecItem = {
+  id: number;
+  product_id: number;
+  product_title: string;
+  current_price: number;
+  recommended_price: number;
+  price_change_pct: number;
+  confidence: number;
+  strategy: string;
+  reasoning: unknown;
+  applied_at: string | null;
+};
 
 export default function PricingPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const suffix = useShopSuffix();
-  const [activeTab, setActiveTab] = useState(0);
+  const [selectedTab, setSelectedTab] = useState(0);
 
   const { data: listData, isLoading } = useQuery({
-    queryKey: ['recommendations-list', activeTab],
+    queryKey: ['recommendations-list', selectedTab],
     queryFn: () =>
       getRecommendationsList(
-        activeTab === 0 ? 'pending' : activeTab === 1 ? 'applied' : 'all'
+        selectedTab === 0 ? 'pending' : selectedTab === 1 ? 'applied' : 'all'
       ),
   });
   const { data: stats } = useQuery({
@@ -86,123 +113,172 @@ export default function PricingPage() {
   });
 
   const recs = listData?.recommendations ?? [];
-  const pending = stats?.recommendations_pending ?? 0;
-  const applied = stats?.recommendations_applied ?? 0;
-  const totalPotential = stats?.missed_revenue?.total ?? 0;
+  const pendingCount = stats?.recommendations_pending ?? 0;
+  const appliedCount = stats?.recommendations_applied ?? 0;
+  const revenue = stats?.missed_revenue?.total ?? 0;
+
+  const filteredRecommendations = recs.map((rec: RecItem) => ({
+    id: rec.id,
+    productId: rec.product_id,
+    productTitle: rec.product_title,
+    currentPrice: rec.current_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    recommendedPrice: rec.recommended_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    priceChangePct: rec.price_change_pct ?? 0,
+    confidence: rec.confidence ?? 0,
+    strategy: getStrategyText(rec.strategy),
+    reasoning: getReasoningText(rec.reasoning),
+    status: rec.applied_at ? ('applied' as const) : ('pending' as const),
+  }));
+
+  const applyRecommendation = (rec: RecItem) => {
+    applyMutation.mutate({
+      rec: { id: rec.id, product_id: rec.product_id, recommended_price: rec.recommended_price },
+      productId: rec.product_id,
+    });
+  };
+
+  const handleReject = (recId: number) => {
+    rejectMutation.mutate(recId);
+  };
 
   return (
     <div className="vlerafy-main">
       <div className="vlerafy-page-header">
-        <h1 className="vlerafy-page-title">Preisempfehlungen</h1>
-        <p className="vlerafy-page-subtitle">
-          {pending} ausstehend · {applied} umgesetzt · {totalPotential.toFixed(0)}€ Potenzial
-        </p>
+        <s-stack direction="inline" align-items="center" justify-content="space-between">
+          <div>
+            <h1 className="vlerafy-page-title">Preisempfehlungen</h1>
+            <p className="vlerafy-page-subtitle">
+              {pendingCount} ausstehend · {appliedCount} umgesetzt ·
+              {revenue > 0 ? ` +${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€` : ` ${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€`} Potenzial
+            </p>
+          </div>
+        </s-stack>
       </div>
 
-      <div className="vlerafy-tabs">
-        {TABS.map((tab) => (
+      <div className="vlerafy-tabs vlerafy-tabs-mb">
+        {['Ausstehend', 'Umgesetzt', 'Alle'].map((tab, index) => (
           <button
-            key={tab.id}
+            key={tab}
             type="button"
-            className={`vlerafy-tab ${activeTab === tab.index ? 'vlerafy-tab--active' : ''}`}
-            onClick={() => setActiveTab(tab.index)}
+            className={`vlerafy-tab ${selectedTab === index ? 'vlerafy-tab--active' : ''}`}
+            onClick={() => setSelectedTab(index)}
           >
-            {tab.content}
+            {tab}
           </button>
         ))}
       </div>
 
-      <s-stack direction="block" gap="3">
-        {recs.map((rec) => (
-          <s-section key={rec.id}>
-            <s-stack direction="block" gap="3">
-              <s-stack
-                direction="inline"
-                style={{ justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 16 }}
-              >
-                <s-stack direction="block" gap="1">
-                  <s-heading size="md">{rec.product_title}</s-heading>
-                  <s-stack direction="inline" gap="4" style={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                    <s-paragraph tone="subdued">Aktuell: {formatPrice(rec.current_price)}</s-paragraph>
-                    <s-text variant="headingSm" tone="success">
-                      → Empfohlen: {formatPrice(rec.recommended_price)}
-                    </s-text>
-                    <s-badge tone="success">
-                      +{formatPrice(rec.recommended_price - rec.current_price)} mehr
-                    </s-badge>
-                  </s-stack>
-                </s-stack>
-                {!rec.applied_at && (
-                  <s-stack direction="inline" gap="2">
-                    <s-button
-                      variant="primary"
-                      size="slim"
-                      loading={applyMutation.isPending}
-                      onClick={() =>
-                        applyMutation.mutate({
-                          rec,
-                          productId: rec.product_id,
-                        })
-                      }
-                    >
-                      Übernehmen
-                    </s-button>
-                    <s-button
-                      variant="plain"
-                      size="slim"
-                      onClick={() => rejectMutation.mutate(rec.id)}
-                      style={{ color: 'var(--v-critical)' }}
-                    >
-                      Ablehnen
-                    </s-button>
-                  </s-stack>
-                )}
-              </s-stack>
-
-              {rec.reasoning && (
-                <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
-                  {rec.reasoning}
-                </s-paragraph>
-              )}
-
-              <s-stack direction="inline" style={{ alignItems: 'center', gap: 12 }}>
-                <s-paragraph tone="subdued" style={{ fontSize: 13 }}>
-                  Analyse-Sicherheit:
-                </s-paragraph>
-                <div style={{ flex: 1, maxWidth: 200 }}>
-                  <div className="vlerafy-progress">
-                    <div
-                      className="vlerafy-progress-bar"
-                      style={{ width: `${rec.confidence * 100}%` }}
-                    />
-                  </div>
-                </div>
-                <s-text font-weight="600" style={{ fontSize: 13 }}>
-                  {Math.round(rec.confidence * 100)}%
-                </s-text>
-              </s-stack>
-            </s-stack>
-          </s-section>
-        ))}
-      </s-stack>
-
-      {!isLoading && recs.length === 0 && (
+      {filteredRecommendations.length === 0 ? (
         <div className="vlerafy-empty-state">
           <div className="vlerafy-empty-state-icon">💰</div>
           <p className="vlerafy-empty-state-title">
-            {activeTab === 0 ? 'Alle Empfehlungen bearbeitet 🎉' : 'Keine Empfehlungen'}
+            {isLoading ? 'Lade Empfehlungen...' : selectedTab === 0 ? 'Alle Empfehlungen bearbeitet 🎉' : 'Keine Empfehlungen'}
           </p>
           <p className="vlerafy-empty-state-text">
-            {activeTab === 0
+            {selectedTab === 0
               ? 'Großartig! Alle Preisempfehlungen wurden verarbeitet.'
-              : 'Generiere Preisempfehlungen in der Produktübersicht.'}
+              : 'Sobald Produkte analysiert wurden, erscheinen hier deine Preisempfehlungen.'}
           </p>
           <s-button
             variant="primary"
             onClick={() => router.push(`/dashboard/products${suffix}`)}
           >
-            Produkte ansehen
+            Produkte synchronisieren
           </s-button>
+        </div>
+      ) : (
+        <div className="vlerafy-table-card">
+          <div className="vlerafy-table-wrapper">
+            <table className="vlerafy-table">
+              <thead>
+                <tr>
+                  <th>Produkt</th>
+                  <th>Aktueller Preis</th>
+                  <th>Empfehlung</th>
+                  <th>Änderung</th>
+                  <th>Sicherheit</th>
+                  <th>Status</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRecommendations.map((rec) => {
+                  const rawRec = recs.find((r: RecItem) => r.id === rec.id) as RecItem | undefined;
+                  return (
+                    <tr key={rec.id}>
+                      <td>
+                        <div>
+                          <p className="vlerafy-product-title">{rec.productTitle}</p>
+                          <p className="vlerafy-kpi-label vlerafy-mt-2">
+                            {rec.strategy}
+                          </p>
+                        </div>
+                      </td>
+                      <td className="vlerafy-table-price">{rec.currentPrice} €</td>
+                      <td className="vlerafy-table-price vlerafy-price-recommended-cell">
+                        {rec.recommendedPrice} €
+                      </td>
+                      <td>
+                        <span
+                          className={
+                            rec.priceChangePct > 0
+                              ? 'vlerafy-price-change-badge vlerafy-price-change-badge--up'
+                              : rec.priceChangePct < 0
+                                ? 'vlerafy-price-change-badge vlerafy-price-change-badge--down'
+                                : 'vlerafy-price-change-badge vlerafy-price-change-badge--neutral'
+                          }
+                        >
+                          {rec.priceChangePct > 0 ? '▲' : rec.priceChangePct < 0 ? '▼' : '='}
+                          {Math.abs(rec.priceChangePct).toFixed(2)}%
+                        </span>
+                      </td>
+                      <td>
+                        <div className="vlerafy-confidence-bar vlerafy-confidence-bar--sm">
+                          <div
+                            className="vlerafy-confidence-fill"
+                            style={{ width: `${rec.confidence * 100}%` }}
+                          />
+                        </div>
+                        <p className="vlerafy-kpi-label vlerafy-mt-3">
+                          {Math.round(rec.confidence * 100)}%
+                        </p>
+                      </td>
+                      <td>
+                        {rec.status === 'pending' ? (
+                          <s-badge tone="attention">Ausstehend</s-badge>
+                        ) : rec.status === 'applied' ? (
+                          <s-badge tone="success">Umgesetzt</s-badge>
+                        ) : (
+                          <s-badge tone="info">Abgelehnt</s-badge>
+                        )}
+                      </td>
+                      <td>
+                        {rec.status === 'pending' && rawRec && (
+                          <s-stack direction="inline" gap="2">
+                            <s-button
+                              variant="primary"
+                              size="slim"
+                              loading={applyMutation.isPending}
+                              onClick={() => applyRecommendation(rawRec)}
+                            >
+                              Übernehmen
+                            </s-button>
+                            <s-button
+                              variant="plain"
+                              size="slim"
+                              onClick={() => handleReject(rec.id)}
+                            >
+                              Ablehnen
+                            </s-button>
+                          </s-stack>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
