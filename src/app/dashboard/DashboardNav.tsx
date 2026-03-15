@@ -4,6 +4,7 @@ import { useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
+import { LayoutDashboard, Package, Tag, Settings } from 'lucide-react';
 import { getCurrentShop, getDashboardStats } from '@/lib/api';
 import { ShopVerbindungBanner } from '@/components/ShopVerbindungBanner';
 
@@ -31,11 +32,10 @@ function useShopParams(): {
 }
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Übersicht', icon: '▤' },
-  { href: '/dashboard/products', label: 'Produkte', icon: '◫' },
-  { href: '/dashboard/pricing', label: 'Preisempfehlungen', icon: '◈', badgeKey: true },
-  { href: '/dashboard/analytics', label: 'Analysen', icon: '◉' },
-  { href: '/dashboard/settings', label: 'Einstellungen', icon: '◎' },
+  { href: '/dashboard', label: 'Übersicht', icon: LayoutDashboard },
+  { href: '/dashboard/products', label: 'Produkte', icon: Package },
+  { href: '/dashboard/pricing', label: 'Preisempfehlungen', icon: Tag, badgeKey: true },
+  { href: '/dashboard/settings', label: 'Einstellungen', icon: Settings },
 ] as const;
 
 export function DashboardNav({ children }: { children: React.ReactNode }) {
@@ -115,7 +115,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
                 href={item.href + linkSuffix}
                 className={`vlerafy-nav-item ${isActive ? 'vlerafy-nav-item--active' : ''}`}
               >
-                <span style={{ fontSize: 15, opacity: isActive ? 1 : 0.6 }}>{item.icon}</span>
+                <item.icon size={16} strokeWidth={1.8} style={{ flexShrink: 0, opacity: isActive ? 1 : 0.6 }} />
                 <span>{item.label}</span>
                 {'badgeKey' in item && item.badgeKey && openCount > 0 && (
                   <span className="vlerafy-nav-badge">{openCount}</span>
