@@ -255,7 +255,7 @@ export async function explainPrice(data: {
   const params = getShopParamsForUrl();
   const url = `${API_URL}/api/ai/explain-price${params ? `?${params}` : ''}`;
   if (typeof window !== 'undefined') {
-    console.log('[KI DEBUG] explainPrice →', url, 'hasAuth:', !!headers['Authorization']);
+    console.log('[KI DEBUG] explainPrice →', url, 'hasAuth:', !!(headers as Record<string, string>)['Authorization']);
   }
   const res = await fetch(url, {
     method: 'POST',
@@ -297,7 +297,7 @@ export async function chatWithAI(data: {
   const params = getShopParamsForUrl();
   const url = `${API_URL}/api/ai/chat${params ? `?${params}` : ''}`;
   if (typeof window !== 'undefined') {
-    console.log('[KI DEBUG] chatWithAI →', url, 'msg:', data.message?.slice(0, 30), 'hasAuth:', !!headers['Authorization']);
+    console.log('[KI DEBUG] chatWithAI →', url, 'msg:', data.message?.slice(0, 30), 'hasAuth:', !!(headers as Record<string, string>)['Authorization']);
   }
   const res = await fetch(url, {
     method: 'POST',
