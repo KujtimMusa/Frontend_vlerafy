@@ -23,6 +23,27 @@ export interface Shop {
   is_active: boolean;
 }
 
+export interface ReasoningStrategy {
+  price?: number;
+  confidence?: number;
+  strategy?: string;
+  reasoning?: string;
+}
+
+export interface ReasoningObject {
+  summary?: string;
+  current_price?: number;
+  recommended_price?: number;
+  price_change_pct?: number;
+  strategies?: {
+    demand?: ReasoningStrategy;
+    competitor?: ReasoningStrategy;
+    inventory?: ReasoningStrategy;
+    cost?: ReasoningStrategy;
+    margin?: ReasoningStrategy;
+  };
+}
+
 export interface Recommendation {
   id: number;
   product_id: number;
@@ -34,6 +55,7 @@ export interface Recommendation {
   confidence: number; // 0–1
   strategy: 'ML_OPTIMIZED' | 'FALLBACK_SAFE' | 'ERROR_FALLBACK' | string;
   reasoning: Record<string, unknown> | string;
+  reasoning_object?: ReasoningObject;
   demand_growth?: number;
   days_of_stock?: number;
   sales_7d?: number;
@@ -58,13 +80,15 @@ export interface StrategyDetail {
 }
 
 export interface CompetitorPrice {
-  source: string;
-  title: string;
+  source?: string;
+  title?: string;
+  competitor_name?: string;
   price: number;
-  url: string;
+  url?: string;
+  competitor_url?: string;
   rating?: number;
   reviews?: number;
-  scraped_at: string;
+  scraped_at?: string;
 }
 
 export interface CompetitorSearchResponse {

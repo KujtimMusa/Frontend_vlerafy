@@ -1,4 +1,8 @@
-import Link from 'next/link';
+'use client';
+
+import { Suspense } from 'react';
+import ShopInitializer from '@/components/ShopInitializer';
+import { DashboardNav } from './DashboardNav';
 
 export default function DashboardLayout({
   children,
@@ -6,15 +10,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <s-nav-menu>
-        <Link href="/dashboard" rel="home">
-          Dashboard
-        </Link>
-        <Link href="/dashboard/products">Produkte</Link>
-        <Link href="/dashboard/analytics">Analysen</Link>
-      </s-nav-menu>
-      {children}
-    </>
+    <Suspense fallback={null}>
+      <ShopInitializer>
+        <DashboardNav>{children}</DashboardNav>
+      </ShopInitializer>
+    </Suspense>
   );
 }

@@ -12,16 +12,39 @@ function HomePageContent() {
     const shopId = searchParams.get('shop_id');
     const host = searchParams.get('host');
 
-    if (shopId) {
-      if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined') {
+      // Immer speichern wenn vorhanden – auch wenn nur shop/host (öffnen aus Shopify Admin)
+      if (shop) localStorage.setItem('shop_domain', shop);
+      if (host) localStorage.setItem('shopify_host', host);
+      if (shopId) {
         localStorage.setItem('shop_id', shopId);
         localStorage.setItem('current_shop_id', shopId);
       }
-      const dest = host ? `/dashboard?shop=${shop}&host=${host}&shop_id=${shopId}` : `/dashboard?shop_id=${shopId}`;
-      router.replace(dest);
-    } else {
-      router.replace('/dashboard');
     }
+
+    const idToken = searchParams.get('id_token');
+
+    // shopId vorhanden = OAuth war erfolgreich, Shop in DB → direkt zum Dashboard
+    if (shopId) {
+      const q = new URLSearchParams([['shop', shop!], ['shop_id', shopId]]);
+      if (host) q.set('host', host);
+      if (idToken) q.set('id_token', idToken);
+      router.replace(`/dashboard?${q.toString()}`);
+      return;
+    }
+
+    // shop vorhanden OHNE shopId = User von Shopify Admin, Shop evtl. nicht in DB
+    // → Install-Endpoint (prüft DB, startet OAuth oder leitet zu Frontend weiter)
+    if (shop) {
+      const installUrl =
+        host
+          ? `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host)}`
+          : `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
+      window.location.href = installUrl;
+      return;
+    }
+
+    router.replace('/dashboard');
   }, [router, searchParams]);
 
   return (

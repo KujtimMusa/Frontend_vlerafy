@@ -1,8 +1,11 @@
 import type { Metadata } from 'next';
-import Script from 'next/script';
+import { Inter } from 'next/font/google';
 import { Providers } from './providers';
 import { ShopifyNavigationSync } from '@/components/ShopifyNavigationSync';
+import AppBridgeProvider from '@/components/AppBridgeProvider';
 import './globals.css';
+
+const inter = Inter({ subsets: ['latin'], display: 'swap' });
 
 const shopifyApiKey =
   process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ||
@@ -10,29 +13,35 @@ const shopifyApiKey =
   '';
 
 export const metadata: Metadata = {
-  title: 'Kujtims Plan - Vlerafy V3',
-  description: 'KI-Preisoptimierung für Shopify',
+  title: 'vlerafy',
+  description: 'Smarte Preisoptimierung für Shopify',
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="de" suppressHydrationWarning>
+    <html lang="de" suppressHydrationWarning className={inter.className}>
       <head>
         <meta name="shopify-api-key" content={shopifyApiKey} />
-        <Script
+        <script
           src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
-          strategy="beforeInteractive"
+          data-api-key={shopifyApiKey}
         />
-        <Script
-          src="https://cdn.shopify.com/shopifycloud/polaris.js"
-          strategy="beforeInteractive"
+        <link
+          rel="stylesheet"
+          href="https://cdn.shopify.com/shopifycloud/polaris/latest/build/esm/styles.css"
+        />
+        <script
+          type="module"
+          src="https://cdn.shopify.com/shopifycloud/polaris/latest/polaris.js"
         />
       </head>
       <body>
-        <ShopifyNavigationSync />
-        <Providers>{children}</Providers>
+        <AppBridgeProvider>
+          <ShopifyNavigationSync />
+          <Providers>{children}</Providers>
+        </AppBridgeProvider>
       </body>
     </html>
   );

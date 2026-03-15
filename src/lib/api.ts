@@ -10,7 +10,9 @@ import type {
   DashboardStats,
 } from '@/types/models';
 
-export const API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.vlerafy.com';
+// API-Backend (Railway). NIEMALS vlerafy.com – dort ist nur Frontend (Next.js).
+// Fest auf Backend – NEXT_PUBLIC_API_URL ignoriert, da oft falsch konfiguriert.
+export const API_URL = 'https://api.vlerafy.com';
 
 declare global {
   interface Window {
@@ -38,18 +40,41 @@ function getShopIdFromStorage(): string | null {
   );
 }
 
+/** Session Token für Bearer Header – Priorität:
+ *  1. id_token aus URL (Shopify übergibt beim Embedding: ?id_token=...)
+ *  2. window.shopify.idToken() (App Bridge, max 2s Timeout) */
+async function getSessionTokenForApi(): Promise<string | null> {
+  if (typeof window === 'undefined') return null;
+
+  // 1. id_token aus URL – sofort verfügbar, kein App-Bridge nötig
+  const urlToken = new URLSearchParams(window.location.search).get('id_token');
+  if (urlToken) return urlToken;
+
+  // 2. App Bridge idToken (falls URL-Token fehlt)
+  const timeout = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000));
+  const tokenPromise = (async () => {
+    try {
+      if (window.shopify?.idToken) {
+        const token = await window.shopify.idToken();
+        if (token) return token;
+      }
+    } catch (e) {
+      console.warn('[API] idToken failed, using fallback:', e);
+    }
+    return null;
+  })();
+
+  return Promise.race([tokenPromise, timeout]);
+}
+
 export async function getApiHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
   };
 
-  try {
-    if (typeof window !== 'undefined' && window.shopify?.idToken) {
-      const token = await window.shopify.idToken();
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-  } catch {
-    // Fallback wenn kein Token (z.B. Dev außerhalb Embedded App)
+  const token = await getSessionTokenForApi();
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   // Fix B: session_id + shop_id mitschicken
@@ -59,28 +84,101 @@ export async function getApiHeaders(): Promise<HeadersInit> {
   const shopId = getShopIdFromStorage();
   if (shopId) headers['X-Shop-ID'] = shopId;
 
+  // X-Shop-Domain immer mitschicken wenn vorhanden (Fallback wenn Bearer fehlschlägt)
+  if (typeof window !== 'undefined') {
+    const shopDomain = localStorage.getItem('shop_domain');
+    if (shopDomain) headers['X-Shop-Domain'] = shopDomain;
+  }
+
   return headers;
+}
+
+/** Shop-Parameter für API-URL – Backend kann Shop auch aus Query erkennen (falls Cookies/Header blockiert)
+ *  Priorität: ?shop=/?shop_id= aus AKTUELLER URL > localStorage */
+function getShopParamsForUrl(): string {
+  if (typeof window === 'undefined') return '';
+  const urlParams = new URLSearchParams(window.location.search);
+  const shopFromUrl = urlParams.get('shop');
+  const shopIdFromUrl = urlParams.get('shop_id');
+
+  const shop = shopFromUrl || localStorage.getItem('shop_domain') || '';
+  const shopId = shopIdFromUrl || getShopIdFromStorage() || '';
+
+  const params = new URLSearchParams();
+  if (shopId) params.set('shop_id', shopId);
+  else if (shop) params.set('shop', shop);
+
+  return params.toString();
 }
 
 // ── Dashboard ──────────────────────────────────────────
 export async function getDashboardStats(): Promise<DashboardStats> {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/api/dashboard/stats`, {
-    headers,
-    credentials: 'include',
-  });
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/api/dashboard/stats?${params}` : `${API_URL}/api/dashboard/stats`;
+  const res = await fetch(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Dashboard stats fehler');
   return res.json();
+}
+
+/** Redirect zu OAuth Install wenn Shop nicht in DB (401 oder Demo-Fallback). Gibt true zurück wenn Redirect ausgelöst. */
+function redirectToOAuthInstallIfNeeded(res: Response): boolean {
+  if (typeof window === 'undefined') return false;
+  const shopDomain =
+    new URLSearchParams(window.location.search).get('shop') ||
+    localStorage.getItem('shop_domain') ||
+    '';
+  if (!shopDomain) return false;
+  if (res.status === 401 || res.headers.get('X-Is-Demo') === 'true') {
+    const host = new URLSearchParams(window.location.search).get('host') || '';
+    const installUrl = host
+      ? `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shopDomain)}&host=${encodeURIComponent(host)}`
+      : `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shopDomain)}`;
+    window.location.href = installUrl;
+    return true;
+  }
+  return false;
 }
 
 // ── Products ───────────────────────────────────────────
 export async function fetchProducts(shopId?: number): Promise<Product[]> {
   const headers = await getApiHeaders();
-  const url = shopId ? `${API_URL}/products/?shop_id=${shopId}` : `${API_URL}/products/`;
+  const baseUrl = `${API_URL}/products/`;
+  const params = shopId ? `shop_id=${shopId}` : getShopParamsForUrl();
+  const url = params ? `${baseUrl}?${params}` : baseUrl;
+  // Debug: Immer wenn params leer (Verdacht: Shop nicht erkannt)
+  if (typeof window !== 'undefined') {
+    const h = headers as Record<string, string>;
+    if (!params || url === baseUrl || window.location.search.includes('debug=1')) {
+      console.log('[API DEBUG] fetchProducts:', {
+        url,
+        params: params || '(LEER – Shop wird evtl. nicht erkannt)',
+        hasBearer: !!h?.Authorization,
+        urlShop: new URLSearchParams(window.location.search).get('shop'),
+        lsShop: localStorage.getItem('shop_domain'),
+      });
+    }
+  }
   const res = await fetch(url, { headers, credentials: 'include' });
+  if (redirectToOAuthInstallIfNeeded(res)) return [];
   if (!res.ok) throw new Error('Produkte laden fehlgeschlagen');
   const data = await res.json();
-  return Array.isArray(data) ? data : data.products ?? [];
+  const products = Array.isArray(data) ? data : data.products ?? [];
+  if (typeof window !== 'undefined' && window.location.search.includes('debug=1') && products.length === 0) {
+    console.warn('[API DEBUG] Leere Antwort. Prüfe ob Backend Shop erkannt hat (Railway Logs).');
+  }
+  return products;
+}
+
+/** Produkte von Shopify in DB synchronisieren (z.B. bei erstem Öffnen falls OAuth-Sync fehlschlug) */
+export async function syncProductsFromShopify(): Promise<{ synced: number; updated: number }> {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/products/sync?${params}` : `${API_URL}/products/sync`;
+  const res = await fetch(url, { method: 'POST', headers, credentials: 'include' });
+  if (!res.ok) throw new Error('Produktsync fehlgeschlagen');
+  const data = await res.json();
+  return { synced: data.synced ?? 0, updated: data.updated ?? 0 };
 }
 
 // ── Recommendations ────────────────────────────────────
@@ -131,11 +229,77 @@ export async function rejectRecommendation(id: number, reason?: string) {
 
 export async function markRecommendationApplied(id: number) {
   const headers = await getApiHeaders();
-  return fetch(`${API_URL}/recommendations/${id}/mark-applied`, {
+  const res = await fetch(`${API_URL}/recommendations/${id}/mark-applied`, {
     method: 'PATCH',
     headers,
     credentials: 'include',
+    body: JSON.stringify({}),
   });
+  if (!res.ok) throw new Error('Recommendation konnte nicht markiert werden');
+  return res.json();
+}
+
+export async function explainPrice(data: {
+  current_price: number;
+  recommended_price: number;
+  confidence: number;
+  price_change_pct: number;
+  strategies?: Record<string, unknown>;
+  competitor_avg?: number;
+  break_even?: number;
+  inventory?: number;
+  product_title?: string;
+  currency?: string;
+}) {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/api/ai/explain-price${params ? `?${params}` : ''}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || 'KI-Erklärung fehlgeschlagen'
+    );
+  }
+  return res.json() as Promise<{
+    explanation: string;
+    key_reason: string;
+    confidence_text: string;
+    action_hint: string;
+  }>;
+}
+
+export async function chatWithAI(data: {
+  message: string;
+  product_title?: string;
+  current_price?: number;
+  recommended_price?: number;
+  confidence?: number;
+  competitor_avg?: number;
+  break_even?: number;
+  history?: Array<{ role: 'user' | 'assistant'; content: string }>;
+}) {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/api/ai/chat${params ? `?${params}` : ''}`;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers,
+    credentials: 'include',
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(
+      (err as { detail?: string }).detail || 'Chat nicht verfügbar'
+    );
+  }
+  return res.json() as Promise<{ reply: string }>;
 }
 
 export async function getEngineStatus() {
@@ -144,6 +308,41 @@ export async function getEngineStatus() {
     headers,
     credentials: 'include',
   });
+  return res.json();
+}
+
+export async function getRecommendationsList(
+  status: 'pending' | 'applied' | 'all' = 'pending'
+): Promise<{ recommendations: Array<{
+  id: number;
+  product_id: number;
+  product_name: string;
+  product_title: string;
+  current_price: number;
+  recommended_price: number;
+  price_change_pct: number;
+  confidence: number;
+  strategy: string;
+  reasoning: string;
+  applied_at: string | null;
+}> }> {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/recommendations/list?status=${status}${params ? `&${params}` : ''}`;
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) throw new Error('Empfehlungen laden fehlgeschlagen');
+  return res.json();
+}
+
+export async function getMarginHistory(
+  productId: string,
+  days = 30
+): Promise<{ product_id: string; days: number; history: Array<{ date: string; selling_price: number; margin_euro: number; margin_percent: number }> }> {
+  const headers = await getApiHeaders();
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/margin/history/${productId}?days=${days}${params ? `&${params}` : ''}`;
+  const res = await fetch(url, { headers, credentials: 'include' });
+  if (!res.ok) throw new Error('Preishistorie laden fehlgeschlagen');
   return res.json();
 }
 
@@ -281,15 +480,39 @@ export async function autoDiscoverCompetitors(productId: number | string) {
 }
 
 // ── Shopify ────────────────────────────────────────────
-export async function applyPrice(productId: number, price: number) {
+export async function applyPrice(
+  productId: number,
+  price: number,
+  recommendationId?: number
+) {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/api/shopify/apply-price`, {
+  const params = getShopParamsForUrl();
+  const url = `${API_URL}/api/shopify/apply-price${params ? `?${params}` : ''}`;
+
+  const body: Record<string, unknown> = {
+    product_id: productId,
+    recommended_price: price,
+  };
+  if (recommendationId != null) body.recommendation_id = recommendationId;
+
+  const res = await fetch(url, {
     method: 'POST',
     headers,
     credentials: 'include',
-    body: JSON.stringify({ product_id: productId, recommended_price: price }),
+    body: JSON.stringify(body),
   });
-  if (!res.ok) throw new Error('Preis übernehmen fehlgeschlagen');
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    let msg: string | undefined;
+    if (typeof err.detail === 'string') msg = err.detail;
+    else if (err.detail && typeof err.detail === 'object') {
+      msg = err.detail.message ?? err.detail.detail ?? String(err.detail.error ?? '');
+    } else {
+      msg = err.message;
+    }
+    throw new Error(msg || 'Preis übernehmen fehlgeschlagen');
+  }
   return res.json();
 }
 
@@ -300,20 +523,18 @@ export async function getAvailableShops(): Promise<{
   is_demo_mode: boolean;
 }> {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/shops`, {
-    headers,
-    credentials: 'include',
-  });
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/shops?${params}` : `${API_URL}/shops`;
+  const res = await fetch(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Shops laden fehlgeschlagen');
   return res.json();
 }
 
 export async function getCurrentShop() {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/shops/current`, {
-    headers,
-    credentials: 'include',
-  });
+  const params = getShopParamsForUrl();
+  const url = params ? `${API_URL}/shops/current?${params}` : `${API_URL}/shops/current`;
+  const res = await fetch(url, { headers, credentials: 'include' });
   return res.json();
 }
 
