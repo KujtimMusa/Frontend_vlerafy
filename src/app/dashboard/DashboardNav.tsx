@@ -95,7 +95,7 @@ export function DashboardNav({ children }: { children: React.ReactNode }) {
           >
             {shopName?.charAt(0)?.toUpperCase() || 'V'}
           </div>
-          <div style={{ marginLeft: 10 }}>
+          <div className="vlerafy-sidebar-logo-text">
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--v-gray-100)', lineHeight: 1.2 }}>
               {shopName || 'Vlerafy'}
             </div>

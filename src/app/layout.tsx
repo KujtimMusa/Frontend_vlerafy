@@ -1,11 +1,16 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Geist } from 'next/font/google';
 import { Providers } from './providers';
 import { ShopifyNavigationSync } from '@/components/ShopifyNavigationSync';
 import AppBridgeProvider from '@/components/AppBridgeProvider';
 import './globals.css';
 
-const inter = Inter({ subsets: ['latin'], display: 'swap' });
+const geist = Geist({
+  subsets: ['latin'],
+  variable: '--font-geist',
+  display: 'swap',
+  weight: ['400', '500', '600', '700', '800'],
+});
 
 const shopifyApiKey =
   process.env.NEXT_PUBLIC_SHOPIFY_API_KEY ||
@@ -21,7 +26,7 @@ export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="de" suppressHydrationWarning className={inter.className}>
+    <html lang="de" suppressHydrationWarning className={geist.variable}>
       <head>
         <meta name="shopify-api-key" content={shopifyApiKey} />
         <script
