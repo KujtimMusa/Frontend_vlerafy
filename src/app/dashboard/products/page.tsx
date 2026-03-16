@@ -117,31 +117,26 @@ export default function ProductsPage() {
     <s-page title="Produkte" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
     <div className="vlerafy-main">
       {syncMutation.isPending && (
-        <div className="vlerafy-banner-pending">
-          Produkte werden von deinem Shopify-Shop synchronisiert...
-        </div>
+        <s-banner tone="info">
+          <s-paragraph>Produkte werden von deinem Shopify-Shop synchronisiert…</s-paragraph>
+        </s-banner>
       )}
       {syncMutation.isError && (
-        <div className="vlerafy-banner-error">
-          <span>Sync fehlgeschlagen. Bitte erneut versuchen.</span>
-          <s-button
-            variant="destructive"
-            size="slim"
-            onClick={() => syncMutation.mutate()}
-          >
-            Erneut versuchen
-          </s-button>
-        </div>
+        <s-banner tone="critical" title="Synchronisation fehlgeschlagen">
+          <s-stack direction="block" gap="2">
+            <s-paragraph>Bitte erneut versuchen.</s-paragraph>
+            <s-button variant="primary" size="slim" onClick={() => syncMutation.mutate()}>
+              Erneut versuchen
+            </s-button>
+          </s-stack>
+        </s-banner>
       )}
 
-      <div className="vlerafy-page-header vlerafy-page-header--spaced">
+      <div style={{ marginBottom: 20 }}>
         <s-stack direction="inline" align-items="center" justify-content="space-between">
-          <div>
-            <h1 className="vlerafy-page-title">Produkte</h1>
-            <p className="vlerafy-page-subtitle">
-              {totalProducts} Produkte · {withRecommendation} mit Empfehlung
-            </p>
-          </div>
+          <s-paragraph tone="subdued">
+            {totalProducts} Produkte · {withRecommendation} mit Empfehlung
+          </s-paragraph>
           <s-stack direction="inline" gap="2">
             <s-button variant="secondary" size="slim" onClick={handleAnalyzeAll}>
               Alle analysieren

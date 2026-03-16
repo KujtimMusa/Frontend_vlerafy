@@ -911,8 +911,8 @@ body {
   transform: translateX(-50%);
 }
 
-/* --- Table --- */
-s-table {
+/* --- Table wrapper (own class, not Polaris override) --- */
+.vlerafy-table-wrapper {
   border-radius: var(--v-radius-md);
   overflow: hidden;
 }

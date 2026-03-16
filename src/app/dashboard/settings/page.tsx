@@ -69,9 +69,8 @@ export default function SettingsPage() {
   return (
     <s-page title="Einstellungen" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
     <div className="vlerafy-main">
-      <div className="vlerafy-page-header">
-        <h1 className="vlerafy-page-title">Einstellungen</h1>
-        <p className="vlerafy-page-subtitle">Shop-Verbindung und Synchronisation</p>
+      <div style={{ marginBottom: 20 }}>
+        <s-paragraph tone="subdued">Shop-Verbindung und Synchronisation</s-paragraph>
       </div>
       <s-grid columns="1" gap="4">
         <s-section>

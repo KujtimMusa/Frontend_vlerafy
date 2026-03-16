@@ -144,16 +144,14 @@ export default function PricingPage() {
   return (
     <s-page title="Preisempfehlungen" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
     <div className="vlerafy-main">
-      <div className="vlerafy-page-header">
-        <s-stack direction="inline" align-items="center" justify-content="space-between">
-          <div>
-            <h1 className="vlerafy-page-title">Preisempfehlungen</h1>
-            <p className="vlerafy-page-subtitle">
-              {pendingCount} ausstehend · {appliedCount} umgesetzt ·
-              {revenue > 0 ? ` +${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€` : ` ${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€`} Potenzial
-            </p>
-          </div>
-        </s-stack>
+      <div style={{ marginBottom: 20 }}>
+        <s-paragraph tone="subdued">
+          {pendingCount} ausstehend · {appliedCount} umgesetzt ·{' '}
+          {revenue > 0
+            ? `+${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€`
+            : `${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€`}{' '}
+          Potenzial
+        </s-paragraph>
       </div>
 
       <div className="vlerafy-tabs vlerafy-tabs-mb">
