@@ -9,11 +9,19 @@ interface FortschrittsCardProps {
   pendingSteps: { text: string; points: number; action: string }[];
 }
 
-const TIER_CONFIG: Record<string, { label: string; className: string; emoji: string }> = {
-  bronze: { label: 'Bronze', className: 'priceiq-tier-badge', emoji: '🥉' },
-  silver: { label: 'Silber', className: 'priceiq-tier-badge priceiq-tier-badge--silver', emoji: '🥈' },
-  gold: { label: 'Gold', className: 'priceiq-tier-badge priceiq-tier-badge--gold', emoji: '🥇' },
-  platinum: { label: 'Platin', className: 'priceiq-tier-badge priceiq-tier-badge--platinum', emoji: '🏆' },
+function StarIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+      <path d="M5 0l1.5 3L10 4l-2.5 2.5L8 10 5 8 2 10l.5-3.5L0 4l3.5-1L5 0z" />
+    </svg>
+  );
+}
+
+const TIER_LABELS: Record<string, string> = {
+  bronze: 'Bronze',
+  silver: 'Silber',
+  gold: 'Gold',
+  platinum: 'Platin',
 };
 
 export function FortschrittsCard({
@@ -24,7 +32,7 @@ export function FortschrittsCard({
   completedSteps,
   pendingSteps,
 }: FortschrittsCardProps) {
-  const tier = TIER_CONFIG[level] ?? TIER_CONFIG.bronze;
+  const tierLabel = TIER_LABELS[level] ?? 'Bronze';
   const nextLevelLabel =
     level === 'bronze'
       ? 'Silber'
@@ -40,7 +48,7 @@ export function FortschrittsCard({
     label: String(step).replace(/^✅\s*/, ''),
     done: true,
     points: 0,
-    subtext: undefined as string | undefined,
+    sub: undefined as string | undefined,
   }));
 
   const pendingTasks = (pendingSteps ?? []).map((step) => ({
@@ -48,78 +56,49 @@ export function FortschrittsCard({
     label: step.text,
     done: false,
     points: step.points,
-    subtext: undefined as string | undefined,
+    sub: undefined as string | undefined,
   }));
 
   const allTasks = [...completedTasks, ...pendingTasks];
 
   return (
-    <s-section>
-      <s-stack direction="block" gap="4">
-        {/* Header mit Tier-Badge */}
-        <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <s-heading size="md">Dein Fortschritt</s-heading>
-          <span className={tier.className}>
-            {tier.emoji} {tier.label}
+    <>
+      <div className="piq-card-head">
+        <div className="piq-prog-head">
+          <div className="piq-card-ttl">Fortschritt</div>
+          <span className="piq-tier">
+            <StarIcon />
+            {tierLabel}
           </span>
-        </s-stack>
+        </div>
+        <div className="piq-prog-pts">{points} / {nextLevelPoints} Pkt.</div>
+      </div>
 
-        {/* Progress mit Milestone */}
-        <s-stack direction="block" gap="2">
-          <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <s-paragraph tone="subdued">
-              {pointsNeeded} Punkte bis {nextLevelLabel}
-            </s-paragraph>
-            <span style={{ fontSize: 13, fontWeight: 600 }}>{points}/{nextLevelPoints}</span>
-          </s-stack>
-          <div className="priceiq-progress-track" style={{ position: 'relative' }}>
-            <div
-              className="priceiq-progress-fill"
-              style={{ width: `${progressPercent}%` }}
-            />
-            <div
-              className="priceiq-milestone-marker"
-              style={{
-                left: '50%',
-                background: progressPercent >= 50 ? 'var(--v-success)' : 'var(--v-gray-200)',
-              }}
-            />
-          </div>
-        </s-stack>
+      <div className="piq-prog-section">
+        <div className="piq-prog-track">
+          <div className="piq-prog-fill" style={{ width: `${progressPercent}%` }} />
+        </div>
+        <div className="piq-prog-hint">
+          {pointsNeeded} Punkte bis {nextLevelLabel}
+        </div>
+      </div>
 
-        <s-divider />
-
-        {/* Task List */}
-        <s-stack direction="block" gap="0">
-          {allTasks.map((task) => (
-            <div key={task.id} className="priceiq-task-item">
-              <div className={`priceiq-task-check ${task.done ? 'priceiq-task-check--done' : ''}`}>
-                {task.done && <span style={{ fontSize: '11px', color: 'white' }}>✓</span>}
-              </div>
-              <s-stack direction="block" gap="0" style={{ flex: 1 }}>
-                <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span
-                    style={{
-                      fontSize: 13,
-                      fontWeight: task.done ? 400 : 500,
-                      color: task.done ? 'var(--v-gray-400)' : 'var(--v-gray-950)',
-                      textDecoration: task.done ? 'line-through' : 'none',
-                    }}
-                  >
-                    {task.label}
-                  </span>
-                  {!task.done && (
-                    <s-badge tone="info">+{task.points} Pkt.</s-badge>
-                  )}
-                </s-stack>
-                {task.subtext && !task.done && (
-                  <s-paragraph tone="subdued">{task.subtext}</s-paragraph>
-                )}
-              </s-stack>
+      <div className="piq-card-body">
+        {allTasks.map((task) => (
+          <div key={task.id} className="piq-task">
+            <div className={`piq-task-circle${task.done ? ' piq-task-circle--done' : ''}`}>
+              {task.done && <div className="piq-task-check" />}
             </div>
-          ))}
-        </s-stack>
-      </s-stack>
-    </s-section>
+            <div className={`piq-task-label${task.done ? ' piq-task-label--done' : ''}`}>
+              {task.label}
+              {task.sub != null && <span className="piq-task-label-dim"> {task.sub}</span>}
+            </div>
+            {!task.done && task.points > 0 && (
+              <span className="piq-task-pts">+{task.points}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
