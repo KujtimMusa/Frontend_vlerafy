@@ -3,7 +3,18 @@ import type { DetailedHTMLProps, HTMLAttributes, MouseEventHandler, SyntheticEve
 declare module 'react' {
   namespace JSX {
     interface IntrinsicElements {
-      's-page': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { title?: string; 'primary-action'?: string }, HTMLElement>;
+      's-app-nav': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
+      's-contextual-save-bar': DetailedHTMLProps<HTMLAttributes<HTMLElement> & {
+        message?: string;
+        onSave?: () => void;
+        onDiscard?: () => void;
+        saveLoading?: boolean | string;
+      }, HTMLElement>;
+      's-page': DetailedHTMLProps<HTMLAttributes<HTMLElement> & {
+        title?: string;
+        'primary-action'?: string;
+        'back-action'?: string;
+      }, HTMLElement>;
       's-section': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
       's-stack': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { direction?: 'block' | 'inline'; gap?: string; 'align-items'?: string; 'justify-content'?: string; wrap?: string }, HTMLElement>;
       's-grid': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { columns?: string; gap?: string }, HTMLElement>;

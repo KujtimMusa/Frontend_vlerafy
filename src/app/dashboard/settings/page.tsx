@@ -33,7 +33,7 @@ function formatDate(iso: string | null | undefined): string {
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
-  void useShopSuffix(); // kept for future link suffix
+  const suffix = useShopSuffix();
   const { data: shopData, isLoading } = useQuery({
     queryKey: ['current-shop'],
     queryFn: getCurrentShop,
@@ -54,20 +54,21 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="vlerafy-main">
-        <s-page title="Einstellungen" />
+      <s-page title="Einstellungen" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
+        <div className="vlerafy-main">
         <s-section>
           <s-stack direction="block" gap="4">
             <s-paragraph tone="subdued">Lade Einstellungen...</s-paragraph>
           </s-stack>
         </s-section>
       </div>
+      </s-page>
     );
   }
 
   return (
+    <s-page title="Einstellungen" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
     <div className="vlerafy-main">
-      <s-page title="Einstellungen" />
       <div className="vlerafy-page-header">
         <h1 className="vlerafy-page-title">Einstellungen</h1>
         <p className="vlerafy-page-subtitle">Shop-Verbindung und Synchronisation</p>
@@ -131,5 +132,8 @@ export default function SettingsPage() {
         </s-section>
       </s-grid>
     </div>
+    </s-page>
   );
 }
+
+// ✅ BFS [Punkt 2, 8] erledigt — s-page + back-action auf Einstellungen

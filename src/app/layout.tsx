@@ -44,6 +44,14 @@ export default function RootLayout({
       </head>
       <body>
         <AppBridgeProvider>
+          {/* eslint-disable @next/next/no-html-link-for-pages -- s-app-nav (BFS) requires <a> for App Bridge */}
+          <s-app-nav>
+            <a href="/dashboard" rel="home">Übersicht</a>
+            <a href="/dashboard/products">Produkte</a>
+            <a href="/dashboard/pricing">Preisempfehlungen</a>
+            <a href="/dashboard/settings">Einstellungen</a>
+          </s-app-nav>
+          {/* eslint-enable @next/next/no-html-link-for-pages */}
           <ShopifyNavigationSync />
           <Providers>{children}</Providers>
         </AppBridgeProvider>

@@ -1,10 +1,7 @@
 /*
- * ANALYSE-ERGEBNIS:
- * - Kein Polaris Page/Layout (Projekt nutzt Web Components s-box/s-stack)
- * - Custom-CSS nur auf eigenen piq-* Wrappern, keine .Polaris-* Overrides
- * - Abgeschnittene Elemente: behoben durch white-space: nowrap auf .piq-kc-val
- * - KPI-Strip: border-right zwischen Zellen, Grid mit fr-Einheiten
- * - Light Mode Tokens in :root definiert
+ * Polaris Web konform: s-banner, s-button, s-section, s-stack, s-paragraph, s-heading.
+ * KPI-Strip und Card-Layout bleiben Custom (Polaris hat kein Stats-Grid),
+ * Inhalte nutzen Polaris-Komponenten.
  */
 
 'use client';
@@ -59,7 +56,7 @@ function useShopSuffix(): string {
 
 function AlertIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--red)" strokeWidth="1.5" strokeLinecap="round">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--p-color-text-critical, #dc2626)" strokeWidth="1.5" strokeLinecap="round">
       <circle cx="7" cy="7" r="5.5" />
       <path d="M7 4.5v3M7 9.5h.01" />
     </svg>
@@ -68,42 +65,9 @@ function AlertIcon() {
 
 function CostIcon() {
   return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--blue)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="var(--p-color-text-info, #2563eb)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2" y="3" width="10" height="9" rx="1.5" />
       <path d="M2 6h10M5 3V1M9 3V1" />
-    </svg>
-  );
-}
-
-function PriceIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M4 2v10M10 4v10M2 6h4M8 4h4" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function SyncIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M2 7a5 5 0 019-2.5M12 7a5 5 0 01-9 2.5M2 7h3v3M12 7H9V4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <circle cx="7" cy="7" r="2.5" />
-      <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.34 2.34l1.42 1.42M10.24 10.24l1.42 1.42M2.34 11.66l1.42-1.42M10.24 3.76l1.42-1.42" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function ChevronIcon() {
-  return (
-    <svg className="piq-step-arr" width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5">
-      <path d="M4.5 2l4 4.5-4 4.5" />
     </svg>
   );
 }
@@ -132,22 +96,30 @@ export default function DashboardPage() {
 
   if (isLoading) {
     return (
-      <div className="piq-dashboard">
-        <p className="piq-loading">Lade Dashboard...</p>
+      <s-page title="Übersicht">
+        <div className="piq-dashboard">
+        <s-section>
+          <s-stack direction="block" gap="4">
+            <s-paragraph tone="subdued">Lade Dashboard...</s-paragraph>
+          </s-stack>
+        </s-section>
       </div>
+      </s-page>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="piq-dashboard">
-        <div className="piq-topbar" style={{ borderLeftColor: 'var(--red)' }}>
-          <p className="piq-topbar-txt">
-            <strong>Fehler beim Laden</strong>
-            {error instanceof Error && ` — ${error.message}`}
-          </p>
-        </div>
+      <s-page title="Übersicht">
+        <div className="piq-dashboard">
+        <s-banner tone="critical" title="Fehler beim Laden">
+          <s-paragraph>
+            Dashboard konnte nicht geladen werden.
+            {error instanceof Error && ` (${error.message})`}
+          </s-paragraph>
+        </s-banner>
       </div>
+      </s-page>
     );
   }
 
@@ -158,61 +130,67 @@ export default function DashboardPage() {
   const nextStepsCount = stats?.next_steps?.length ?? 0;
 
   return (
+    <s-page title="Übersicht">
     <div className="piq-dashboard">
-      {/* Topbar Banner */}
+      {/* Banner — Polaris s-banner */}
       {bannerVisible && pendingCount > 0 && (
-        <div className="piq-topbar">
-          <div className="piq-topbar-pip" />
-          <p className="piq-topbar-txt">
-            <strong>{pendingCount} Preisempfehlungen ausstehend</strong>
-            {' '}— Durchschnittlich +€{avgPerProduct.toFixed(0)} Mehrumsatz pro Produkt möglich.
-          </p>
-          <button className="piq-topbar-btn" onClick={handleViewRecommendations}>
-            Jetzt ansehen →
-          </button>
-          <button className="piq-topbar-x" onClick={() => setBannerVisible(false)} aria-label="Schließen">✕</button>
-        </div>
+        <s-banner
+          tone="warning"
+          title={`${pendingCount} Preisempfehlungen ausstehend`}
+          onDismiss={() => setBannerVisible(false)}
+        >
+          <s-stack direction="block" gap="2">
+            <s-paragraph>
+              Durchschnittlich +€{avgPerProduct.toFixed(0)} Mehrumsatz pro Produkt möglich.
+            </s-paragraph>
+            <s-button variant="primary" size="slim" onClick={handleViewRecommendations}>
+              Jetzt ansehen →
+            </s-button>
+          </s-stack>
+        </s-banner>
       )}
 
-      {/* KPI Strip */}
-      <div className="piq-kpi">
-        <div className="piq-kc piq-kc--main">
-          <span className="piq-kc-badge piq-kc-badge--green">Aktiv</span>
-          <div className="piq-kc-lbl">Möglicher Mehrumsatz</div>
-          <div className="piq-kc-val">{revenueFormatted}</div>
-          <div className="piq-kc-bar-wrap">
-            <div className="piq-kc-bar-row">
-              <span>{affectedCount} von {totalCount} Produkten betroffen</span>
-              <span>{Math.round(progressPct)}%</span>
-            </div>
-            <div className="piq-kc-bar">
-              <div className="piq-kc-bar-fill" style={{ width: `${progressPct}%` }} />
+      {/* KPI Strip — Custom Grid (Polaris hat kein Stats-Grid), s-section Wrapper */}
+      <s-section>
+        <div className="piq-kpi">
+          <div className="piq-kc piq-kc--main">
+            <span className="piq-kc-badge piq-kc-badge--green">Aktiv</span>
+            <div className="piq-kc-lbl">Möglicher Mehrumsatz</div>
+            <div className="piq-kc-val">{revenueFormatted}</div>
+            <div className="piq-kc-bar-wrap">
+              <div className="piq-kc-bar-row">
+                <span>{affectedCount} von {totalCount} Produkten betroffen</span>
+                <span>{Math.round(progressPct)}%</span>
+              </div>
+              <div className="piq-kc-bar">
+                <div className="piq-kc-bar-fill" style={{ width: `${progressPct}%` }} />
+              </div>
             </div>
           </div>
-        </div>
-        <div className="piq-kc">
-          <div className="piq-kc-lbl">Ausstehend</div>
-          <div className="piq-kc-val piq-kc-val--sm piq-kc-val--amber">
-            <AnimatedNumber value={pendingCount} />
+          <div className="piq-kc">
+            <div className="piq-kc-lbl">Ausstehend</div>
+            <div className="piq-kc-val piq-kc-val--sm piq-kc-val--amber">
+              <AnimatedNumber value={pendingCount} />
+            </div>
+            <div className="piq-kc-sub">offene Empfehlungen</div>
           </div>
-          <div className="piq-kc-sub">offene Empfehlungen</div>
+          <div className="piq-kc">
+            <div className="piq-kc-lbl">Ø pro Produkt</div>
+            <div className="piq-kc-val piq-kc-val--sm">€{avgPerProduct.toFixed(0)}</div>
+            <div className="piq-kc-sub">möglicher Mehrumsatz</div>
+          </div>
         </div>
-        <div className="piq-kc">
-          <div className="piq-kc-lbl">Ø pro Produkt</div>
-          <div className="piq-kc-val piq-kc-val--sm">€{avgPerProduct.toFixed(0)}</div>
-          <div className="piq-kc-sub">möglicher Mehrumsatz</div>
-        </div>
-      </div>
+      </s-section>
 
       {/* Lower Grid */}
       <div className={`piq-lower ${!nextStepsCount ? 'piq-lower--single' : ''}`}>
         {nextStepsCount > 0 && (
-          <div className="piq-card">
-            <div className="piq-card-head">
-              <div className="piq-card-ttl">Nächste Schritte</div>
-              <div className="piq-card-meta">{nextStepsCount} ausstehend</div>
-            </div>
-            <div className="piq-card-body">
+          <s-section>
+            <s-stack direction="block" gap="4">
+              <s-stack direction="inline" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                <s-heading size="md">Nächste Schritte</s-heading>
+                <s-paragraph tone="subdued">{nextStepsCount} ausstehend</s-paragraph>
+              </s-stack>
               {stats.next_steps!.slice(0, 4).map((step, i) => (
                 <Link
                   key={i}
@@ -220,45 +198,71 @@ export default function DashboardPage() {
                   className="piq-step"
                   style={{ textDecoration: 'none', color: 'inherit' }}
                 >
-                  <div className="piq-step-ic">
-                    {step.urgent ? <AlertIcon /> : <CostIcon />}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div className="piq-step-ttl">{step.title}</div>
-                    <div className="piq-step-dsc">{step.description}</div>
-                  </div>
-                  <ChevronIcon />
+                  <s-stack direction="inline" gap="3" style={{ alignItems: 'flex-start', width: '100%' }}>
+                    <div className="piq-step-ic">
+                      {step.urgent ? <AlertIcon /> : <CostIcon />}
+                    </div>
+                    <s-stack direction="block" gap="0" style={{ flex: 1, minWidth: 0 }}>
+                      <s-paragraph>
+                        <strong>{step.title}</strong>
+                      </s-paragraph>
+                      <s-paragraph tone="subdued">{step.description}</s-paragraph>
+                    </s-stack>
+                    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.5" style={{ flexShrink: 0, marginTop: 4 }}>
+                      <path d="M4.5 2l4 4.5-4 4.5" />
+                    </svg>
+                  </s-stack>
                 </Link>
               ))}
-            </div>
-          </div>
+            </s-stack>
+          </s-section>
         )}
 
-        <div className="piq-card piq-progress-card">
-          <FortschrittsCard
-            level={stats?.progress?.level ?? 'bronze'}
-            points={stats?.progress?.points ?? 0}
-            nextLevelPoints={stats?.progress?.next_level_points ?? 20}
-            pointsNeeded={stats?.progress?.points_needed ?? 20}
-            completedSteps={stats?.progress?.completed_steps ?? []}
-            pendingSteps={stats?.progress?.pending_steps ?? []}
-          />
-          <div className="piq-qa-wrap">
-            <div className="piq-qa-lbl">Schnellaktionen</div>
-            <div className="piq-qa-grid">
-              <button type="button" className="piq-qa-btn" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
-                <PriceIcon /> Preise
-              </button>
-              <button type="button" className="piq-qa-btn" onClick={() => router.push(`/dashboard/products${suffix}`)}>
-                <SyncIcon /> Sync
-              </button>
-              <button type="button" className="piq-qa-btn" onClick={() => router.push(`/dashboard/settings${suffix}`)}>
-                <SettingsIcon /> Einstellungen
-              </button>
-            </div>
-          </div>
-        </div>
+        <s-section>
+          <s-stack direction="block" gap="4">
+            <FortschrittsCard
+              level={stats?.progress?.level ?? 'bronze'}
+              points={stats?.progress?.points ?? 0}
+              nextLevelPoints={stats?.progress?.next_level_points ?? 20}
+              pointsNeeded={stats?.progress?.points_needed ?? 20}
+              completedSteps={stats?.progress?.completed_steps ?? []}
+              pendingSteps={stats?.progress?.pending_steps ?? []}
+            />
+            <s-stack direction="block" gap="3">
+              <s-heading size="md">Schnellaktionen</s-heading>
+              <s-stack direction="block" gap="2">
+                <s-button
+                  variant="secondary"
+                  size="slim"
+                  onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                >
+                  Preise optimieren
+                </s-button>
+                <s-button
+                  variant="secondary"
+                  size="slim"
+                  onClick={() => router.push(`/dashboard/products${suffix}`)}
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                >
+                  Produkte synchronisieren
+                </s-button>
+                <s-button
+                  variant="secondary"
+                  size="slim"
+                  onClick={() => router.push(`/dashboard/settings${suffix}`)}
+                  style={{ width: '100%', justifyContent: 'flex-start' }}
+                >
+                  Einstellungen
+                </s-button>
+              </s-stack>
+            </s-stack>
+          </s-stack>
+        </s-section>
       </div>
     </div>
+    </s-page>
   );
 }
+
+// ✅ BFS [Punkt 8] erledigt — s-page title="Übersicht" auf Dashboard

@@ -142,6 +142,7 @@ export default function PricingPage() {
   };
 
   return (
+    <s-page title="Preisempfehlungen" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
     <div className="vlerafy-main">
       <div className="vlerafy-page-header">
         <s-stack direction="inline" align-items="center" justify-content="space-between">
@@ -282,5 +283,8 @@ export default function PricingPage() {
         </div>
       )}
     </div>
+    </s-page>
   );
 }
+
+// ✅ BFS [Punkt 2, 8] erledigt — s-page + back-action auf Preisempfehlungen

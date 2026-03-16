@@ -81,17 +81,20 @@ export default function ProductsPage() {
 
   if (isLoading) {
     return (
-      <div className="vlerafy-main">
-        <div className="vlerafy-skeleton vlerafy-skeleton-title" />
-        <div className="vlerafy-skeleton vlerafy-skeleton-card" />
-      </div>
+      <s-page title="Produkte" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
+        <div className="vlerafy-main">
+          <div className="vlerafy-skeleton vlerafy-skeleton-title" />
+          <div className="vlerafy-skeleton vlerafy-skeleton-card" />
+        </div>
+      </s-page>
     );
   }
 
   if (products.length === 0 && !syncMutation.isPending) {
     return (
-      <div className="vlerafy-main">
-        <div className="vlerafy-empty-state">
+      <s-page title="Produkte" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
+        <div className="vlerafy-main">
+          <div className="vlerafy-empty-state">
           <div className="vlerafy-empty-state-icon">📦</div>
           <p className="vlerafy-empty-state-title">Noch keine Produkte geladen</p>
           <p className="vlerafy-empty-state-text">
@@ -106,10 +109,12 @@ export default function ProductsPage() {
           </s-button>
         </div>
       </div>
+      </s-page>
     );
   }
 
   return (
+    <s-page title="Produkte" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
     <div className="vlerafy-main">
       {syncMutation.isPending && (
         <div className="vlerafy-banner-pending">
@@ -292,5 +297,8 @@ export default function ProductsPage() {
         </div>
       </div>
     </div>
+    </s-page>
   );
 }
+
+// ✅ BFS [Punkt 2, 8] erledigt — s-page + back-action auf Produkte

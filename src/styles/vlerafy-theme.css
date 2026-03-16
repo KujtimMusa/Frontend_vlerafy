@@ -108,132 +108,7 @@ body {
   letter-spacing: -0.015em;
 }
 
-/* --- Sidebar (expandable on hover) --- */
-.vlerafy-sidebar {
-  width: var(--v-sidebar-width);
-  min-width: var(--v-sidebar-width);
-  flex-shrink: 0;
-  position: relative;
-  top: 0; left: 0; bottom: 0;
-  display: flex;
-  flex-direction: column;
-  padding: 16px 12px 20px;
-  z-index: 100;
-  background: linear-gradient(180deg, #080F1A 0%, #0D1F38 100%);
-  border-right: 1px solid rgba(255,255,255,0.06);
-  box-shadow: 4px 0 32px rgba(0,0,0,0.2);
-  transition: width 0.22s ease;
-  overflow: hidden;
-}
-
-.vlerafy-sidebar:hover {
-  width: var(--v-sidebar-width-expanded);
-  min-width: var(--v-sidebar-width-expanded);
-}
-
-.vlerafy-sidebar-logo {
-  padding: 4px 8px 20px;
-  border-bottom: 1px solid rgba(255,255,255,0.07);
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.vlerafy-sidebar-logo-text {
-  margin-left: 10px;
-  overflow: hidden;
-  opacity: 0;
-  max-width: 0;
-  transition: opacity 0.2s ease, max-width 0.22s ease;
-}
-
-.vlerafy-sidebar:hover .vlerafy-sidebar-logo-text {
-  opacity: 1;
-  max-width: 140px;
-}
-
-.vlerafy-nav-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 9px 12px;
-  border-radius: var(--v-radius-sm);
-  color: var(--v-gray-400);
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.15s ease;
-  margin-bottom: 2px;
-  position: relative;
-  white-space: nowrap;
-}
-
-.vlerafy-sidebar:not(:hover) .vlerafy-nav-item {
-  justify-content: center;
-  padding: 9px 0;
-}
-
-.vlerafy-nav-item span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-  flex: 1;
-  opacity: 0;
-  max-width: 0;
-  transition: opacity 0.2s ease, max-width 0.22s ease;
-}
-
-.vlerafy-sidebar:hover .vlerafy-nav-item span {
-  opacity: 1;
-  max-width: 180px;
-}
-
-.vlerafy-nav-item:hover:not(.vlerafy-nav-item--active) {
-  background: rgba(255,255,255,0.04);
-  color: var(--v-gray-200);
-  transform: translateX(2px);
-  transition: all 0.15s ease;
-}
-
-.vlerafy-nav-item--active {
-  background: linear-gradient(135deg, var(--v-navy-800) 0%, rgba(45,107,196,0.4) 100%);
-  color: var(--v-white);
-  font-weight: 600;
-  box-shadow: 0 0 0 1px rgba(93,158,224,0.2),
-              inset 0 1px 0 rgba(255,255,255,0.06);
-}
-
-.vlerafy-nav-badge {
-  margin-left: auto;
-  flex-shrink: 0;
-  background: var(--v-navy-600);
-  color: var(--v-white);
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 7px;
-  border-radius: var(--v-radius-full);
-}
-
-/* Collapsed: Badge als kleines Overlay oben rechts am Icon */
-.vlerafy-sidebar:not(:hover) .vlerafy-nav-badge {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  margin-left: 0;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 10px;
-}
-
-/* Expanded: Badge inline rechts */
-.vlerafy-sidebar:hover .vlerafy-nav-badge {
-  position: static;
-}
+/* ✅ BFS [Punkt 3] erledigt — Sidebar-CSS entfernt */
 
 /* --- Page Layout --- */
 .vlerafy-main {
@@ -245,15 +120,15 @@ body {
   box-sizing: border-box;
 }
 
-/* --- Cards / Sections --- */
-s-section, .vlerafy-card {
-  box-shadow: var(--v-shadow-card) !important;
-  border-radius: var(--v-radius-md) !important;
-  border: 1px solid var(--v-gray-200) !important;
+/* --- Cards / Sections (nur eigene Wrapper, kein Polaris-Override) --- */
+.vlerafy-card {
+  box-shadow: var(--v-shadow-card);
+  border-radius: var(--v-radius-md);
+  border: 1px solid var(--v-gray-200);
 }
 
-s-section:hover, .vlerafy-card:hover {
-  box-shadow: var(--v-shadow-elevated) !important;
+.vlerafy-card:hover {
+  box-shadow: var(--v-shadow-elevated);
   transition: box-shadow 0.2s ease;
 }
 
@@ -1078,19 +953,7 @@ s-table {
   font-size: 14px;
 }
 
-/* --- Responsive --- */
-@media (max-width: 900px) {
-  .vlerafy-sidebar { display: none; }
-}
-
-/* --- Micro Interactions --- */
-s-button {
-  transition: transform 0.1s ease, opacity 0.15s ease;
-}
-
-s-button:active {
-  transform: scale(0.98);
-}
+/* ✅ BFS [Punkt 7] erledigt — Keine Polaris-Overrides (s-button, s-section) */
 
 /* --- Card Wrapper (Shadow DOM workaround) --- */
 .vlerafy-card-wrapper {
@@ -1511,27 +1374,27 @@ s-button:active {
    ================================================ */
 
 :root {
-  /* PriceIQ Light Mode Tokens (B2B-SaaS Linear/Vercel-Style) */
-  --bg:           #f5f5f7;
-  --surface:      #ffffff;
-  --sb-bg:        #fafafa;
-  --border:       #e4e4e7;
-  --border-inner: #f0f0f2;
-  --ink:          #18181b;
-  --muted:        #71717a;
-  --faint:        #a1a1aa;
-  --ghost:        #d4d4d8;
-  --amber:        #c47d0e;
-  --amber-bg:     #fef9f0;
-  --amber-border: #f5d89a;
-  --green:        #15803d;
-  --green-bg:     #f0fdf4;
-  --green-border: #bbf7d0;
-  --blue:         #1d4ed8;
-  --blue-bg:      #eff6ff;
-  --blue-border:  #bfdbfe;
-  --red:          #b91c1c;
-  --red-bg:       #fef2f2;
+  /* PriceIQ Light Mode — aligned with Polaris semantics */
+  --bg:           var(--p-color-bg, #f5f5f7);
+  --surface:      var(--p-color-bg-surface, #ffffff);
+  --sb-bg:        var(--p-color-bg-surface-secondary, #fafafa);
+  --border:       var(--p-color-border, #e4e4e7);
+  --border-inner: var(--p-color-border-subdued, #f0f0f2);
+  --ink:          var(--p-color-text, #18181b);
+  --muted:        var(--p-color-text-secondary, #71717a);
+  --faint:        var(--p-color-text-subdued, #a1a1aa);
+  --ghost:        var(--p-color-text-disabled, #d4d4d8);
+  --amber:        var(--p-color-text-caution, #c47d0e);
+  --amber-bg:     var(--p-color-bg-fill-caution, #fef9f0);
+  --amber-border: var(--p-color-border-caution, #f5d89a);
+  --green:        var(--p-color-text-success, #15803d);
+  --green-bg:     var(--p-color-bg-fill-success, #f0fdf4);
+  --green-border: var(--p-color-border-success, #bbf7d0);
+  --blue:         var(--p-color-text-info, #1d4ed8);
+  --blue-bg:      var(--p-color-bg-fill-info, #eff6ff);
+  --blue-border:  var(--p-color-border-info, #bfdbfe);
+  --red:          var(--p-color-text-critical, #b91c1c);
+  --red-bg:       var(--p-color-bg-fill-critical, #fef2f2);
 }
 
 /* --- TOPBAR --- */
@@ -2004,7 +1867,7 @@ s-button:active {
   border-radius: 6px;
 }
 
-/* --- Smooth all transitions --- */
-s-button, a, button {
+/* --- Smooth transitions (nur Links, kein s-button Override) --- */
+a {
   transition: all 0.15s ease;
 }

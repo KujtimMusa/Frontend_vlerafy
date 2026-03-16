@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
@@ -69,7 +68,17 @@ export default function ProductDetailPage() {
   const qc = useQueryClient();
   const suffix = useShopSuffix();
 
-  const [costForm, setCostForm] = useState({
+  type PaymentProvider = 'stripe' | 'paypal' | 'klarna' | 'custom';
+  const initialCostForm: {
+    purchase_cost: string;
+    shipping_cost: string;
+    packaging_cost: string;
+    payment_provider: PaymentProvider;
+    payment_fee_percentage: string;
+    payment_fee_fixed: string;
+    country_code: string;
+    category: string;
+  } = {
     purchase_cost: '',
     shipping_cost: '',
     packaging_cost: '',
@@ -78,8 +87,9 @@ export default function ProductDetailPage() {
     payment_fee_fixed: '0.30',
     country_code: 'DE',
     category: 'fashion',
-  });
-  const [showCostForm, setShowCostForm] = useState(false);
+  };
+  const [costForm, setCostForm] = useState(initialCostForm);
+  const [costFormDirty, setCostFormDirty] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<{
     explanation: string;
     key_reason: string;
@@ -127,7 +137,7 @@ export default function ProductDetailPage() {
         purchase_cost: String(existingCosts.purchase_cost),
         shipping_cost: String(existingCosts.shipping_cost),
         packaging_cost: String(existingCosts.packaging_cost),
-        payment_provider: existingCosts.payment_provider,
+        payment_provider: (existingCosts.payment_provider || 'stripe') as PaymentProvider,
         payment_fee_percentage: String(existingCosts.payment_fee_percentage),
         payment_fee_fixed: String(existingCosts.payment_fee_fixed),
         country_code: existingCosts.country_code,
@@ -204,7 +214,7 @@ export default function ProductDetailPage() {
         queryKey: ['costs', product?.shopify_product_id],
       });
       qc.invalidateQueries({ queryKey: ['margin'] });
-      setShowCostForm(false);
+      setCostFormDirty(false);
       showToast('Kostendaten gespeichert!', { duration: 3000 });
     },
     onError: () => showToast('Fehler beim Speichern', { isError: true }),
@@ -220,8 +230,28 @@ export default function ProductDetailPage() {
       showToast('Competitor Search fehlgeschlagen', { isError: true }),
   });
 
+  // ✅ BFS [Punkt 4] erledigt — Contextual Save Bar für Kostenformular
+  const handleCostDiscard = () => {
+    if (existingCosts) {
+      setCostForm({
+        purchase_cost: String(existingCosts.purchase_cost),
+        shipping_cost: String(existingCosts.shipping_cost),
+        packaging_cost: String(existingCosts.packaging_cost),
+        payment_provider: (existingCosts.payment_provider || 'stripe') as PaymentProvider,
+        payment_fee_percentage: String(existingCosts.payment_fee_percentage),
+        payment_fee_fixed: String(existingCosts.payment_fee_fixed),
+        country_code: existingCosts.country_code,
+        category: existingCosts.category ?? 'fashion',
+      });
+    } else {
+      setCostForm({ ...initialCostForm });
+    }
+    setCostFormDirty(false);
+  };
+
   const loadCategoryDefaults = async (category: string) => {
     const defaults = await getCategoryDefaults(category);
+    setCostFormDirty(true);
     setCostForm((prev) => ({
       ...prev,
       category,
@@ -386,14 +416,21 @@ export default function ProductDetailPage() {
   const reasoningFallback = reasoningDisplay == null && recommendation?.reasoning != null;
 
   return (
-    <div className="vlerafy-main">
-      <div className="vlerafy-detail-card">
-        <Link href={`/dashboard/products${suffix}`} className="vlerafy-back-link">
-          ← Produkte
-        </Link>
-      </div>
-
-      <div className="vlerafy-page-header">
+    <>
+      {costFormDirty && (
+        <s-contextual-save-bar
+          message="Nicht gespeicherte Änderungen"
+          onSave={() => saveCostsMutation.mutate()}
+          onDiscard={handleCostDiscard}
+          saveLoading={saveCostsMutation.isPending}
+        />
+      )}
+      <s-page
+        title={product.title}
+        back-action={JSON.stringify({ content: 'Produkte', url: `/dashboard/products${suffix}` })}
+      >
+        <div className="vlerafy-main">
+          <div className="vlerafy-page-header">
         <s-stack direction="inline" align-items="center" justify-content="space-between">
           <div>
             <h1 className="vlerafy-page-title">{product.title}</h1>
@@ -501,7 +538,10 @@ export default function ProductDetailPage() {
                   <select
                     className="vlerafy-select"
                     value={costForm.payment_provider}
-                    onChange={(e) => setCostForm((p) => ({ ...p, payment_provider: e.target.value }))}
+                    onChange={(e) => {
+                    setCostFormDirty(true);
+                    setCostForm((p) => ({ ...p, payment_provider: e.target.value as PaymentProvider }));
+                  }}
                   >
                     {PAYMENT_PROVIDERS.map((c) => (
                       <option key={c.value} value={c.value}>{c.label}</option>
@@ -509,16 +549,6 @@ export default function ProductDetailPage() {
                   </select>
                 </div>
               </s-stack>
-              <div className="vlerafy-detail-card">
-                <s-button
-                  variant="secondary"
-                  size="slim"
-                  onClick={() => saveCostsMutation.mutate()}
-                  loading={saveCostsMutation.isPending}
-                >
-                  Speichern & Marge berechnen
-                </s-button>
-              </div>
             </div>
           </div>
 
@@ -719,6 +749,8 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
-    </div>
+        </div>
+      </s-page>
+    </>
   );
 }
