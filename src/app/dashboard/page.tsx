@@ -49,6 +49,15 @@ function PendingIcon() {
   );
 }
 
+function AvgIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#4f46e5" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 14l5-6 4.5 3.5 4.5-8" />
+      <circle cx="16.5" cy="3.5" r="1.5" fill="#4f46e5" stroke="none" />
+    </svg>
+  );
+}
+
 function AlertIcon() {
   return (
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#dc2626" strokeWidth="1.6" strokeLinecap="round">
@@ -63,33 +72,6 @@ function TaskIcon() {
     <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#4f46e5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
       <rect x="2.5" y="2.5" width="10" height="10" rx="2.5" />
       <path d="M5 7.5l2 2 3-3" />
-    </svg>
-  );
-}
-
-function PriceActionIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 1v14M11 5c0-1-.9-1.8-1.8-1.8H6.5a1.8 1.8 0 0 0 0 3.6h3a1.8 1.8 0 0 1 0 3.6H5" />
-    </svg>
-  );
-}
-
-function ProductActionIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#d97706" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 2.5h2.5l2 8.5h6.5l1.3-5.5H5.5" />
-      <circle cx="8" cy="14" r="1" />
-      <circle cx="12.5" cy="14" r="1" />
-    </svg>
-  );
-}
-
-function SettingsActionIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="2.5" />
-      <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1" />
     </svg>
   );
 }
@@ -157,7 +139,7 @@ export default function DashboardPage() {
                 {pendingCount} Preisempfehlungen ausstehend
               </div>
               <div className="piq-notice-sub">
-                Durchschnittlich +€{Math.abs(Math.round(avgPerProduct))} Mehrumsatz pro Produkt möglich.
+                Durchschnittlich +€{Math.abs(Math.round(avgPerProduct))} mehr Umsatz pro Produkt möglich.
               </div>
             </div>
             <div className="piq-notice-actions">
@@ -171,27 +153,23 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ══ ZEILE 2: Hero (2/3) + Satellit Ausstehend (1/3) ══ */}
+        {/* ══ ZEILE 2: 3 KPI-Cards — Hero + Ausstehend + Ø pro Produkt ══ */}
         <div className="piq-hero-grid">
 
-          {/* Hero: Möglicher Mehrumsatz */}
+          {/* Card 1: Möglicher mehr Umsatz */}
           <div className="piq-hero-card">
             <div className="piq-hero-top">
               <s-badge tone="success">Aktiv</s-badge>
             </div>
-            <div className="piq-hero-lbl">Möglicher Mehrumsatz</div>
+            <div className="piq-hero-lbl">Möglicher mehr Umsatz (monatlich)</div>
             <div className="piq-hero-val">{revenueFormatted}</div>
             <div className="piq-hero-sub">
               <div className="piq-hero-sub-item">
                 <div className="piq-hero-sub-dot" />
                 <span>{affectedCount} von {totalCount} Produkten optimierbar</span>
               </div>
-              <div className="piq-hero-sub-item">
-                <div className="piq-hero-sub-dot" style={{ background: 'var(--indigo)' }} />
-                <span>Ø €{Math.abs(Math.round(avgPerProduct))} pro Produkt</span>
-              </div>
             </div>
-            <div className="piq-kc-prog" style={{ marginTop: 'auto' }}>
+            <div className="piq-kc-prog piq-kc-prog--bottom">
               <div className="piq-kc-prog-row">
                 <span>Optimierungsfortschritt</span>
                 <span>{Math.round(progressPct)}%</span>
@@ -202,7 +180,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Satellit: Ausstehend */}
+          {/* Card 2: Ausstehende Empfehlungen */}
           <div className="piq-sat-card">
             <div className="piq-sat-icon">
               <PendingIcon />
@@ -221,6 +199,25 @@ export default function DashboardPage() {
             </s-button>
           </div>
 
+          {/* Card 3: Ø mehr Umsatz pro Produkt */}
+          <div className="piq-avg-card">
+            <div className="piq-avg-icon">
+              <AvgIcon />
+            </div>
+            <div className="piq-avg-lbl">Ø pro Produkt</div>
+            <div className="piq-avg-val">
+              €<AnimatedNumber value={Math.abs(Math.round(avgPerProduct))} />
+            </div>
+            <div className="piq-avg-sub">möglicher mehr Umsatz je Produkt</div>
+            <s-button
+              variant="secondary"
+              size="slim"
+              onClick={() => router.push(`/dashboard/products${suffix}`)}
+            >
+              Produkte ansehen
+            </s-button>
+          </div>
+
         </div>
 
         {/* ══ ZEILE 3: Nächste Schritte — volle Breite, 2-Spalten mit CTAs ══ */}
@@ -236,7 +233,7 @@ export default function DashboardPage() {
               <div className="piq-steps-grid">
                 {stats.next_steps!.slice(0, 4).map((step, i) => (
                   <div key={i} className="piq-step-row">
-                    <div className={`piq-step-ic ${step.urgent ? 'piq-step-ic--urgent' : 'piq-step-ic--normal'}`} style={{ flexShrink: 0 }}>
+                    <div className={`piq-step-ic ${step.urgent ? 'piq-step-ic--urgent' : 'piq-step-ic--normal'}`}>
                       {step.urgent ? <AlertIcon /> : <TaskIcon />}
                     </div>
                     <div className="piq-step-row-body">
@@ -257,10 +254,9 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ══ ZEILE 4: Fortschritt (2/3) + Schnellaktionen (1/3) ══ */}
+        {/* ══ ZEILE 4: Fortschritt (2/3) + Schnellaktionen (1/3) — gleiche Höhe ══ */}
         <div className="piq-bottom-grid">
 
-          {/* Fortschritt – ohne Quick Actions (werden rechts separat gezeigt) */}
           <FortschrittsCard
             level={stats?.progress?.level ?? 'bronze'}
             points={stats?.progress?.points ?? 0}
@@ -271,29 +267,20 @@ export default function DashboardPage() {
             hideQuickActions
           />
 
-          {/* Schnellaktionen — volle Breite, vertikal gestapelt */}
+          {/* Schnellaktionen — echte s-button, volle Breite */}
           <div className="piq-qa-section">
             <div className="piq-card-head">
               <div className="piq-card-ttl">Schnellaktionen</div>
             </div>
             <div className="piq-qa-vert">
               <s-button variant="secondary" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <PriceActionIcon />
-                  Preise optimieren
-                </span>
+                ⚡ Preise optimieren
               </s-button>
               <s-button variant="secondary" onClick={() => router.push(`/dashboard/products${suffix}`)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ProductActionIcon />
-                  Produkte synchronisieren
-                </span>
+                📦 Produkte synchronisieren
               </s-button>
               <s-button variant="secondary" onClick={() => router.push(`/dashboard/settings${suffix}`)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <SettingsActionIcon />
-                  Einstellungen
-                </span>
+                ⚙️ Einstellungen
               </s-button>
             </div>
           </div>

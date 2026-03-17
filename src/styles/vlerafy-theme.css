@@ -1892,6 +1892,9 @@ body {
 .piq-kc-prog {
   margin-top: 14px;
 }
+.piq-kc-prog--bottom {
+  margin-top: auto;
+}
 .piq-kc-prog-row {
   display: flex;
   justify-content: space-between;
@@ -2188,10 +2191,10 @@ body {
    DASHBOARD LAYOUT v5 — Hero + Satellite
    ══════════════════════════════════════════ */
 
-/* ZEILE 2: Hero (2fr) + Satellit (1fr) */
+/* ZEILE 2: 3 KPI-Cards gleich breit */
 .piq-hero-grid {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 16px;
   align-items: stretch;
 }
@@ -2266,6 +2269,66 @@ body {
   border-radius: 50%;
   background: var(--ghost);
   flex-shrink: 0;
+}
+
+/* 3. KPI-Card (Ø pro Produkt) */
+.piq-avg-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 26px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+  position: relative;
+  overflow: hidden;
+}
+.piq-avg-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+  background: linear-gradient(90deg, #3730a3, #4f46e5, #818cf8);
+}
+
+.piq-avg-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  background: var(--indigo-bg);
+  border: 1px solid var(--indigo-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.piq-avg-lbl {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--faint);
+  margin-bottom: 10px;
+}
+
+.piq-avg-val {
+  font-size: 48px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  color: var(--indigo);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 10px;
+}
+
+.piq-avg-sub {
+  font-size: 12px;
+  color: var(--faint);
+  line-height: 1.5;
+  margin-bottom: 24px;
 }
 
 /* Satellit Card (Ausstehend) */
@@ -2372,12 +2435,24 @@ body {
   line-height: 1.4;
 }
 
-/* ZEILE 4: Fortschritt (2fr) + Schnellaktionen (1fr) */
+/* ZEILE 4: Fortschritt (2fr) + Schnellaktionen (1fr) – gleiche Höhe */
 .piq-bottom-grid {
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
+}
+
+/* Schnellaktionen-Karte: volle Höhe + Inhalt verteilt */
+.piq-qa-section {
+  display: flex;
+  flex-direction: column;
+}
+.piq-qa-section .piq-qa-vert {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* Schnellaktionen Karte */
