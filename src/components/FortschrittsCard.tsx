@@ -19,14 +19,16 @@ const NEXT_LABELS: Record<string, string> = {
   bronze: 'Silber', silver: 'Gold', gold: 'Platin', platinum: 'Max',
 };
 
-function StarIcon() {
+function TierIcon({ level }: { level: string }) {
+  const colors: Record<string, string> = {
+    bronze: '#cd7f32', silver: '#94a3b8', gold: '#f59e0b', platinum: '#6366f1',
+  };
   return (
-    <svg width="8" height="8" viewBox="0 0 10 10" fill="currentColor">
-      <polygon points="5,0.5 6.5,3.8 9.8,4.3 7.4,6.6 8,9.9 5,8.2 2,9.9 2.6,6.6 0.2,4.3 3.5,3.8" />
+    <svg width="10" height="10" viewBox="0 0 10 10" fill={colors[level] ?? '#cd7f32'}>
+      <polygon points="5,0.5 6.5,3.5 9.8,4 7.4,6.3 8.1,9.8 5,8.1 1.9,9.8 2.6,6.3 0.2,4 3.5,3.5" />
     </svg>
   );
 }
-
 
 export function FortschrittsCard({
   level,
@@ -48,12 +50,12 @@ export function FortschrittsCard({
   return (
     <div className="piq-card piq-progress-card">
 
-      {/* ── Card Header ── */}
+      {/* ── Header ── */}
       <div className="piq-card-head">
         <div className="piq-prog-head">
           <div className="piq-card-ttl">Fortschritt</div>
           <div className="piq-tier">
-            <StarIcon />
+            <TierIcon level={level} />
             {tierLabel}
           </div>
         </div>
