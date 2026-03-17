@@ -97,7 +97,7 @@ export default function ProductDetailPage() {
     action_hint: string;
   } | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
-  const [aiError, setAiError] = useState(false);
+  const [_aiError, setAiError] = useState(false);
   const [chatMessages, setChatMessages] = useState<
     Array<{ role: 'user' | 'assistant'; content: string }>
   >([]);
@@ -529,10 +529,8 @@ export default function ProductDetailPage() {
                     label="Kategorie"
                     value={costForm.category}
                     options={JSON.stringify(CATEGORIES.map(c => ({ label: c.label, value: c.value })))}
-                    onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) => {
-                      const val = (e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '';
-                      loadCategoryDefaults(val);
-                    }}
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                    onChange={(e: any) => loadCategoryDefaults(e?.target?.value ?? e?.detail?.value ?? '')}
                   />
                 </div>
                 <div>
@@ -540,10 +538,9 @@ export default function ProductDetailPage() {
                     label="Zahlungsanbieter"
                     value={costForm.payment_provider}
                     options={JSON.stringify(PAYMENT_PROVIDERS.map(c => ({ label: c.label, value: c.value })))}
-                    onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) => {
-                      const val = (e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '';
+                    onChange={(e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
                       setCostFormDirty(true);
-                      setCostForm((p) => ({ ...p, payment_provider: val as PaymentProvider }));
+                      setCostForm((p) => ({ ...p, payment_provider: (e?.target?.value ?? e?.detail?.value ?? '') as PaymentProvider }));
                     }}
                   />
                 </div>
@@ -737,10 +734,12 @@ export default function ProductDetailPage() {
                   label=""
                   placeholder="Frage zur Preisempfehlung..."
                   value={chatInput}
-                  onChange={(e: CustomEvent & { target?: { value?: string } }) =>
-                    setChatInput((e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '')
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onChange={(e: any) =>
+                    setChatInput(e?.target?.value ?? e?.detail?.value ?? '')
                   }
-                  onKeyDown={(e: KeyboardEvent) => e.key === 'Enter' && handleChatSend()}
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  onKeyDown={(e: any) => e.key === 'Enter' && handleChatSend()}
                 />
                 <s-button variant="primary" size="slim" onClick={handleChatSend} disabled={!chatInput.trim() || chatLoading}>
                   Senden

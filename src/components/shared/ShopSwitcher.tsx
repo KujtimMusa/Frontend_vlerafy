@@ -42,8 +42,9 @@ export function ShopSwitcher() {
       value={displayValue}
       options={JSON.stringify(options)}
       disabled={mutation.isPending}
-      onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) => {
-        const val = (e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '';
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      onChange={(e: any) => {
+        const val = e?.target?.value ?? e?.detail?.value ?? '';
         if (!val || val === '999') return;
         const shop = shops.find((s) => s.id === Number(val));
         if (shop) mutation.mutate({ shopId: shop.id, useDemo: false });

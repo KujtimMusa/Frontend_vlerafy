@@ -204,9 +204,8 @@ export default function ProductsPage() {
               label=""
               placeholder="Produkt suchen..."
               value={searchQuery}
-              onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) =>
-                setSearchQuery((e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '')
-              }
+              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+              onChange={(e: any) => setSearchQuery(e?.target?.value ?? e?.detail?.value ?? '')}
             />
           </div>
           <span className="vlerafy-table-count">{filteredProducts.length} Produkte</span>
@@ -228,8 +227,8 @@ export default function ProductsPage() {
                 <tr>
                   <td colSpan={5} className="vlerafy-empty-state vlerafy-empty-state--compact">
                     <div className="vlerafy-empty-state-icon" style={{ fontSize: 32 }}>🔍</div>
-                    <p className="vlerafy-empty-state-title">Keine Produkte gefunden</s-paragraph>
-                    <p className="vlerafy-empty-state-text">
+                    <s-paragraph>Keine Produkte gefunden</s-paragraph>
+                    <s-paragraph tone="subdued">
                       Keine Produkte für „{searchQuery}“
                     </s-paragraph>
                   </td>

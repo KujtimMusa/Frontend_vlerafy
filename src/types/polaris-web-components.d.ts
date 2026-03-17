@@ -28,8 +28,9 @@ declare module 'react' {
       's-divider': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
       's-spinner': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { size?: 'small' | 'large' }, HTMLElement>;
       's-icon': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { source?: string }, HTMLElement>;
-      's-text-field': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { label?: string; value?: string; placeholder?: string; type?: string; disabled?: boolean | string; onChange?: (e: SyntheticEvent) => void }, HTMLElement>;
-      's-select': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { label?: string; value?: string; onChange?: (e: SyntheticEvent) => void }, HTMLElement>;
+      's-text-field': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { label?: string; value?: string; placeholder?: string; type?: string; disabled?: boolean | string; onChange?: (e: SyntheticEvent) => void; onKeyDown?: (e: KeyboardEvent) => void }, HTMLElement>;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      's-select': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { label?: string; value?: string; options?: string; disabled?: boolean | string; onChange?: (e: any) => void }, HTMLElement>;
       's-modal': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { open?: boolean | string; title?: string }, HTMLElement>;
       's-list': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
       's-link': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { href?: string; tone?: string }, HTMLElement>;

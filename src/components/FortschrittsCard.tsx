@@ -27,30 +27,6 @@ function StarIcon() {
   );
 }
 
-function PriceIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-      <path d="M7 1v3M7 10v3M1 7h3M10 7h3M2.8 2.8l2.1 2.1M9.1 9.1l2.1 2.1M2.8 11.2l2.1-2.1M9.1 4.9l2.1-2.1" />
-    </svg>
-  );
-}
-
-function SyncIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 7A5 5 0 0 1 2 7M2 7A5 5 0 0 1 12 7M9.5 4.5l2.5 2.5-2.5 2.5M4.5 9.5L2 7l2.5-2.5" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-      <circle cx="7" cy="7" r="2" />
-      <path d="M7 1v2M7 11v2M1 7h2M11 7h2M2.8 2.8l1.4 1.4M9.8 9.8l1.4 1.4M2.8 11.2l1.4-1.4M9.8 4.2l1.4-1.4" />
-    </svg>
-  );
-}
 
 export function FortschrittsCard({
   level,
