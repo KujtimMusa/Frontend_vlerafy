@@ -1966,8 +1966,8 @@ body {
 .piq-task {
   display: flex;
   align-items: center;
-  gap: 11px;
-  padding: 11px 0;
+  gap: 12px;
+  padding: 13px 0;      /* mehr Luft: war 11px */
   border-bottom: 1px solid var(--border-sub);
 }
 .piq-task:last-of-type { border-bottom: none; }
@@ -2175,9 +2175,10 @@ body {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 28px 24px 24px;
+  padding: 28px 26px 26px;  /* etwas mehr horizontale Luft */
   display: flex;
   flex-direction: column;
+  justify-content: space-between; /* Inhalt gleichmäßig verteilt */
   box-shadow: 0 1px 4px rgba(0,0,0,0.05);
   position: relative;
   overflow: hidden;
@@ -2225,9 +2226,8 @@ body {
 .piq-sat-sub {
   font-size: 12px;
   color: var(--faint);
-  line-height: 1.4;
-  margin-bottom: 20px;
-  flex: 1;
+  line-height: 1.5;
+  margin-bottom: 24px;
 }
 
 /* ZEILE 3: Nächste Schritte — 2-Spalten */
@@ -2240,9 +2240,10 @@ body {
 
 .piq-step-row {
   display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 16px 18px;
+  align-items: center;  /* ← vertikale Zentrierung aller Kinder */
+  gap: 16px;
+  padding: 18px 20px;   /* mehr Luft: war 16/18 */
+  min-height: 88px;     /* gleiche Höhe beider Step-Cards */
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -2293,8 +2294,24 @@ body {
 .piq-qa-vert {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 22px 20px;
+  gap: 10px;
+  padding: 10px 20px 22px;
+}
+
+/* Buttons in Quick-Actions auf volle Breite setzen */
+.piq-qa-vert s-button {
+  display: block;
+  width: 100%;
+}
+
+/* ── Gleich-hohe Cards in Steps-Grid ── */
+.piq-steps-grid {
+  align-items: stretch;  /* beide Zeilen gleich hoch */
+}
+
+/* ── Progress-Section: mehr Luft zwischen den Aufgaben ── */
+.piq-prog-section {
+  padding: 0 22px 10px;  /* etwas mehr unten */
 }
 
 /* ── Responsive ── */
