@@ -1448,48 +1448,106 @@ body {
 .piq-table-action-btn:hover { color: #3730a3; }
 
 /* Empty state in table */
-/* ══ KPI Summary Strip (Produkte) ══ */
-.piq-prod-kpi-strip {
-  display: flex;
+/* ══ Row accent borders ══ */
+.piq-row--pending { border-left: 3px solid var(--amber); }
+.piq-row--applied { border-left: 3px solid var(--green); }
+
+/* Avatar with rec ring */
+.piq-product-avatar--rec {
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3.5px var(--indigo);
+}
+
+/* Strategy tag */
+.piq-strat-tag {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+.piq-strat-tag--indigo {
+  color: var(--indigo);
+  background: var(--indigo-bg);
+}
+.piq-strat-tag--green {
+  color: var(--green);
+  background: var(--green-bg);
+}
+
+/* Mini confidence bar */
+.piq-conf-mini {
+  display: inline-flex;
   align-items: center;
-  gap: 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px 28px;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
-  overflow-x: auto;
+  gap: 5px;
 }
-.piq-prod-kpi {
-  flex: 1;
-  min-width: 110px;
-  text-align: center;
+.piq-conf-mini-track {
+  width: 36px;
+  height: 4px;
+  border-radius: 99px;
+  background: var(--border);
+  overflow: hidden;
 }
-.piq-prod-kpi-val {
-  font-size: 22px;
-  font-weight: 800;
-  color: var(--ink);
-  letter-spacing: -0.03em;
-  line-height: 1.1;
-  margin-bottom: 3px;
+.piq-conf-mini-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: var(--indigo);
+  transition: width 0.6s ease;
 }
-.piq-prod-kpi-val--amber  { color: var(--amber); }
-.piq-prod-kpi-val--green  { color: var(--green); }
-.piq-prod-kpi-val--red    { color: var(--red); }
-.piq-prod-kpi-val--indigo { color: var(--indigo); }
-.piq-prod-kpi-lbl {
-  font-size: 11px;
+.piq-conf-mini-pct {
+  font-size: 10px;
   font-weight: 600;
   color: var(--faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  min-width: 22px;
 }
-.piq-prod-kpi-sep {
-  width: 1px;
-  height: 36px;
-  background: var(--border);
-  flex-shrink: 0;
-  margin: 0 8px;
+
+/* Compact cost icon */
+.piq-cost-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+}
+.piq-cost-icon--ok {
+  color: var(--green);
+  background: var(--green-bg);
+}
+.piq-cost-icon--missing {
+  color: var(--ghost);
+  background: var(--bg);
+}
+
+/* Status chip */
+.piq-status-chip {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 3px 10px;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+.piq-status-chip--green {
+  color: var(--green);
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+}
+.piq-status-chip--amber {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+}
+.piq-status-chip--gray {
+  color: var(--ghost);
+}
+
+/* Price rec down color */
+.piq-price-rec--down { color: var(--amber); }
+
+/* Dim meta text */
+.piq-prod-meta--dim {
+  color: var(--ghost);
+  font-style: italic;
 }
 
 /* ══ Enriched Product Table ══ */
@@ -1504,9 +1562,10 @@ body {
   gap: 2px;
 }
 .piq-prod-meta {
-  font-size: 11px;
-  color: var(--faint);
-  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 3px;
 }
 
 /* Price cell */
@@ -1563,31 +1622,7 @@ body {
 }
 .piq-stock-pill--red .piq-stock-dot { background: var(--red); }
 .piq-stock-label {
-  font-size: 10px;
-  color: var(--faint);
-  margin-top: 2px;
-  text-align: center;
-}
-
-/* Cost badge */
-.piq-cost-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 11.5px;
-  font-weight: 600;
-  padding: 3px 10px;
-  border-radius: 7px;
-}
-.piq-cost-badge--ok {
-  color: var(--green);
-  background: var(--green-bg);
-  border: 1px solid var(--green-border);
-}
-.piq-cost-badge--missing {
-  color: var(--faint);
-  background: var(--bg);
-  border: 1px solid var(--border);
+  display: none;
 }
 
 /* Rec time hint */
@@ -1595,14 +1630,6 @@ body {
   font-size: 10px;
   color: var(--faint);
   margin-top: 3px;
-}
-
-/* Potential value */
-.piq-potential-val {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--green);
-  font-variant-numeric: tabular-nums;
 }
 
 /* Rich table wider rows */
@@ -2848,8 +2875,7 @@ body {
   .piq-hero-grid  { grid-template-columns: 1fr; }
   .piq-steps-grid { grid-template-columns: 1fr; }
   .piq-bottom-grid{ grid-template-columns: 1fr; }
-  .piq-prod-kpi-strip { flex-wrap: wrap; gap: 12px; }
-  .piq-prod-kpi-sep { display: none; }
+  .piq-prod-meta { flex-wrap: wrap; }
 }
 
 /* ── TOPBAR legacy ── */

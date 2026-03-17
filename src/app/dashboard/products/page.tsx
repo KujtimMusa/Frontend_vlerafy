@@ -44,8 +44,8 @@ function CheckIcon() {
 
 function XIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-      <path d="M2.5 2.5l6 6M8.5 2.5l-6 6" />
+    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M2 2l6 6M8 2l-6 6" />
     </svg>
   );
 }
@@ -65,9 +65,7 @@ const strategyLabels: Record<string, string> = {
 
 function readableStrategy(raw: string): string {
   if (strategyLabels[raw]) return strategyLabels[raw];
-  return raw
-    .replace(/_/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 function stockLevel(qty: number): { label: string; tone: string } {
@@ -76,15 +74,16 @@ function stockLevel(qty: number): { label: string; tone: string } {
   return { label: 'Verfügbar', tone: 'green' };
 }
 
-function timeAgo(iso: string | null): string {
-  if (!iso) return '';
-  const diff = Date.now() - new Date(iso).getTime();
-  const days = Math.floor(diff / 86400000);
-  if (days === 0) return 'Heute';
-  if (days === 1) return 'Gestern';
-  if (days < 7) return `vor ${days} Tagen`;
-  if (days < 30) return `vor ${Math.floor(days / 7)} Wo.`;
-  return `vor ${Math.floor(days / 30)} Mon.`;
+function ConfBar({ value }: { value: number }) {
+  const pct = Math.round(value * 100);
+  return (
+    <div className="piq-conf-mini">
+      <div className="piq-conf-mini-track">
+        <div className="piq-conf-mini-fill" style={{ width: `${pct}%` }} />
+      </div>
+      <span className="piq-conf-mini-pct">{pct}%</span>
+    </div>
+  );
 }
 
 export default function ProductsPage() {
@@ -116,19 +115,16 @@ export default function ProductsPage() {
     },
   });
 
-  /* ── Recommendation lookup ── */
   type Rec = NonNullable<typeof recsData>['recommendations'][number];
   const recMap = new Map<number, Rec>();
   (recsData?.recommendations ?? []).forEach((r) => recMap.set(r.product_id, r));
 
-  /* ── Derived counts ── */
   const totalProducts      = products.length || (stats?.products_count ?? 0);
   const withRecommendation = recMap.size || (stats?.products_with_recommendations ?? 0);
   const noStock            = products.filter((p) => (p.inventory ?? 0) === 0).length;
   const withCost           = products.filter((p) => p.cost != null && p.cost > 0).length;
   const noCost             = totalProducts - withCost;
 
-  /* ── Filter ── */
   const tabFiltered = products.filter((p) => {
     if (activeTab === 'recommended') return recMap.has(p.id);
     if (activeTab === 'no-stock')    return (p.inventory ?? 0) === 0;
@@ -153,22 +149,18 @@ export default function ProductsPage() {
   }, [isLoading, products.length, syncMutation]);
 
   const handleSync = () => syncMutation.mutate();
-  const backAction       = JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix });
+  const backAction = JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix });
 
-  /* ── Loading ── */
   if (isLoading) {
     return (
       <s-page title="Produkte" back-action={backAction}>
         <div className="piq-dashboard">
-          <div className="piq-card">
-            <div className="piq-loading"><s-spinner size="small" /></div>
-          </div>
+          <div className="piq-card"><div className="piq-loading"><s-spinner size="small" /></div></div>
         </div>
       </s-page>
     );
   }
 
-  /* ── Empty State ── */
   if (products.length === 0 && !syncMutation.isPending) {
     return (
       <s-page title="Produkte" back-action={backAction}>
@@ -188,47 +180,17 @@ export default function ProductsPage() {
     <s-page title="Produkte" back-action={backAction}>
       <div className="piq-dashboard">
 
-        {/* ── Status-Banners ── */}
         {syncMutation.isPending && (
-          <s-banner tone="info">
-            <s-paragraph>Produkte werden synchronisiert…</s-paragraph>
-          </s-banner>
+          <s-banner tone="info"><s-paragraph>Produkte werden synchronisiert…</s-paragraph></s-banner>
         )}
         {syncMutation.isError && (
           <s-banner tone="critical" title="Synchronisation fehlgeschlagen">
             <s-stack direction="block" gap="2">
               <s-paragraph>Bitte erneut versuchen.</s-paragraph>
-              <s-button variant="primary" size="slim" onClick={() => syncMutation.mutate()}>
-                Erneut versuchen
-              </s-button>
+              <s-button variant="primary" size="slim" onClick={() => syncMutation.mutate()}>Erneut versuchen</s-button>
             </s-stack>
           </s-banner>
         )}
-
-        {/* ══ KPI Summary Strip ══ */}
-        <div className="piq-prod-kpi-strip">
-          <div className="piq-prod-kpi">
-            <div className="piq-prod-kpi-val">{totalProducts}</div>
-            <div className="piq-prod-kpi-lbl">Produkte gesamt</div>
-          </div>
-          <div className="piq-prod-kpi-sep" />
-          <div className="piq-prod-kpi">
-            <div className="piq-prod-kpi-val piq-prod-kpi-val--amber">{withRecommendation}</div>
-            <div className="piq-prod-kpi-lbl">Mit Empfehlung</div>
-          </div>
-          <div className="piq-prod-kpi-sep" />
-          <div className="piq-prod-kpi">
-            <div className="piq-prod-kpi-val piq-prod-kpi-val--green">
-              {withCost}/{totalProducts}
-            </div>
-            <div className="piq-prod-kpi-lbl">Kosten hinterlegt</div>
-          </div>
-          <div className="piq-prod-kpi-sep" />
-          <div className="piq-prod-kpi">
-            <div className="piq-prod-kpi-val piq-prod-kpi-val--red">{noStock}</div>
-            <div className="piq-prod-kpi-lbl">Ausverkauft</div>
-          </div>
-        </div>
 
         {/* ══ TABELLE ══ */}
         <div className="piq-table-card">
@@ -238,26 +200,22 @@ export default function ProductsPage() {
             <div className="piq-tabs" role="tablist">
               <button role="tab" aria-selected={activeTab === 'all'}
                 className={`piq-tab${activeTab === 'all' ? ' piq-tab--active' : ''}`}
-                onClick={() => setActiveTab('all')}
-              >
+                onClick={() => setActiveTab('all')}>
                 Alle <span className="piq-tab-badge">{totalProducts}</span>
               </button>
               <button role="tab" aria-selected={activeTab === 'recommended'}
                 className={`piq-tab${activeTab === 'recommended' ? ' piq-tab--active' : ''}`}
-                onClick={() => setActiveTab('recommended')}
-              >
-                Mit Empfehlung <span className="piq-tab-badge piq-tab-badge--amber">{withRecommendation}</span>
+                onClick={() => setActiveTab('recommended')}>
+                Empfehlung <span className="piq-tab-badge piq-tab-badge--amber">{withRecommendation}</span>
               </button>
               <button role="tab" aria-selected={activeTab === 'no-stock'}
                 className={`piq-tab${activeTab === 'no-stock' ? ' piq-tab--active' : ''}`}
-                onClick={() => setActiveTab('no-stock')}
-              >
-                Kein Lagerbestand <span className="piq-tab-badge piq-tab-badge--red">{noStock}</span>
+                onClick={() => setActiveTab('no-stock')}>
+                Ausverkauft <span className="piq-tab-badge piq-tab-badge--red">{noStock}</span>
               </button>
               <button role="tab" aria-selected={activeTab === 'no-cost'}
                 className={`piq-tab${activeTab === 'no-cost' ? ' piq-tab--active' : ''}`}
-                onClick={() => setActiveTab('no-cost')}
-              >
+                onClick={() => setActiveTab('no-cost')}>
                 Ohne Kosten <span className="piq-tab-badge">{noCost}</span>
               </button>
             </div>
@@ -268,8 +226,7 @@ export default function ProductsPage() {
             <div className="piq-table-search">
               <span className="piq-table-search-icon" aria-hidden="true">
                 <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-                  <circle cx="6.5" cy="6.5" r="5" />
-                  <path d="m10.5 10.5 3 3" />
+                  <circle cx="6.5" cy="6.5" r="5" /><path d="m10.5 10.5 3 3" />
                 </svg>
               </span>
               <s-text-field
@@ -290,17 +247,16 @@ export default function ProductsPage() {
                 <tr>
                   <th>Produkt</th>
                   <th style={{ textAlign: 'right' }}>Preis</th>
-                  <th style={{ textAlign: 'center' }}>Lagerbestand</th>
+                  <th style={{ textAlign: 'center' }}>Lager</th>
                   <th style={{ textAlign: 'center' }}>Kosten</th>
-                  <th style={{ textAlign: 'center' }}>Empfehlung</th>
-                  <th style={{ textAlign: 'right' }}>Potenzial</th>
+                  <th style={{ textAlign: 'center' }}>Status</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={7}>
+                    <td colSpan={6}>
                       <div className="piq-table-empty">
                         <div className="piq-table-empty-icon">
                           {activeTab === 'no-stock' ? '📦' : activeTab === 'no-cost' ? '💰' : '🔍'}
@@ -324,14 +280,18 @@ export default function ProductsPage() {
                     const rec = recMap.get(product.id);
                     const hasCost = product.cost != null && product.cost > 0;
                     const stock = stockLevel(product.inventory ?? 0);
-                    const potential = rec && rec.recommended_price > rec.current_price
-                      ? rec.recommended_price - rec.current_price
-                      : 0;
                     const isApplied = rec?.applied_at != null;
+                    const hasRec = !!rec;
+                    const accentClass = isApplied
+                      ? 'piq-row--applied'
+                      : hasRec
+                      ? 'piq-row--pending'
+                      : '';
 
                     return (
                       <tr
                         key={product.id}
+                        className={accentClass}
                         tabIndex={0}
                         onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
                         onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${product.id}${suffix}`)}
@@ -339,7 +299,7 @@ export default function ProductsPage() {
                         {/* Produkt */}
                         <td>
                           <div className="piq-prod-cell">
-                            <div className="piq-product-avatar">
+                            <div className={`piq-product-avatar${hasRec ? ' piq-product-avatar--rec' : ''}`}>
                               {product.image
                                 ? <img src={product.image} alt={product.title} />
                                 : <span>{product.title.charAt(0)}</span>
@@ -347,10 +307,15 @@ export default function ProductsPage() {
                             </div>
                             <div className="piq-prod-info">
                               <span className="piq-product-name">{product.title}</span>
-                              {rec && (
+                              {rec ? (
                                 <span className="piq-prod-meta">
-                                  {readableStrategy(rec.strategy)} · {Math.round(rec.confidence * 100)}%
+                                  <span className={`piq-strat-tag piq-strat-tag--${isApplied ? 'green' : 'indigo'}`}>
+                                    {readableStrategy(rec.strategy)}
+                                  </span>
+                                  <ConfBar value={rec.confidence} />
                                 </span>
+                              ) : (
+                                <span className="piq-prod-meta piq-prod-meta--dim">Noch nicht analysiert</span>
                               )}
                             </div>
                           </div>
@@ -365,7 +330,7 @@ export default function ProductsPage() {
                                 : '—'}
                             </span>
                             {rec && rec.recommended_price !== rec.current_price && (
-                              <span className="piq-price-rec">
+                              <span className={`piq-price-rec${rec.recommended_price > rec.current_price ? '' : ' piq-price-rec--down'}`}>
                                 → {rec.recommended_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                               </span>
                             )}
@@ -376,58 +341,34 @@ export default function ProductsPage() {
                         <td style={{ textAlign: 'center' }}>
                           <div className={`piq-stock-pill piq-stock-pill--${stock.tone}`}>
                             <span className="piq-stock-dot" />
-                            {product.inventory ?? 0} Stk.
+                            {product.inventory ?? 0}
                           </div>
-                          <div className="piq-stock-label">{stock.label}</div>
                         </td>
 
                         {/* Kosten */}
                         <td style={{ textAlign: 'center' }}>
                           {hasCost ? (
-                            <span className="piq-cost-badge piq-cost-badge--ok">
-                              <CheckIcon /> Hinterlegt
-                            </span>
+                            <span className="piq-cost-icon piq-cost-icon--ok" title="Kosten hinterlegt"><CheckIcon /></span>
                           ) : (
-                            <span className="piq-cost-badge piq-cost-badge--missing">
-                              <XIcon /> Fehlt
-                            </span>
+                            <span className="piq-cost-icon piq-cost-icon--missing" title="Kosten fehlen"><XIcon /></span>
                           )}
                         </td>
 
-                        {/* Empfehlung */}
+                        {/* Status */}
                         <td style={{ textAlign: 'center' }}>
                           {isApplied ? (
-                            <div>
-                              <s-badge tone="success">Umgesetzt</s-badge>
-                              <div className="piq-rec-time">{timeAgo(rec!.applied_at)}</div>
-                            </div>
+                            <span className="piq-status-chip piq-status-chip--green">Umgesetzt</span>
                           ) : rec ? (
-                            <div>
-                              <s-badge tone="warning">Ausstehend</s-badge>
-                              <div className="piq-rec-time">
-                                {Math.round(rec.confidence * 100)}% sicher
-                              </div>
-                            </div>
+                            <span className="piq-status-chip piq-status-chip--amber">Ausstehend</span>
                           ) : (
-                            <span className="piq-table-muted">—</span>
-                          )}
-                        </td>
-
-                        {/* Potenzial */}
-                        <td style={{ textAlign: 'right' }}>
-                          {potential > 0 ? (
-                            <span className="piq-potential-val">
-                              +€{potential.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </span>
-                          ) : (
-                            <span className="piq-table-muted">—</span>
+                            <span className="piq-status-chip piq-status-chip--gray">—</span>
                           )}
                         </td>
 
                         {/* Action */}
                         <td style={{ textAlign: 'right' }}>
                           <span className="piq-table-action-btn">
-                            Ansehen <ArrowRightIcon />
+                            <ArrowRightIcon />
                           </span>
                         </td>
                       </tr>
@@ -437,7 +378,6 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
-
         </div>
       </div>
     </s-page>
