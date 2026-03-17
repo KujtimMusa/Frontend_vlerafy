@@ -4,6 +4,11 @@ import { withSentryConfig } from "@sentry/nextjs";
 const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ['@shopify/polaris'],
+  images: {
+    remotePatterns: [
+      { protocol: 'https', hostname: 'cdn.shopify.com' },
+    ],
+  },
   async redirects() {
     return [
       { source: '/products', destination: '/dashboard/products', permanent: false },

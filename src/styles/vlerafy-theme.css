@@ -1178,9 +1178,32 @@ body {
 .piq-table-search-icon {
   position: absolute;
   left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
   color: var(--ghost);
   pointer-events: none;
   flex-shrink: 0;
+  z-index: 1;
+}
+
+.piq-search-input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  font-size: 13px;
+  font-family: var(--font);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.piq-search-input::placeholder {
+  color: var(--ghost);
+}
+.piq-search-input:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, .12);
 }
 
 .piq-table-count {

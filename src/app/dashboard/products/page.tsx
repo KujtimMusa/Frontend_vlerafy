@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Image from 'next/image';
 import {
   fetchProducts,
   getDashboardStats,
@@ -10,7 +11,7 @@ import {
   syncProductsFromShopify,
 } from '@/lib/api';
 
-type FilterTab = 'all' | 'recommended' | 'no-stock' | 'no-cost';
+type FilterTab = 'all' | 'recommended' | 'no-cost';
 
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
@@ -75,13 +76,11 @@ export default function ProductsPage() {
 
   const totalProducts      = products.length || (stats?.products_count ?? 0);
   const withRecommendation = recMap.size || (stats?.products_with_recommendations ?? 0);
-  const noStock            = products.filter((p) => (p.inventory ?? 0) === 0).length;
   const withCost           = products.filter((p) => p.cost != null && p.cost > 0).length;
   const noCost             = totalProducts - withCost;
 
   const tabFiltered = products.filter((p) => {
     if (activeTab === 'recommended') return recMap.has(p.id);
-    if (activeTab === 'no-stock')    return (p.inventory ?? 0) === 0;
     if (activeTab === 'no-cost')     return p.cost == null || p.cost === 0;
     return true;
   });
@@ -162,11 +161,6 @@ export default function ProductsPage() {
                 onClick={() => setActiveTab('recommended')}>
                 Empfehlung <span className="piq-tab-badge piq-tab-badge--amber">{withRecommendation}</span>
               </button>
-              <button role="tab" aria-selected={activeTab === 'no-stock'}
-                className={`piq-tab${activeTab === 'no-stock' ? ' piq-tab--active' : ''}`}
-                onClick={() => setActiveTab('no-stock')}>
-                Ausverkauft <span className="piq-tab-badge piq-tab-badge--red">{noStock}</span>
-              </button>
               <button role="tab" aria-selected={activeTab === 'no-cost'}
                 className={`piq-tab${activeTab === 'no-cost' ? ' piq-tab--active' : ''}`}
                 onClick={() => setActiveTab('no-cost')}>
@@ -183,12 +177,12 @@ export default function ProductsPage() {
                   <circle cx="6.5" cy="6.5" r="5" /><path d="m10.5 10.5 3 3" />
                 </svg>
               </span>
-              <s-text-field
-                label=""
+              <input
+                type="text"
+                className="piq-search-input"
                 placeholder="Produkt suchen…"
                 value={searchQuery}
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                onChange={(e: any) => setSearchQuery(e?.target?.value ?? e?.detail?.value ?? '')}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <span className="piq-table-count">{filteredProducts.length} Produkte</span>
@@ -221,13 +215,11 @@ export default function ProductsPage() {
                     <td colSpan={6}>
                       <div className="piq-table-empty">
                         <div className="piq-table-empty-icon">
-                          {activeTab === 'no-stock' ? '📦' : activeTab === 'no-cost' ? '💰' : '🔍'}
+                          {activeTab === 'no-cost' ? '💰' : '🔍'}
                         </div>
                         <s-paragraph>
                           {activeTab === 'recommended'
                             ? 'Keine Produkte mit ausstehenden Empfehlungen.'
-                            : activeTab === 'no-stock'
-                            ? 'Alle Produkte haben Lagerbestand.'
                             : activeTab === 'no-cost'
                             ? 'Alle Produkte haben Kosten hinterlegt.'
                             : searchQuery
@@ -254,7 +246,7 @@ export default function ProductsPage() {
                           <div className="piq-prod-cell">
                             <div className="piq-product-avatar">
                               {product.image
-                                ? <img src={product.image} alt={product.title} />
+                                ? <Image src={product.image} alt={product.title} width={36} height={36} style={{ objectFit: 'cover', borderRadius: '6px' }} />
                                 : <span>{product.title.charAt(0)}</span>
                               }
                             </div>
@@ -270,8 +262,8 @@ export default function ProductsPage() {
                                 ? `${product.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
                                 : '—'}
                             </span>
-                            {rec && rec.recommended_price !== rec.current_price && (
-                              <span className={`piq-price-rec${rec.recommended_price > rec.current_price ? '' : ' piq-price-rec--down'}`}>
+                            {rec && (
+                              <span className={`piq-price-rec${rec.recommended_price >= rec.current_price ? '' : ' piq-price-rec--down'}`}>
                                 → {rec.recommended_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
                               </span>
                             )}
