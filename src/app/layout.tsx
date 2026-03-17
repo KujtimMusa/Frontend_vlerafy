@@ -33,14 +33,7 @@ export default function RootLayout({
           src="https://cdn.shopify.com/shopifycloud/app-bridge.js"
           data-api-key={shopifyApiKey}
         />
-        <link
-          rel="stylesheet"
-          href="https://cdn.shopify.com/shopifycloud/polaris/latest/build/esm/styles.css"
-        />
-        <script
-          type="module"
-          src="https://cdn.shopify.com/shopifycloud/polaris/latest/polaris.js"
-        />
+        <script src="https://cdn.shopify.com/shopifycloud/polaris.js" />
       </head>
       <body>
         <AppBridgeProvider>
