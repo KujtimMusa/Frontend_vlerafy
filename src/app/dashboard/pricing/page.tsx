@@ -26,32 +26,22 @@ function useShopSuffix(): string {
   return q ? `?${q}` : '';
 }
 
-function getReasoningText(reasoning: unknown): string {
-  if (!reasoning) return '';
-  if (typeof reasoning === 'string') return reasoning;
-  if (typeof reasoning === 'object' && reasoning !== null) {
-    const obj = reasoning as Record<string, unknown>;
-    return (
-      (obj.explanation as string) ||
-      (obj.text as string) ||
-      (obj.reasoning as string) ||
-      ((obj.demand as Record<string, unknown>)?.reasoning as string) ||
-      ((obj.inventory as Record<string, unknown>)?.reasoning as string) ||
-      ''
-    );
-  }
-  return String(reasoning);
+function ArrowRight() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M3.5 2l4 3.5-4 3.5" />
+    </svg>
+  );
 }
 
-function getStrategyText(strategy: unknown): string {
-  if (!strategy) return 'ML-optimiert';
-  if (typeof strategy === 'string') return strategy;
-  if (typeof strategy === 'object' && strategy !== null) {
-    const obj = strategy as Record<string, unknown>;
-    return (obj.name as string) || (obj.strategy as string) || 'ML-optimiert';
-  }
-  return String(strategy);
+function formatEuro(v: number): string {
+  return v.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
 }
+
+const truncate = (s: string, max = 38) =>
+  s.length > max ? s.slice(0, max) + '…' : s;
+
+type FilterTab = 'pending' | 'applied' | 'all';
 
 type RecItem = {
   id: number;
@@ -64,20 +54,63 @@ type RecItem = {
   strategy: string;
   reasoning: unknown;
   applied_at: string | null;
+  rejected_at?: string | null;
+  sales_30d?: number | null;
+  sales_7d?: number | null;
 };
+
+function CheckIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 7.5l3 3 5-6" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 4l6 6M10 4l-6 6" />
+    </svg>
+  );
+}
+
+function PendingIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#d97706" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9.5" cy="9.5" r="7.5" />
+      <path d="M9.5 5.5v4.5l3 1.5" />
+    </svg>
+  );
+}
+
+function AppliedIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#059669" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9.5" cy="9.5" r="7.5" />
+      <path d="M6.5 9.5l2 2 4-5" />
+    </svg>
+  );
+}
+
+function RevenueIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#4f46e5" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2v15M14 6.5c0-1.2-.9-2.2-2.2-2.2H7.5a2.2 2.2 0 0 0 0 4.4h4a2.2 2.2 0 0 1 0 4.4H6" />
+    </svg>
+  );
+}
 
 export default function PricingPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const suffix = useShopSuffix();
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [activeTab, setActiveTab] = useState<FilterTab>('pending');
+  const [searchQuery, setSearchQuery] = useState('');
 
   const { data: listData, isLoading } = useQuery({
-    queryKey: ['recommendations-list', selectedTab],
-    queryFn: () =>
-      getRecommendationsList(
-        selectedTab === 0 ? 'pending' : selectedTab === 1 ? 'applied' : 'all'
-      ),
+    queryKey: ['recommendations-list', activeTab],
+    queryFn: () => getRecommendationsList(activeTab),
   });
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -85,25 +118,19 @@ export default function PricingPage() {
   });
 
   const applyMutation = useMutation({
-    mutationFn: async ({
-      rec,
-      productId,
-    }: {
-      rec: { id: number; product_id: number; recommended_price: number };
-      productId: number;
-    }) => {
-      await applyPrice(productId, rec.recommended_price, rec.id);
+    mutationFn: async ({ rec }: { rec: RecItem }) => {
+      await applyPrice(rec.product_id, rec.recommended_price, rec.id);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recommendations-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      showToast('Preis erfolgreich übernommen!', { duration: 3000 });
+      showToast('Preis übernommen!', { duration: 3000 });
     },
-    onError: (err: Error) => showToast(err.message || 'Fehler beim Übernehmen', { isError: true }),
+    onError: (err: Error) => showToast(err.message || 'Fehler', { isError: true }),
   });
+
   const rejectMutation = useMutation({
-    mutationFn: (recommendationId: number) =>
-      rejectRecommendation(recommendationId),
+    mutationFn: (id: number) => rejectRecommendation(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['recommendations-list'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
@@ -112,180 +139,189 @@ export default function PricingPage() {
     onError: () => showToast('Fehler beim Ablehnen', { isError: true }),
   });
 
-  const recs = listData?.recommendations ?? [];
+  const allRecs: RecItem[] = listData?.recommendations ?? [];
   const pendingCount = stats?.recommendations_pending ?? 0;
   const appliedCount = stats?.recommendations_applied ?? 0;
   const revenue = stats?.missed_revenue?.total ?? 0;
 
-  const filteredRecommendations = recs.map((rec: RecItem) => ({
-    id: rec.id,
-    productId: rec.product_id,
-    productTitle: rec.product_title,
-    currentPrice: rec.current_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    recommendedPrice: rec.recommended_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    priceChangePct: rec.price_change_pct ?? 0,
-    confidence: rec.confidence ?? 0,
-    strategy: getStrategyText(rec.strategy),
-    reasoning: getReasoningText(rec.reasoning),
-    status: rec.applied_at ? ('applied' as const) : ('pending' as const),
-  }));
+  const byProduct = new Map<number, RecItem>();
+  for (const r of allRecs) {
+    const existing = byProduct.get(r.product_id);
+    if (!existing || new Date(r.applied_at ?? '9999') > new Date(existing.applied_at ?? '9999')) {
+      byProduct.set(r.product_id, r);
+    }
+  }
+  let productRecs = Array.from(byProduct.values());
 
-  const applyRecommendation = (rec: RecItem) => {
-    applyMutation.mutate({
-      rec: { id: rec.id, product_id: rec.product_id, recommended_price: rec.recommended_price },
-      productId: rec.product_id,
-    });
-  };
+  if (searchQuery.trim()) {
+    const q = searchQuery.toLowerCase();
+    productRecs = productRecs.filter(r => r.product_title?.toLowerCase().includes(q));
+  }
 
-  const handleReject = (recId: number) => {
-    rejectMutation.mutate(recId);
+  productRecs.sort((a, b) => Math.abs(b.price_change_pct ?? 0) - Math.abs(a.price_change_pct ?? 0));
+
+  const handleSearch = (e: unknown) => {
+    const evt = e as { target?: { value?: string }; detail?: string };
+    setSearchQuery(String(evt.target?.value ?? evt.detail ?? ''));
   };
 
   return (
-    <s-page title="Preisempfehlungen" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
-    <div className="vlerafy-main">
-      <div style={{ marginBottom: 20 }}>
-        <s-paragraph tone="subdued">
-          {pendingCount} ausstehend · {appliedCount} umgesetzt ·{' '}
-          {revenue > 0
-            ? `+${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€`
-            : `${revenue.toLocaleString('de-DE', { maximumFractionDigits: 0 })}€`}{' '}
-          Potenzial
-        </s-paragraph>
-      </div>
+    <s-page title="Empfehlungen">
+      <div className="piq-dashboard">
 
-      <div className="vlerafy-tabs vlerafy-tabs-mb">
-        <s-stack direction="inline" gap="2">
-          {['Ausstehend', 'Umgesetzt', 'Alle'].map((tab, index) => (
-            <s-button
-              key={tab}
-              variant={selectedTab === index ? 'primary' : 'secondary'}
-              size="slim"
-              onClick={() => setSelectedTab(index)}
-            >
-              {tab}
-            </s-button>
-          ))}
-        </s-stack>
-      </div>
-
-      {filteredRecommendations.length === 0 ? (
-        <s-banner
-          tone={selectedTab === 0 && !isLoading ? 'success' : 'info'}
-          title={isLoading ? 'Lade Empfehlungen...' : selectedTab === 0 ? 'Alle Empfehlungen bearbeitet' : 'Keine Empfehlungen'}
-        >
-          <s-stack direction="block" gap="3">
-            <s-paragraph>
-              {selectedTab === 0
-                ? 'Großartig! Alle Preisempfehlungen wurden verarbeitet.'
-                : 'Sobald Produkte analysiert wurden, erscheinen hier deine Preisempfehlungen.'}
-            </s-paragraph>
-            <s-button
-              variant="primary"
-              onClick={() => router.push(`/dashboard/products${suffix}`)}
-            >
-              Produkte synchronisieren
-            </s-button>
-          </s-stack>
-        </s-banner>
-      ) : (
-        <div className="vlerafy-table-card">
-          <div className="vlerafy-table-wrapper">
-            <table className="vlerafy-table">
-              <thead>
-                <tr>
-                  <th>Produkt</th>
-                  <th>Aktueller Preis</th>
-                  <th>Empfehlung</th>
-                  <th>Änderung</th>
-                  <th>Sicherheit</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRecommendations.map((rec) => {
-                  const rawRec = recs.find((r: RecItem) => r.id === rec.id) as RecItem | undefined;
-                  return (
-                    <tr key={rec.id}>
-                      <td>
-                        <div>
-                          <div className="vlerafy-product-title">{rec.productTitle}</div>
-                          <div className="vlerafy-kpi-label vlerafy-mt-2">
-                            {rec.strategy}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="vlerafy-table-price">{rec.currentPrice} €</td>
-                      <td className="vlerafy-table-price vlerafy-price-recommended-cell">
-                        {rec.recommendedPrice} €
-                      </td>
-                      <td>
-                        <span
-                          className={
-                            rec.priceChangePct > 0
-                              ? 'vlerafy-price-change-badge vlerafy-price-change-badge--up'
-                              : rec.priceChangePct < 0
-                                ? 'vlerafy-price-change-badge vlerafy-price-change-badge--down'
-                                : 'vlerafy-price-change-badge vlerafy-price-change-badge--neutral'
-                          }
-                        >
-                          {rec.priceChangePct > 0 ? '▲' : rec.priceChangePct < 0 ? '▼' : '='}
-                          {Math.abs(rec.priceChangePct).toFixed(2)}%
-                        </span>
-                      </td>
-                      <td>
-                        <div className="vlerafy-confidence-bar vlerafy-confidence-bar--sm">
-                          <div
-                            className="vlerafy-confidence-fill"
-                            style={{ width: `${rec.confidence * 100}%` }}
-                          />
-                        </div>
-                        <div className="vlerafy-kpi-label vlerafy-mt-3">
-                          {Math.round(rec.confidence * 100)}%
-                        </div>
-                      </td>
-                      <td>
-                        {rec.status === 'pending' ? (
-                          <s-badge tone="attention">Ausstehend</s-badge>
-                        ) : rec.status === 'applied' ? (
-                          <s-badge tone="success">Umgesetzt</s-badge>
-                        ) : (
-                          <s-badge tone="info">Abgelehnt</s-badge>
-                        )}
-                      </td>
-                      <td>
-                        {rec.status === 'pending' && rawRec && (
-                          <s-stack direction="inline" gap="2">
-                            <s-button
-                              variant="primary"
-                              size="slim"
-                              loading={applyMutation.isPending}
-                              onClick={() => applyRecommendation(rawRec)}
-                            >
-                              Übernehmen
-                            </s-button>
-                            <s-button
-                              variant="plain"
-                              size="slim"
-                              onClick={() => handleReject(rec.id)}
-                            >
-                              Ablehnen
-                            </s-button>
-                          </s-stack>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+        {/* ══ 3 KPI-Cards ══ */}
+        <div className="piq-hero-grid">
+          <div className="piq-hero-card piq-hero-card--compact">
+            <div className="piq-hero-icon"><PendingIcon /></div>
+            <div className="piq-hero-lbl">Ausstehend</div>
+            <div className="piq-hero-val">{pendingCount}</div>
+            <div className="piq-hero-sub">Empfehlungen offen</div>
+          </div>
+          <div className="piq-hero-card piq-hero-card--compact">
+            <div className="piq-hero-icon"><AppliedIcon /></div>
+            <div className="piq-hero-lbl">Umgesetzt</div>
+            <div className="piq-hero-val">{appliedCount}</div>
+            <div className="piq-hero-sub">Preise übernommen</div>
+          </div>
+          <div className="piq-hero-card piq-hero-card--compact">
+            <div className="piq-hero-icon"><RevenueIcon /></div>
+            <div className="piq-hero-lbl">Potenzial</div>
+            <div className="piq-hero-val">
+              {revenue >= 0 ? '+' : ''}{Math.abs(Math.round(revenue)).toLocaleString('de-DE')} €
+            </div>
+            <div className="piq-hero-sub">möglicher mehr Umsatz / Monat</div>
           </div>
         </div>
-      )}
-    </div>
+
+        {/* ══ Empfehlungsliste ══ */}
+        <div className="piq-chart-section">
+          <div className="piq-chart-header">
+            <div className="piq-chart-title">Preisempfehlungen pro Produkt</div>
+            <span className="piq-chart-badge">{productRecs.length} Produkte</span>
+          </div>
+
+          {/* Filter-Tabs + Suche */}
+          <div className="piq-rec-toolbar">
+            <div className="piq-rec-tabs">
+              {([
+                ['pending', 'Ausstehend'],
+                ['applied', 'Umgesetzt'],
+                ['all', 'Alle'],
+              ] as [FilterTab, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  className={`piq-rec-tab ${activeTab === key ? 'piq-rec-tab--active' : ''}`}
+                  onClick={() => setActiveTab(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="piq-table-search">
+              <span className="piq-table-search-icon" aria-hidden="true">
+                <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+                  <circle cx="6.5" cy="6.5" r="5" /><path d="m10.5 10.5 3 3" />
+                </svg>
+              </span>
+              <s-text-field
+                label=""
+                placeholder="Produkt suchen…"
+                value={searchQuery}
+                onChange={handleSearch}
+                onInput={handleSearch}
+              />
+            </div>
+          </div>
+
+          {/* Liste */}
+          {isLoading ? (
+            <div className="piq-rec-loading"><s-spinner size="small" /></div>
+          ) : productRecs.length === 0 ? (
+            <div className="piq-toprec-empty">
+              <div className="piq-toprec-empty-title">
+                {searchQuery ? 'Kein Produkt gefunden' : activeTab === 'pending' ? 'Alle Empfehlungen bearbeitet' : 'Keine Empfehlungen'}
+              </div>
+              <div className="piq-toprec-empty-sub">
+                {searchQuery
+                  ? 'Ändere deinen Suchbegriff.'
+                  : activeTab === 'pending'
+                    ? 'Alle Preisempfehlungen wurden bearbeitet.'
+                    : 'Sobald Produkte analysiert werden, erscheinen hier Empfehlungen.'}
+              </div>
+            </div>
+          ) : (
+            <div className="piq-rec-list">
+              {productRecs.map((rec) => {
+                const diff = rec.recommended_price - rec.current_price;
+                const diffPct = rec.price_change_pct ?? (rec.current_price > 0 ? (diff / rec.current_price) * 100 : 0);
+                const isUp = diffPct > 0;
+                const isPending = !rec.applied_at && !rec.rejected_at;
+                const isApplied = !!rec.applied_at;
+                const confidencePct = Math.round((rec.confidence ?? 0) * 100);
+
+                return (
+                  <div key={rec.product_id} className="piq-rec-row">
+                    <div
+                      className="piq-rec-row-main"
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/dashboard/products/${rec.product_id}${suffix}`)}
+                      onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${rec.product_id}${suffix}`)}
+                    >
+                      <div className="piq-rec-product">
+                        <div className="piq-rec-product-name">{truncate(rec.product_title)}</div>
+                        <div className="piq-rec-product-prices">
+                          <span className="piq-rec-price-current">{formatEuro(rec.current_price)}</span>
+                          <span className="piq-rec-arrow">→</span>
+                          <span className="piq-rec-price-new">{formatEuro(rec.recommended_price)}</span>
+                        </div>
+                      </div>
+
+                      <div className="piq-rec-meta">
+                        <span className={`piq-rec-change ${isUp ? 'piq-rec-change--up' : 'piq-rec-change--down'}`}>
+                          {isUp ? '▲' : '▼'} {Math.abs(diffPct).toFixed(1)}%
+                        </span>
+                        <span className="piq-rec-confidence">
+                          <span className="piq-rec-conf-bar">
+                            <span className="piq-rec-conf-fill" style={{ width: `${confidencePct}%` }} />
+                          </span>
+                          <span className="piq-rec-conf-txt">{confidencePct}%</span>
+                        </span>
+                        {isApplied && <span className="piq-rec-status piq-rec-status--applied">Umgesetzt</span>}
+                        {!isPending && !isApplied && <span className="piq-rec-status piq-rec-status--rejected">Abgelehnt</span>}
+                      </div>
+
+                      <div className="piq-rec-go"><ArrowRight /></div>
+                    </div>
+
+                    {isPending && (
+                      <div className="piq-rec-actions">
+                        <button
+                          className="piq-rec-action piq-rec-action--apply"
+                          onClick={() => applyMutation.mutate({ rec })}
+                          disabled={applyMutation.isPending}
+                          title="Preis übernehmen"
+                        >
+                          <CheckIcon /> Übernehmen
+                        </button>
+                        <button
+                          className="piq-rec-action piq-rec-action--reject"
+                          onClick={() => rejectMutation.mutate(rec.id)}
+                          disabled={rejectMutation.isPending}
+                          title="Empfehlung ablehnen"
+                        >
+                          <XIcon /> Ablehnen
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+      </div>
     </s-page>
   );
 }
-
-// ✅ BFS [Punkt 2, 8] erledigt — s-page + back-action auf Preisempfehlungen

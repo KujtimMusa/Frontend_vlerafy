@@ -41,7 +41,7 @@ export default function RootLayout({
           <s-app-nav>
             <a href="/dashboard" rel="home">Übersicht</a>
             <a href="/dashboard/products">Produkte</a>
-            <a href="/dashboard/pricing">Preisempfehlungen</a>
+            <a href="/dashboard/pricing">Empfehlungen</a>
             <a href="/dashboard/settings">Einstellungen</a>
           </s-app-nav>
           {/* eslint-enable @next/next/no-html-link-for-pages */}
