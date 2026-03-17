@@ -50,40 +50,10 @@ function XIcon() {
   );
 }
 
-const strategyLabels: Record<string, string> = {
-  demand_pricing: 'Nachfrage',
-  demand_inventory_signal: 'Nachfrage-Signal',
-  competitive_pricing: 'Wettbewerb',
-  margin_optimization: 'Marge',
-  inventory_clearance: 'Abverkauf',
-  inventory_normal_no_sales: 'Lager-Optimierung',
-  premium_pricing: 'Premium',
-  psychological_pricing: 'Psycho-Preis',
-  ML_OPTIMIZED_CONSTRAINED: 'KI-optimiert',
-  ml_optimized: 'KI-optimiert',
-};
-
-function readableStrategy(raw: string): string {
-  if (strategyLabels[raw]) return strategyLabels[raw];
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function stockLevel(qty: number): { label: string; tone: string } {
   if (qty === 0) return { label: 'Ausverkauft', tone: 'red' };
   if (qty <= 10) return { label: 'Niedrig', tone: 'amber' };
   return { label: 'Verfügbar', tone: 'green' };
-}
-
-function ConfBar({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
-  return (
-    <div className="piq-conf-mini">
-      <div className="piq-conf-mini-track">
-        <div className="piq-conf-mini-fill" style={{ width: `${pct}%` }} />
-      </div>
-      <span className="piq-conf-mini-pct">{pct}%</span>
-    </div>
-  );
 }
 
 export default function ProductsPage() {
@@ -281,43 +251,22 @@ export default function ProductsPage() {
                     const hasCost = product.cost != null && product.cost > 0;
                     const stock = stockLevel(product.inventory ?? 0);
                     const isApplied = rec?.applied_at != null;
-                    const hasRec = !!rec;
-                    const accentClass = isApplied
-                      ? 'piq-row--applied'
-                      : hasRec
-                      ? 'piq-row--pending'
-                      : '';
-
                     return (
                       <tr
                         key={product.id}
-                        className={accentClass}
                         tabIndex={0}
                         onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
                         onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${product.id}${suffix}`)}
                       >
-                        {/* Produkt */}
                         <td>
                           <div className="piq-prod-cell">
-                            <div className={`piq-product-avatar${hasRec ? ' piq-product-avatar--rec' : ''}`}>
+                            <div className="piq-product-avatar">
                               {product.image
                                 ? <img src={product.image} alt={product.title} />
                                 : <span>{product.title.charAt(0)}</span>
                               }
                             </div>
-                            <div className="piq-prod-info">
-                              <span className="piq-product-name">{product.title}</span>
-                              {rec ? (
-                                <span className="piq-prod-meta">
-                                  <span className={`piq-strat-tag piq-strat-tag--${isApplied ? 'green' : 'indigo'}`}>
-                                    {readableStrategy(rec.strategy)}
-                                  </span>
-                                  <ConfBar value={rec.confidence} />
-                                </span>
-                              ) : (
-                                <span className="piq-prod-meta piq-prod-meta--dim">Noch nicht analysiert</span>
-                              )}
-                            </div>
+                            <span className="piq-product-name">{product.title}</span>
                           </div>
                         </td>
 
