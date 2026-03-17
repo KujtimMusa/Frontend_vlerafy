@@ -76,6 +76,14 @@ function TaskIcon() {
   );
 }
 
+function ArrowRight() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+      <path d="M4 2l4 4-4 4" />
+    </svg>
+  );
+}
+
 export default function DashboardPage() {
   const router  = useRouter();
   const suffix  = useShopSuffix();
@@ -97,7 +105,6 @@ export default function DashboardPage() {
   const progressPct    = totalCount > 0 ? Math.min((affectedCount / totalCount) * 100, 100) : 0;
   const nextStepsCount = stats?.next_steps?.length ?? 0;
 
-  /* ── Loading ── */
   if (isLoading) {
     return (
       <s-page title="Übersicht">
@@ -110,7 +117,6 @@ export default function DashboardPage() {
     );
   }
 
-  /* ── Error ── */
   if (error || !stats) {
     return (
       <s-page title="Übersicht">
@@ -143,17 +149,24 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="piq-notice-actions">
-              <s-button variant="primary" size="slim" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
-                Empfehlungen ansehen
-              </s-button>
-              <button className="piq-notice-dismiss" onClick={() => setNoticeVisible(false)} aria-label="Schließen">
+              <button
+                className="piq-cta piq-cta--primary piq-cta--sm"
+                onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+              >
+                Empfehlungen ansehen <ArrowRight />
+              </button>
+              <button
+                className="piq-notice-dismiss"
+                onClick={() => setNoticeVisible(false)}
+                aria-label="Schließen"
+              >
                 ×
               </button>
             </div>
           </div>
         )}
 
-        {/* ══ ZEILE 2: 3 KPI-Cards — Hero + Ausstehend + Ø pro Produkt ══ */}
+        {/* ══ ZEILE 2: 3 KPI-Cards ══ */}
         <div className="piq-hero-grid">
 
           {/* Card 1: Möglicher mehr Umsatz */}
@@ -190,13 +203,12 @@ export default function DashboardPage() {
               <AnimatedNumber value={pendingCount} />
             </div>
             <div className="piq-sat-sub">offene Empfehlungen warten auf Bearbeitung</div>
-            <s-button
-              variant="primary"
-              size="slim"
+            <button
+              className="piq-cta piq-cta--primary"
               onClick={() => router.push(`/dashboard/pricing${suffix}`)}
             >
-              Jetzt bearbeiten
-            </s-button>
+              Jetzt bearbeiten <ArrowRight />
+            </button>
           </div>
 
           {/* Card 3: Ø mehr Umsatz pro Produkt */}
@@ -209,18 +221,17 @@ export default function DashboardPage() {
               €<AnimatedNumber value={Math.abs(Math.round(avgPerProduct))} />
             </div>
             <div className="piq-avg-sub">möglicher mehr Umsatz je Produkt</div>
-            <s-button
-              variant="secondary"
-              size="slim"
+            <button
+              className="piq-cta piq-cta--secondary"
               onClick={() => router.push(`/dashboard/products${suffix}`)}
             >
-              Produkte ansehen
-            </s-button>
+              Produkte ansehen <ArrowRight />
+            </button>
           </div>
 
         </div>
 
-        {/* ══ ZEILE 3: Nächste Schritte — volle Breite, 2-Spalten mit CTAs ══ */}
+        {/* ══ ZEILE 3: Nächste Schritte ══ */}
         {nextStepsCount > 0 && (
           <div className="piq-card">
             <div className="piq-card-head">
@@ -240,13 +251,12 @@ export default function DashboardPage() {
                       <div className="piq-step-row-ttl">{step.title}</div>
                       <div className="piq-step-row-dsc">{step.description}</div>
                     </div>
-                    <s-button
-                      variant={step.urgent ? 'primary' : 'secondary'}
-                      size="slim"
+                    <button
+                      className={`piq-cta ${step.urgent ? 'piq-cta--primary' : 'piq-cta--secondary'} piq-cta--sm`}
                       onClick={() => router.push(`${step.href}${suffix}`)}
                     >
-                      {step.urgent ? 'Jetzt umsetzen' : 'Öffnen'}
-                    </s-button>
+                      {step.urgent ? 'Jetzt umsetzen' : 'Öffnen'} <ArrowRight />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -254,38 +264,17 @@ export default function DashboardPage() {
           </div>
         )}
 
-        {/* ══ ZEILE 4: Fortschritt (2/3) + Schnellaktionen (1/3) — gleiche Höhe ══ */}
-        <div className="piq-bottom-grid">
+        {/* ══ ZEILE 4: Fortschritt — volle Breite ══ */}
+        <FortschrittsCard
+          level={stats?.progress?.level ?? 'bronze'}
+          points={stats?.progress?.points ?? 0}
+          nextLevelPoints={stats?.progress?.next_level_points ?? 20}
+          pointsNeeded={stats?.progress?.points_needed ?? 20}
+          completedSteps={stats?.progress?.completed_steps ?? []}
+          pendingSteps={stats?.progress?.pending_steps ?? []}
+          hideQuickActions
+        />
 
-          <FortschrittsCard
-            level={stats?.progress?.level ?? 'bronze'}
-            points={stats?.progress?.points ?? 0}
-            nextLevelPoints={stats?.progress?.next_level_points ?? 20}
-            pointsNeeded={stats?.progress?.points_needed ?? 20}
-            completedSteps={stats?.progress?.completed_steps ?? []}
-            pendingSteps={stats?.progress?.pending_steps ?? []}
-            hideQuickActions
-          />
-
-          {/* Schnellaktionen — echte s-button, volle Breite */}
-          <div className="piq-qa-section">
-            <div className="piq-card-head">
-              <div className="piq-card-ttl">Schnellaktionen</div>
-            </div>
-            <div className="piq-qa-vert">
-              <s-button variant="secondary" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
-                ⚡ Preise optimieren
-              </s-button>
-              <s-button variant="secondary" onClick={() => router.push(`/dashboard/products${suffix}`)}>
-                📦 Produkte synchronisieren
-              </s-button>
-              <s-button variant="secondary" onClick={() => router.push(`/dashboard/settings${suffix}`)}>
-                ⚙️ Einstellungen
-              </s-button>
-            </div>
-          </div>
-
-        </div>
       </div>
     </s-page>
   );
