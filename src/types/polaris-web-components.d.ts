@@ -16,7 +16,8 @@ declare module 'react' {
         'back-action'?: string;
       }, HTMLElement>;
       's-section': DetailedHTMLProps<HTMLAttributes<HTMLElement>, HTMLElement>;
-      's-stack': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { direction?: 'block' | 'inline'; gap?: string; 'align-items'?: string; 'justify-content'?: string; wrap?: string }, HTMLElement>;
+      's-stack': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { direction?: 'row' | 'column' | 'row-reverse' | 'column-reverse' | 'block' | 'inline'; gap?: string; 'align-items'?: string; 'block-align'?: string; 'inline-align'?: string; 'justify-content'?: string; wrap?: string }, HTMLElement>;
+      's-progress-indicator': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { progress?: string }, HTMLElement>;
       's-grid': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { columns?: string; gap?: string }, HTMLElement>;
       's-box': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { padding?: string; background?: string; 'border-radius'?: string; border?: string }, HTMLElement>;
       's-button': DetailedHTMLProps<HTMLAttributes<HTMLElement> & { variant?: 'primary' | 'secondary' | 'plain' | 'destructive'; size?: 'slim' | 'medium' | 'large'; disabled?: boolean | string; loading?: boolean | string; onClick?: MouseEventHandler<HTMLElement> }, HTMLElement>;

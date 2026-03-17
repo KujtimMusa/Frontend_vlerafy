@@ -5,25 +5,18 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { getDashboardStats } from '@/lib/api';
-import { FortschrittsCard } from '@/components/FortschrittsCard';
 
-function AnimatedNumber({ value }: { value: number }) {
-  const [display, setDisplay] = React.useState(0);
-  React.useEffect(() => {
-    if (value === 0) { setDisplay(0); return; }
-    const steps = 32;
-    const duration = 800;
-    const increment = value / steps;
-    let current = 0;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= value) { setDisplay(value); clearInterval(timer); }
-      else { setDisplay(Math.floor(current)); }
-    }, duration / steps);
-    return () => clearInterval(timer);
-  }, [value]);
-  return <>{display}</>;
-}
+type Period = 'Tag' | 'Monat' | 'Jahr';
+
+const TIER_LABELS: Record<string, string> = {
+  bronze: 'BRONZE', silver: 'SILBER', gold: 'GOLD', platinum: 'PLATIN',
+};
+const TIER_EMOJI: Record<string, string> = {
+  bronze: '⭐', silver: '🥈', gold: '🥇', platinum: '💎',
+};
+const NEXT_LABELS: Record<string, string> = {
+  bronze: 'Silber', silver: 'Gold', gold: 'Platin', platinum: 'Max',
+};
 
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
@@ -40,63 +33,10 @@ function useShopSuffix(): string {
   return q ? `?${q}` : '';
 }
 
-function PendingIcon() {
-  return (
-    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#d97706" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9.5" cy="9.5" r="7.5" />
-      <path d="M9.5 5.5v4.5l3 1.5" />
-    </svg>
-  );
-}
-
-function AlertIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#dc2626" strokeWidth="1.6" strokeLinecap="round">
-      <circle cx="7.5" cy="7.5" r="6" />
-      <path d="M7.5 4.5v3.5M7.5 10.2h.01" />
-    </svg>
-  );
-}
-
-function TaskIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#4f46e5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2.5" y="2.5" width="10" height="10" rx="2.5" />
-      <path d="M5 7.5l2 2 3-3" />
-    </svg>
-  );
-}
-
-function PriceActionIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M8 1v14M11 5c0-1-.9-1.8-1.8-1.8H6.5a1.8 1.8 0 0 0 0 3.6h3a1.8 1.8 0 0 1 0 3.6H5" />
-    </svg>
-  );
-}
-
-function ProductActionIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#d97706" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 2.5h2.5l2 8.5h6.5l1.3-5.5H5.5" />
-      <circle cx="8" cy="14" r="1" />
-      <circle cx="12.5" cy="14" r="1" />
-    </svg>
-  );
-}
-
-function SettingsActionIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="8" cy="8" r="2.5" />
-      <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1" />
-    </svg>
-  );
-}
-
 export default function DashboardPage() {
   const router  = useRouter();
   const suffix  = useShopSuffix();
+  const [activePeriod,  setActivePeriod ] = useState<Period>('Monat');
   const [noticeVisible, setNoticeVisible] = useState(true);
 
   const { data: stats, isLoading, error } = useQuery({
@@ -104,16 +44,32 @@ export default function DashboardPage() {
     queryFn:  getDashboardStats,
   });
 
-  const pendingCount     = stats?.recommendations_pending ?? 0;
-  const revenueAmount    = stats?.missed_revenue?.total ?? 0;
-  const revenueFormatted = revenueAmount !== 0
-    ? `+€${Math.abs(revenueAmount).toLocaleString('de-DE', { maximumFractionDigits: 0 })}`
-    : '€0';
-  const avgPerProduct  = stats?.missed_revenue?.avg_per_product ?? 0;
-  const affectedCount  = stats?.missed_revenue?.product_count ?? 0;
-  const totalCount     = stats?.products_count ?? 1;
-  const progressPct    = totalCount > 0 ? Math.min((affectedCount / totalCount) * 100, 100) : 0;
-  const nextStepsCount = stats?.next_steps?.length ?? 0;
+  /* ── Daten-Derivate ── */
+  const totalRevenuePotential = stats?.missed_revenue?.total ?? 0;
+  const pendingCount          = stats?.recommendations_pending ?? 0;
+  const avgPerProduct         = stats?.missed_revenue?.avg_per_product ?? 0;
+  const nextStepsCount        = stats?.next_steps?.length ?? 0;
+
+  /* ── Gamification ── */
+  const level           = stats?.progress?.level ?? 'bronze';
+  const points          = stats?.progress?.points ?? 0;
+  const nextLevelPoints = stats?.progress?.next_level_points ?? 20;
+  const pointsNeeded    = stats?.progress?.points_needed ?? 20;
+  const completedSteps  = stats?.progress?.completed_steps ?? [];
+  const pendingSteps    = stats?.progress?.pending_steps ?? [];
+  const tierPercent     = nextLevelPoints > 0
+    ? Math.min(Math.round((points / nextLevelPoints) * 100), 100)
+    : 0;
+  const nextLevelLabel = NEXT_LABELS[level] ?? 'Silber';
+
+  /* ── Period-Umsatz ── */
+  const getRevenue = (period: Period): number => {
+    switch (period) {
+      case 'Tag':   return Math.round(totalRevenuePotential / 30);
+      case 'Monat': return totalRevenuePotential;
+      case 'Jahr':  return totalRevenuePotential * 12;
+    }
+  };
 
   /* ── Loading ── */
   if (isLoading) {
@@ -132,14 +88,12 @@ export default function DashboardPage() {
   if (error || !stats) {
     return (
       <s-page title="Übersicht">
-        <div className="piq-dashboard">
-          <s-banner tone="critical" title="Fehler beim Laden">
-            <s-paragraph>
-              Dashboard konnte nicht geladen werden.
-              {error instanceof Error && ` (${error.message})`}
-            </s-paragraph>
-          </s-banner>
-        </div>
+        <s-banner tone="critical" title="Fehler beim Laden">
+          <s-paragraph>
+            Dashboard konnte nicht geladen werden.
+            {error instanceof Error && ` (${error.message})`}
+          </s-paragraph>
+        </s-banner>
       </s-page>
     );
   }
@@ -148,7 +102,7 @@ export default function DashboardPage() {
     <s-page title="Übersicht">
       <div className="piq-dashboard">
 
-        {/* ══ ZEILE 1: Notification Banner ══ */}
+        {/* ── Notification Banner (kein s-banner, da dismissible ohne s-* Violations) ── */}
         {noticeVisible && pendingCount > 0 && (
           <div className="piq-notice" role="status">
             <div className="piq-notice-pip" aria-hidden="true" />
@@ -161,145 +115,205 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="piq-notice-actions">
-              <s-button variant="primary" size="slim" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
+              <s-button
+                variant="primary"
+                size="slim"
+                onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+              >
                 Empfehlungen ansehen
               </s-button>
-              <button className="piq-notice-dismiss" onClick={() => setNoticeVisible(false)} aria-label="Schließen">
+              <button
+                className="piq-notice-dismiss"
+                onClick={() => setNoticeVisible(false)}
+                aria-label="Benachrichtigung schließen"
+              >
                 ×
               </button>
             </div>
           </div>
         )}
 
-        {/* ══ ZEILE 2: Hero (2/3) + Satellit Ausstehend (1/3) ══ */}
-        <div className="piq-hero-grid">
+        {/* ══ ZEILE 1: 3 KPI-Cards via s-grid + s-section ══ */}
+        <s-grid columns="3" gap="base" className="kpi-grid">
 
-          {/* Hero: Möglicher Mehrumsatz */}
-          <div className="piq-hero-card">
-            <div className="piq-hero-top">
-              <s-badge tone="success">Aktiv</s-badge>
-            </div>
-            <div className="piq-hero-lbl">Möglicher Mehrumsatz</div>
-            <div className="piq-hero-val">{revenueFormatted}</div>
-            <div className="piq-hero-sub">
-              <div className="piq-hero-sub-item">
-                <div className="piq-hero-sub-dot" />
-                <span>{affectedCount} von {totalCount} Produkten optimierbar</span>
-              </div>
-              <div className="piq-hero-sub-item">
-                <div className="piq-hero-sub-dot" style={{ background: 'var(--indigo)' }} />
-                <span>Ø €{Math.abs(Math.round(avgPerProduct))} pro Produkt</span>
-              </div>
-            </div>
-            <div className="piq-kc-prog" style={{ marginTop: 'auto' }}>
-              <div className="piq-kc-prog-row">
-                <span>Optimierungsfortschritt</span>
-                <span>{Math.round(progressPct)}%</span>
-              </div>
-              <div className="piq-kc-bar">
-                <div className="piq-kc-bar-fill" style={{ width: `${progressPct}%` }} />
-              </div>
-            </div>
-          </div>
-
-          {/* Satellit: Ausstehend */}
-          <div className="piq-sat-card">
-            <div className="piq-sat-icon">
-              <PendingIcon />
-            </div>
-            <div className="piq-sat-lbl">Ausstehend</div>
-            <div className="piq-sat-val">
-              <AnimatedNumber value={pendingCount} />
-            </div>
-            <div className="piq-sat-sub">offene Empfehlungen warten auf Bearbeitung</div>
-            <s-button
-              variant="primary"
-              size="slim"
-              onClick={() => router.push(`/dashboard/pricing${suffix}`)}
-            >
-              Jetzt bearbeiten
-            </s-button>
-          </div>
-
-        </div>
-
-        {/* ══ ZEILE 3: Nächste Schritte — volle Breite, 2-Spalten mit CTAs ══ */}
-        {nextStepsCount > 0 && (
-          <div className="piq-card">
-            <div className="piq-card-head">
-              <div className="piq-card-ttl">Nächste Schritte</div>
-              <s-badge tone={stats.next_steps!.some((s) => s.urgent) ? 'critical' : 'attention'}>
-                {nextStepsCount} ausstehend
-              </s-badge>
-            </div>
-            <div className="piq-card-body">
-              <div className="piq-steps-grid">
-                {stats.next_steps!.slice(0, 4).map((step, i) => (
-                  <div key={i} className="piq-step-row">
-                    <div className={`piq-step-ic ${step.urgent ? 'piq-step-ic--urgent' : 'piq-step-ic--normal'}`} style={{ flexShrink: 0 }}>
-                      {step.urgent ? <AlertIcon /> : <TaskIcon />}
-                    </div>
-                    <div className="piq-step-row-body">
-                      <div className="piq-step-row-ttl">{step.title}</div>
-                      <div className="piq-step-row-dsc">{step.description}</div>
-                    </div>
-                    <s-button
-                      variant={step.urgent ? 'primary' : 'secondary'}
-                      size="slim"
-                      onClick={() => router.push(`${step.href}${suffix}`)}
-                    >
-                      {step.urgent ? 'Jetzt umsetzen' : 'Öffnen'}
-                    </s-button>
-                  </div>
+          {/* Card 1: Entgangener Umsatz mit Period-Tabs */}
+          <s-section>
+            <span slot="heading">Entgangener Umsatz</span>
+            <div className="kpi-card-inner">
+              <div className="period-tabs">
+                {(['Tag', 'Monat', 'Jahr'] as const).map((p) => (
+                  <button
+                    key={p}
+                    className={`period-tab${activePeriod === p ? ' period-tab--active' : ''}`}
+                    onClick={() => setActivePeriod(p)}
+                  >
+                    {p}
+                  </button>
                 ))}
               </div>
+              <s-text variant="heading2xl" font-weight="bold">
+                +€{getRevenue(activePeriod).toLocaleString('de-DE')}
+              </s-text>
+              <s-text tone="subdued" variant="bodySm">
+                bei Umsetzung aller Empfehlungen
+              </s-text>
+              <s-badge tone="success">Potenzial</s-badge>
             </div>
-          </div>
+          </s-section>
+
+          {/* Card 2: Ausstehende Empfehlungen */}
+          <s-section>
+            <span slot="heading">Ausstehende Empfehlungen</span>
+            <div className="kpi-card-inner">
+              <s-text variant="heading2xl" font-weight="bold" tone="caution">
+                {pendingCount}
+              </s-text>
+              <s-text tone="subdued" variant="bodySm">
+                offene Preisempfehlungen
+              </s-text>
+              {pendingCount > 0
+                ? <s-badge tone="warning">Handlung erforderlich</s-badge>
+                : <s-badge tone="success">Alles erledigt</s-badge>
+              }
+            </div>
+          </s-section>
+
+          {/* Card 3: Ø Mehrumsatz pro Produkt (dritte verfügbare KPI) */}
+          <s-section>
+            <span slot="heading">Ø pro Produkt</span>
+            <div className="kpi-card-inner">
+              <s-text variant="heading2xl" font-weight="bold">
+                €{Math.abs(Math.round(avgPerProduct)).toLocaleString('de-DE')}
+              </s-text>
+              <s-text tone="subdued" variant="bodySm">
+                möglicher Mehrumsatz je Produkt
+              </s-text>
+              <s-badge tone="info">Produktdurchschnitt</s-badge>
+            </div>
+          </s-section>
+
+        </s-grid>
+
+        {/* ══ ZEILE 2: Nächste Schritte – 2 Step-Cards nebeneinander ══ */}
+        {nextStepsCount > 0 && (
+          <s-section>
+            <s-stack direction="row" gap="200" block-align="center" slot="heading">
+              <span>Nächste Schritte</span>
+              <s-badge
+                tone={stats.next_steps!.some((s) => s.urgent) ? 'critical' : 'attention'}
+              >
+                {nextStepsCount} ausstehend
+              </s-badge>
+            </s-stack>
+
+            <s-grid columns="2" gap="base">
+              {stats.next_steps!.slice(0, 2).map((step, i) => (
+                <div key={i} className="step-card">
+                  <s-stack direction="row" gap="300" block-align="start">
+                    <s-box
+                      background={step.urgent ? 'bg-surface-critical' : 'bg-surface-warning'}
+                      border-radius="100"
+                      padding="150"
+                    >
+                      <span aria-hidden="true">{step.urgent ? '🔥' : '📊'}</span>
+                    </s-box>
+                    <s-stack direction="column" gap="100">
+                      <s-text font-weight="semibold">{step.title}</s-text>
+                      <s-text tone="subdued" variant="bodySm">{step.description}</s-text>
+                    </s-stack>
+                  </s-stack>
+                  <div className="step-card-divider" />
+                  <s-button
+                    variant={step.urgent ? 'primary' : 'secondary'}
+                    onClick={() => router.push(`${step.href}${suffix}`)}
+                  >
+                    {step.urgent ? '⚡ Jetzt umsetzen' : '📊 Öffnen'}
+                  </s-button>
+                </div>
+              ))}
+            </s-grid>
+          </s-section>
         )}
 
-        {/* ══ ZEILE 4: Fortschritt (2/3) + Schnellaktionen (1/3) ══ */}
-        <div className="piq-bottom-grid">
+        {/* ══ ZEILE 3: native CSS Grid – Fortschritt (2fr) + Schnellaktionen (1fr) ══
+            Kein s-grid: align-items: stretch ist in s-grid nicht zuverlässig
+        */}
+        <div className="bottom-grid">
 
-          {/* Fortschritt – ohne Quick Actions (werden rechts separat gezeigt) */}
-          <FortschrittsCard
-            level={stats?.progress?.level ?? 'bronze'}
-            points={stats?.progress?.points ?? 0}
-            nextLevelPoints={stats?.progress?.next_level_points ?? 20}
-            pointsNeeded={stats?.progress?.points_needed ?? 20}
-            completedSteps={stats?.progress?.completed_steps ?? []}
-            pendingSteps={stats?.progress?.pending_steps ?? []}
-            hideQuickActions
-          />
+          {/* Fortschritt: 2/3 Breite */}
+          <s-section>
+            <s-stack direction="row" gap="300" block-align="center" slot="heading">
+              <span>Fortschritt</span>
+              <span className="tier-badge">
+                {TIER_EMOJI[level] ?? '⭐'} {TIER_LABELS[level] ?? 'BRONZE'}
+              </span>
+              <s-text tone="subdued" variant="bodySm">
+                {points} / {nextLevelPoints}
+              </s-text>
+            </s-stack>
 
-          {/* Schnellaktionen — volle Breite, vertikal gestapelt */}
-          <div className="piq-qa-section">
-            <div className="piq-card-head">
-              <div className="piq-card-ttl">Schnellaktionen</div>
+            <s-stack direction="column" gap="400">
+              <s-stack direction="column" gap="150">
+                <s-progress-indicator progress={tierPercent.toString()} />
+                <s-text tone="subdued" variant="bodySm">
+                  {pointsNeeded} Punkte bis {nextLevelLabel}
+                </s-text>
+              </s-stack>
+
+              {/* Milestone-Liste */}
+              <s-stack direction="column" gap="200">
+                {(completedSteps ?? []).map((step, i) => (
+                  <div key={`done-${i}`} className="piq-task">
+                    <div className="piq-task-circle piq-task-circle--done">
+                      <div className="piq-task-check" />
+                    </div>
+                    <span className="piq-task-label piq-task-label--done">
+                      {String(step).replace(/^✅\s*/, '')}
+                    </span>
+                  </div>
+                ))}
+                {(pendingSteps ?? []).map((step, i) => (
+                  <div key={`pending-${i}`} className="piq-task">
+                    <div className="piq-task-circle" />
+                    <span className="piq-task-label">{step.text}</span>
+                    {step.points > 0 && (
+                      <span className="piq-task-pts">+{step.points}</span>
+                    )}
+                  </div>
+                ))}
+              </s-stack>
+            </s-stack>
+          </s-section>
+
+          {/* Schnellaktionen: 1/3 Breite, gleiche Höhe */}
+          <s-section>
+            <span slot="heading">Schnellaktionen</span>
+            <div className="quickactions-inner">
+              <s-button
+                variant="secondary"
+                onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+              >
+                ⚡ Preise optimieren
+              </s-button>
+              <s-button
+                variant="secondary"
+                onClick={() => router.push(`/dashboard/products${suffix}`)}
+              >
+                📦 Produkte synchronisieren
+              </s-button>
+              <s-button
+                variant="secondary"
+                onClick={() => router.push(`/dashboard/settings${suffix}`)}
+              >
+                ⚙️ Einstellungen
+              </s-button>
             </div>
-            <div className="piq-qa-vert">
-              <s-button variant="secondary" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <PriceActionIcon />
-                  Preise optimieren
-                </span>
-              </s-button>
-              <s-button variant="secondary" onClick={() => router.push(`/dashboard/products${suffix}`)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <ProductActionIcon />
-                  Produkte synchronisieren
-                </span>
-              </s-button>
-              <s-button variant="secondary" onClick={() => router.push(`/dashboard/settings${suffix}`)}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <SettingsActionIcon />
-                  Einstellungen
-                </span>
-              </s-button>
-            </div>
-          </div>
+          </s-section>
 
         </div>
+
       </div>
+
     </s-page>
   );
 }
