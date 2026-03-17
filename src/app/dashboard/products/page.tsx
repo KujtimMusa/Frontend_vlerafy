@@ -46,8 +46,21 @@ export default function ProductsPage() {
   const queryClient  = useQueryClient();
   const suffix       = useShopSuffix();
   const autoSyncDone = useRef(false);
+  const searchRef = useRef<HTMLElement>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab,   setActiveTab  ] = useState<FilterTab>('all');
+
+  useEffect(() => {
+    const el = searchRef.current;
+    if (!el) return;
+    const handler = (e: Event) => {
+      const v = (e.target as HTMLInputElement)?.value ?? (e as CustomEvent)?.detail ?? '';
+      setSearchQuery(String(v));
+    };
+    el.addEventListener('change', handler);
+    el.addEventListener('input', handler);
+    return () => { el.removeEventListener('change', handler); el.removeEventListener('input', handler); };
+  }, []);
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
@@ -177,12 +190,11 @@ export default function ProductsPage() {
                   <circle cx="6.5" cy="6.5" r="5" /><path d="m10.5 10.5 3 3" />
                 </svg>
               </span>
-              <input
-                type="text"
-                className="piq-search-input"
+              <s-text-field
+                ref={searchRef}
+                label=""
                 placeholder="Produkt suchen…"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <span className="piq-table-count">{filteredProducts.length} Produkte</span>

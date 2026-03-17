@@ -1185,25 +1185,9 @@ body {
   flex-shrink: 0;
   z-index: 1;
 }
-
-.piq-search-input {
+.piq-table-search s-text-field {
+  display: block;
   width: 100%;
-  padding: 8px 12px 8px 36px;
-  font-size: 13px;
-  font-family: var(--font);
-  color: var(--ink);
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  outline: none;
-  transition: border-color .15s, box-shadow .15s;
-}
-.piq-search-input::placeholder {
-  color: var(--ghost);
-}
-.piq-search-input:focus {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(79, 70, 229, .12);
 }
 
 .piq-table-count {
@@ -1815,6 +1799,11 @@ body {
   margin-bottom: 12px;
 }
 .piq-margin-form-field { min-width: 0; }
+.piq-margin-form-field s-text-field,
+.piq-margin-form-field s-select {
+  display: block;
+  width: 100%;
+}
 .piq-margin-form-actions {
   display: flex;
   gap: 10px;
@@ -1872,19 +1861,65 @@ body {
   background: var(--border-sub);
   border-radius: 99px;
   position: relative;
-  margin-bottom: 8px;
+  margin-top: 28px;
+  margin-bottom: 28px;
 }
-.piq-comp-pos-dot {
+
+/* ── Position Marker (Günstigster / Ø Markt / Dein Preis) ── */
+.piq-pos-marker {
   position: absolute;
-  top: -4px;
-  width: 16px;
-  height: 16px;
-  background: var(--indigo);
-  border: 2px solid var(--surface);
-  border-radius: 50%;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transform: translateX(-50%);
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 1;
 }
+.piq-pos-marker-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+  box-shadow: 0 1px 3px rgba(0,0,0,.12);
+}
+.piq-pos-marker-tip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.piq-pos-marker-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.piq-pos-marker-price {
+  font-size: 11px;
+  font-weight: 700;
+}
+.piq-pos-marker--cheap .piq-pos-marker-dot { background: #16a34a; }
+.piq-pos-marker--cheap .piq-pos-marker-label { color: #16a34a; }
+.piq-pos-marker--cheap .piq-pos-marker-price { color: #16a34a; }
+
+.piq-pos-marker--avg .piq-pos-marker-dot { background: #6b7280; }
+.piq-pos-marker--avg .piq-pos-marker-label { color: #6b7280; }
+.piq-pos-marker--avg .piq-pos-marker-price { color: #6b7280; }
+.piq-pos-marker--avg .piq-pos-marker-tip {
+  bottom: auto;
+  top: calc(100% + 6px);
+}
+
+.piq-pos-marker--mine .piq-pos-marker-dot { background: var(--indigo); width: 16px; height: 16px; }
+.piq-pos-marker--mine .piq-pos-marker-label { color: var(--indigo); }
+.piq-pos-marker--mine .piq-pos-marker-price { color: var(--indigo); }
+
 .piq-comp-pos-range {
   display: flex;
   justify-content: space-between;

@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
   fetchProducts,
   getRecommendation,
@@ -83,6 +83,14 @@ export default function ProductDetailPage() {
   const [chatInput, setChatInput] = useState('');
   const [chatLoading, setChatLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
+
+  // Refs for Polaris Web Components (Shadow DOM needs native event binding)
+  const purchaseRef = useRef<HTMLElement>(null);
+  const shippingRef = useRef<HTMLElement>(null);
+  const packagingRef = useRef<HTMLElement>(null);
+  const categoryRef = useRef<HTMLElement>(null);
+  const paymentRef = useRef<HTMLElement>(null);
+  const chatFieldRef = useRef<HTMLElement>(null);
 
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
   const product = products.find((p) => p.id === productId);
@@ -171,15 +179,47 @@ export default function ProductDetailPage() {
     setCostFormDirty(false);
   };
 
-  const loadCategoryDefaults = async (category: string) => {
+  const loadCategoryDefaults = useCallback(async (category: string) => {
     const defaults = await getCategoryDefaults(category);
     setCostFormDirty(true);
     setCostForm((prev) => ({ ...prev, category, shipping_cost: String(defaults.shipping_estimate), packaging_cost: String(defaults.packaging_estimate) }));
-  };
+  }, []);
+
+  useEffect(() => {
+    const cleanups: Array<() => void> = [];
+    const bind = (ref: React.RefObject<HTMLElement | null>, handler: (v: string) => void) => {
+      const el = ref.current;
+      if (!el) return;
+      const cb = (e: Event) => {
+        const t = e.target as HTMLInputElement;
+        const v = t?.value ?? (e as CustomEvent)?.detail ?? '';
+        handler(String(v));
+      };
+      el.addEventListener('change', cb);
+      el.addEventListener('input', cb);
+      cleanups.push(() => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); });
+    };
+    bind(purchaseRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, purchase_cost: v })); });
+    bind(shippingRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, shipping_cost: v })); });
+    bind(packagingRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, packaging_cost: v })); });
+    bind(categoryRef, (v) => loadCategoryDefaults(v));
+    bind(paymentRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, payment_provider: v as PaymentProvider })); });
+    bind(chatFieldRef, (v) => setChatInput(v));
+
+    const chatEl = chatFieldRef.current;
+    if (chatEl) {
+      const keyHandler = (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') document.getElementById('piq-chat-send')?.click(); };
+      chatEl.addEventListener('keydown', keyHandler);
+      cleanups.push(() => chatEl.removeEventListener('keydown', keyHandler));
+    }
+
+    return () => cleanups.forEach(fn => fn());
+  }, [loadCategoryDefaults]);
 
   const handleAiExplain = async () => {
     if (!recommendation) return;
     setAiLoading(true);
+    setAiExplanation(null);
     try {
       const result = await explainPrice({
         current_price: recommendation.current_price, recommended_price: recommendation.recommended_price,
@@ -190,7 +230,9 @@ export default function ProductDetailPage() {
         product_title: product?.title, currency: 'EUR',
       });
       setAiExplanation(result);
-    } catch { /* ignore */ } finally { setAiLoading(false); }
+    } catch {
+      setAiExplanation({ explanation: 'Die KI-Erklärung konnte gerade nicht geladen werden. Bitte versuche es erneut.', key_reason: '–', confidence_text: '–', action_hint: '–' });
+    } finally { setAiLoading(false); }
   };
 
   const handleChatSend = async () => {
@@ -265,6 +307,13 @@ export default function ProductDetailPage() {
   const netMargin = margin?.margin?.euro ?? grossMargin;
   const netMarginPct = margin?.margin?.percent ?? grossMarginPct;
   const breakEven = margin?.break_even_price ?? totalCost;
+
+  const barMin = Math.min(minPrice > 0 ? minPrice : Infinity, myPrice);
+  const barMax = Math.max(maxPrice, myPrice);
+  const barRange = barMax - barMin || 1;
+  const cheapPct = minPrice > 0 ? Math.max(0, Math.min(100, ((minPrice - barMin) / barRange) * 100)) : 0;
+  const avgPct = competition.avgPrice > 0 ? Math.max(0, Math.min(100, ((competition.avgPrice - barMin) / barRange) * 100)) : 50;
+  const myPct = Math.max(0, Math.min(100, ((myPrice - barMin) / barRange) * 100));
 
   return (
     <>
@@ -381,16 +430,8 @@ export default function ProductDetailPage() {
                       )}
 
                       <div className="piq-ai-input">
-                        <s-text-field
-                          label=""
-                          placeholder="Weitere Frage stellen…"
-                          value={chatInput}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onChange={(e: any) => setChatInput(e?.target?.value ?? e?.detail?.value ?? '')}
-                          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                          onKeyDown={(e: any) => e.key === 'Enter' && handleChatSend()}
-                        />
-                        <button className="piq-cta piq-cta--primary piq-cta--sm" onClick={handleChatSend} disabled={!chatInput.trim() || chatLoading}>
+                        <s-text-field ref={chatFieldRef} label="" placeholder="Weitere Frage stellen…" value={chatInput} />
+                        <button id="piq-chat-send" className="piq-cta piq-cta--primary piq-cta--sm" onClick={handleChatSend} disabled={!chatInput.trim() || chatLoading}>
                           Senden
                         </button>
                       </div>
@@ -422,56 +463,21 @@ export default function ProductDetailPage() {
               <div className="piq-margin-form">
                 <div className="piq-margin-form-row">
                   <div className="piq-margin-form-field">
-                    <s-text-field
-                      label="Einkaufspreis (€)"
-                      type="number"
-                      value={costForm.purchase_cost}
-                      placeholder="0.00"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onChange={(e: any) => { setCostFormDirty(true); setCostForm((p) => ({ ...p, purchase_cost: e?.target?.value ?? e?.detail?.value ?? '' })); }}
-                    />
+                    <s-text-field ref={purchaseRef} label="Einkaufspreis (€)" type="number" value={costForm.purchase_cost} placeholder="0.00" />
                   </div>
                   <div className="piq-margin-form-field">
-                    <s-text-field
-                      label="Versandkosten (€)"
-                      type="number"
-                      value={costForm.shipping_cost}
-                      placeholder="0.00"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onChange={(e: any) => { setCostFormDirty(true); setCostForm((p) => ({ ...p, shipping_cost: e?.target?.value ?? e?.detail?.value ?? '' })); }}
-                    />
+                    <s-text-field ref={shippingRef} label="Versandkosten (€)" type="number" value={costForm.shipping_cost} placeholder="0.00" />
                   </div>
                   <div className="piq-margin-form-field">
-                    <s-text-field
-                      label="Verpackung (€)"
-                      type="number"
-                      value={costForm.packaging_cost}
-                      placeholder="0.00"
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onChange={(e: any) => { setCostFormDirty(true); setCostForm((p) => ({ ...p, packaging_cost: e?.target?.value ?? e?.detail?.value ?? '' })); }}
-                    />
+                    <s-text-field ref={packagingRef} label="Verpackung (€)" type="number" value={costForm.packaging_cost} placeholder="0.00" />
                   </div>
                 </div>
                 <div className="piq-margin-form-row">
                   <div className="piq-margin-form-field">
-                    <s-select
-                      label="Kategorie"
-                      value={costForm.category}
-                      options={JSON.stringify(CATEGORIES.map(c => ({ label: c.label, value: c.value })))}
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      onChange={(e: any) => loadCategoryDefaults(e?.target?.value ?? e?.detail?.value ?? '')}
-                    />
+                    <s-select ref={categoryRef} label="Kategorie" value={costForm.category} options={JSON.stringify(CATEGORIES.map(c => ({ label: c.label, value: c.value })))} />
                   </div>
                   <div className="piq-margin-form-field">
-                    <s-select
-                      label="Zahlungsanbieter"
-                      value={costForm.payment_provider}
-                      options={JSON.stringify(PAYMENT_PROVIDERS.map(c => ({ label: c.label, value: c.value })))}
-                      onChange={(e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-                        setCostFormDirty(true);
-                        setCostForm((p) => ({ ...p, payment_provider: (e?.target?.value ?? e?.detail?.value ?? '') as PaymentProvider }));
-                      }}
-                    />
+                    <s-select ref={paymentRef} label="Zahlungsanbieter" value={costForm.payment_provider} options={JSON.stringify(PAYMENT_PROVIDERS.map(c => ({ label: c.label, value: c.value })))} />
                   </div>
                 </div>
                 {costFormDirty && (
@@ -547,11 +553,35 @@ export default function ProductDetailPage() {
                   <div className="piq-comp-position">
                     <span className="piq-comp-pos-lbl">Deine Marktposition</span>
                     <div className="piq-comp-pos-track">
-                      <div className="piq-comp-pos-dot" style={{ left: `${competition.positionPct}%` }} />
+                      {minPrice > 0 && (
+                        <div className="piq-pos-marker piq-pos-marker--cheap" style={{ left: `${cheapPct}%` }}>
+                          <span className="piq-pos-marker-dot" />
+                          <span className="piq-pos-marker-tip">
+                            <span className="piq-pos-marker-label">Günstigster</span>
+                            <span className="piq-pos-marker-price">{formatEuro(minPrice)}</span>
+                          </span>
+                        </div>
+                      )}
+                      {competition.avgPrice > 0 && (
+                        <div className="piq-pos-marker piq-pos-marker--avg" style={{ left: `${avgPct}%` }}>
+                          <span className="piq-pos-marker-dot" />
+                          <span className="piq-pos-marker-tip">
+                            <span className="piq-pos-marker-label">Ø Markt</span>
+                            <span className="piq-pos-marker-price">{formatEuro(competition.avgPrice)}</span>
+                          </span>
+                        </div>
+                      )}
+                      <div className="piq-pos-marker piq-pos-marker--mine" style={{ left: `${myPct}%` }}>
+                        <span className="piq-pos-marker-dot" />
+                        <span className="piq-pos-marker-tip">
+                          <span className="piq-pos-marker-label">Dein Preis</span>
+                          <span className="piq-pos-marker-price">{formatEuro(myPrice)}</span>
+                        </span>
+                      </div>
                     </div>
                     <div className="piq-comp-pos-range">
-                      <span>{formatEuro(competition.minPrice)}</span>
-                      <span>{formatEuro(competition.maxPrice)}</span>
+                      <span>{formatEuro(barMin)}</span>
+                      <span>{formatEuro(barMax)}</span>
                     </div>
                   </div>
 
