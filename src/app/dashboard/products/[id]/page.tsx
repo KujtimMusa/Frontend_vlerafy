@@ -220,16 +220,24 @@ export default function ProductDetailPage() {
     bind(returnRateRef, dirty(setReturnRateInput));
     bind(otherRef, dirty(setOtherInput));
     bind(vatRef, dirty(setVatInput));
-    bind(chatFieldRef, (v) => setChatInput(v));
-
-    const chatEl = chatFieldRef.current;
-    if (chatEl) {
-      const keyHandler = (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') document.getElementById('piq-chat-send')?.click(); };
-      chatEl.addEventListener('keydown', keyHandler);
-      cleanups.push(() => chatEl.removeEventListener('keydown', keyHandler));
-    }
     return () => cleanups.forEach(fn => fn());
   }, []);
+
+  useEffect(() => {
+    const el = chatFieldRef.current;
+    if (!el) return;
+    const cb = (e: Event) => {
+      const path = e.composedPath?.() ?? [];
+      const inner = path[0] as HTMLInputElement | undefined;
+      const v = inner?.value ?? (e.target as HTMLInputElement)?.value ?? (el as unknown as HTMLInputElement).value ?? (e as CustomEvent)?.detail ?? '';
+      setChatInput(String(v));
+    };
+    el.addEventListener('change', cb);
+    el.addEventListener('input', cb);
+    const keyHandler = (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') document.getElementById('piq-chat-send')?.click(); };
+    el.addEventListener('keydown', keyHandler);
+    return () => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); el.removeEventListener('keydown', keyHandler); };
+  }, [aiExplanation, chatMessages.length]);
 
   const handleAiExplain = async () => {
     if (!recommendation) return;
@@ -432,32 +440,45 @@ export default function ProductDetailPage() {
                     </button>
                   </div>
 
-                  {/* KI-Erklärung inline */}
+                  {/* KI-Berater */}
                   {(aiExplanation || aiLoading || chatMessages.length > 0) && (
-                    <div className="piq-rec-ai">
+                    <div className="piq-ai-card">
+                      <div className="piq-ai-card-header">
+                        <span className="piq-ai-avatar">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="m2 14 6-6 6 6 6-6"/></svg>
+                        </span>
+                        <span className="piq-ai-title">KI-Preisberater</span>
+                        {aiExplanation && aiExplanation.confidence_text !== '–' && (
+                          <span className={`piq-ai-trust-pill ${confidencePct >= 70 ? 'piq-ai-trust-pill--high' : confidencePct >= 40 ? 'piq-ai-trust-pill--mid' : 'piq-ai-trust-pill--low'}`}>
+                            {confidencePct >= 70 ? '● ' : confidencePct >= 40 ? '◐ ' : '○ '}{aiExplanation.confidence_text}
+                          </span>
+                        )}
+                      </div>
+
                       {aiLoading && !aiExplanation && (
-                        <div className="piq-ai-loading">
-                          <s-spinner size="small" /> <span>KI analysiert…</span>
+                        <div className="piq-ai-card-loading">
+                          <s-spinner size="small" />
+                          <span>Analysiert dein Produkt und den Markt…</span>
                         </div>
                       )}
 
                       {aiExplanation && (
-                        <div className="piq-ai-explanation">
-                          <div className="piq-ai-explain-text">{aiExplanation.explanation}</div>
-                          <div className="piq-ai-meta">
-                            <div className="piq-ai-meta-row">
-                              <span className="piq-ai-meta-lbl">Hauptgrund</span>
-                              <span className="piq-ai-meta-val">{aiExplanation.key_reason}</span>
+                        <div className="piq-ai-card-body">
+                          <p className="piq-ai-explanation-text">{aiExplanation.explanation}</p>
+                          {aiExplanation.key_reason && aiExplanation.key_reason !== '–' && (
+                            <div className="piq-ai-key-reason">
+                              <span className="piq-ai-key-reason-icon">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                              </span>
+                              <span className="piq-ai-key-reason-text">{aiExplanation.key_reason}</span>
                             </div>
-                            <div className="piq-ai-meta-row">
-                              <span className="piq-ai-meta-lbl">Sicherheit</span>
-                              <span className="piq-ai-meta-val">{aiExplanation.confidence_text}</span>
+                          )}
+                          {aiExplanation.action_hint && aiExplanation.action_hint !== '–' && (
+                            <div className="piq-ai-action-hint">
+                              <span className="piq-ai-action-hint-arrow">→</span>
+                              <span className="piq-ai-action-hint-text">{aiExplanation.action_hint}</span>
                             </div>
-                            <div className="piq-ai-meta-row">
-                              <span className="piq-ai-meta-lbl">Empfehlung</span>
-                              <span className="piq-ai-meta-val">{aiExplanation.action_hint}</span>
-                            </div>
-                          </div>
+                          )}
                         </div>
                       )}
 
@@ -470,7 +491,8 @@ export default function ProductDetailPage() {
                           ))}
                           {chatLoading && (
                             <div className="piq-ai-typing">
-                              <s-spinner size="small" /> <span>KI denkt nach…</span>
+                              <span className="piq-ai-typing-dots"><span /><span /><span /></span>
+                              <span>KI denkt nach…</span>
                             </div>
                           )}
                           <div ref={chatBottomRef} />
@@ -478,9 +500,9 @@ export default function ProductDetailPage() {
                       )}
 
                       <div className="piq-ai-input">
-                        <s-text-field ref={chatFieldRef} label="" placeholder="Weitere Frage stellen…" value={chatInput} />
+                        <s-text-field ref={chatFieldRef} label="" placeholder="Frag die KI z.B. 'Warum so ein großer Unterschied?'" value={chatInput} />
                         <button id="piq-chat-send" className="piq-cta piq-cta--primary piq-cta--sm" onClick={handleChatSend} disabled={!chatInput.trim() || chatLoading}>
-                          Senden
+                          {chatLoading ? '…' : 'Senden'}
                         </button>
                       </div>
                     </div>
