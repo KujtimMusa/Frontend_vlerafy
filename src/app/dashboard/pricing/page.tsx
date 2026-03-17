@@ -210,10 +210,10 @@ export default function PricingPage() {
                     <tr key={rec.id}>
                       <td>
                         <div>
-                          <p className="vlerafy-product-title">{rec.productTitle}</p>
-                          <p className="vlerafy-kpi-label vlerafy-mt-2">
+                          <div className="vlerafy-product-title">{rec.productTitle}</div>
+                          <div className="vlerafy-kpi-label vlerafy-mt-2">
                             {rec.strategy}
-                          </p>
+                          </div>
                         </div>
                       </td>
                       <td className="vlerafy-table-price">{rec.currentPrice} €</td>
@@ -241,9 +241,9 @@ export default function PricingPage() {
                             style={{ width: `${rec.confidence * 100}%` }}
                           />
                         </div>
-                        <p className="vlerafy-kpi-label vlerafy-mt-3">
+                        <div className="vlerafy-kpi-label vlerafy-mt-3">
                           {Math.round(rec.confidence * 100)}%
-                        </p>
+                        </div>
                       </td>
                       <td>
                         {rec.status === 'pending' ? (

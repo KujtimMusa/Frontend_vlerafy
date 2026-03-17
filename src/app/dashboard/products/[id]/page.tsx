@@ -466,15 +466,15 @@ export default function ProductDetailPage() {
         <div className="vlerafy-detail-left">
           <div className="vlerafy-card-wrapper vlerafy-detail-card">
             <div className="vlerafy-card-inner">
-              <p className="vlerafy-section-label">Preisempfehlung</p>
+              <div className="vlerafy-section-label">Preisempfehlung</div>
               {recLoading ? (
                 <div className="vlerafy-skeleton vlerafy-skeleton-text" style={{ height: 80 }} />
               ) : recommendation ? (
                 <>
                   <s-stack direction="inline" align-items="flex-end" gap="4" style={{ margin: '12px 0' }}>
                     <div>
-                      <p className="vlerafy-price-current">Aktuell: {currentPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
-                      <p className="vlerafy-price-recommended">{recommendedPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</p>
+                      <div className="vlerafy-price-current">Aktuell: {currentPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</div>
+                      <div className="vlerafy-price-recommended">{recommendedPrice.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €</div>
                     </div>
                     <div className={`vlerafy-price-change-badge ${diff >= 0 ? 'vlerafy-price-change-badge--up' : 'vlerafy-price-change-badge--down'}`}>
                       {diff >= 0 ? '▲' : '▼'} {Math.abs(diffPct).toFixed(1)}%
@@ -522,7 +522,7 @@ export default function ProductDetailPage() {
 
           <div className="vlerafy-card-wrapper vlerafy-detail-card">
             <div className="vlerafy-card-inner">
-              <p className="vlerafy-section-label">Margen-Analyse</p>
+              <div className="vlerafy-section-label">Margen-Analyse</div>
               <s-stack direction="inline" gap="4" style={{ marginTop: '12px' }}>
                 <div>
                   <s-select
@@ -550,32 +550,32 @@ export default function ProductDetailPage() {
 
           <div className="vlerafy-card-wrapper vlerafy-detail-card">
             <div className="vlerafy-card-inner">
-              <p className="vlerafy-section-label">Wettbewerbsanalyse</p>
+              <div className="vlerafy-section-label">Wettbewerbsanalyse</div>
               {compLoading ? (
                 <div className="vlerafy-skeleton vlerafy-skeleton-text" style={{ height: 100 }} />
               ) : competitors?.has_data ? (
                 <>
                   <div className="vlerafy-market-stats">
                     <div className="vlerafy-market-stat">
-                      <p className="vlerafy-kpi-label">Dein Preis</p>
-                      <p className="vlerafy-kpi-value">{myPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</p>
+                      <div className="vlerafy-kpi-label">Dein Preis</div>
+                      <div className="vlerafy-kpi-value">{myPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</div>
                     </div>
                     <div className="vlerafy-market-stat">
-                      <p className="vlerafy-kpi-label">Marktdurchschnitt</p>
-                      <p className="vlerafy-kpi-value">{competition.avgPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</p>
+                      <div className="vlerafy-kpi-label">Marktdurchschnitt</div>
+                      <div className="vlerafy-kpi-value">{competition.avgPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</div>
                     </div>
                     <div className="vlerafy-market-stat">
-                      <p className="vlerafy-kpi-label">Preisspanne</p>
-                      <p className="vlerafy-kpi-value">{competition.minPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} – {competition.maxPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</p>
+                      <div className="vlerafy-kpi-label">Preisspanne</div>
+                      <div className="vlerafy-kpi-value">{competition.minPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} – {competition.maxPrice.toLocaleString('de-DE', { minimumFractionDigits: 2 })} €</div>
                     </div>
                     <div className="vlerafy-market-stat">
-                      <p className="vlerafy-kpi-label">Anbieter</p>
-                      <p className="vlerafy-kpi-value">{competition.count}</p>
+                      <div className="vlerafy-kpi-label">Anbieter</div>
+                      <div className="vlerafy-kpi-value">{competition.count}</div>
                     </div>
                   </div>
 
                   <div className="vlerafy-market-position vlerafy-detail-card">
-                    <p className="vlerafy-kpi-label vlerafy-mb-8">Marktposition</p>
+                    <div className="vlerafy-kpi-label vlerafy-mb-8">Marktposition</div>
                     <div className="vlerafy-market-bar">
                       <div
                         className="vlerafy-market-indicator"
@@ -620,7 +620,7 @@ export default function ProductDetailPage() {
                   {competition.recommendation && (
                     <div className="vlerafy-insight-box vlerafy-detail-card">
                       <span className="vlerafy-insight-icon">💡</span>
-                      <p className="vlerafy-insight-text">{competition.recommendation}</p>
+                      <div className="vlerafy-insight-text">{competition.recommendation}</div>
                     </div>
                   )}
                 </>
@@ -646,7 +646,7 @@ export default function ProductDetailPage() {
         <div className="vlerafy-detail-right">
           <div className="vlerafy-card-wrapper vlerafy-detail-card">
             <div className="vlerafy-card-inner">
-              <p className="vlerafy-section-label">Preisentwicklung – Letzte 30 Tage</p>
+              <div className="vlerafy-section-label">Preisentwicklung – Letzte 30 Tage</div>
               <div className="vlerafy-mt-12">
                 <PreisverlaufChart
                   data={chartData}
@@ -686,7 +686,7 @@ export default function ProductDetailPage() {
               {aiExplanation && (
                 <div className="vlerafy-ai-explanation">
                   <div className="vlerafy-ai-explanation-main">
-                    <p className="vlerafy-ai-explanation-text">{aiExplanation.explanation}</p>
+                    <div className="vlerafy-ai-explanation-text">{aiExplanation.explanation}</div>
                   </div>
                   <div className="vlerafy-ai-explanation-meta">
                     <div className="vlerafy-ai-meta-item">
