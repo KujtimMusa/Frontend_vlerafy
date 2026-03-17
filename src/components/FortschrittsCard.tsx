@@ -10,6 +10,8 @@ interface FortschrittsCardProps {
   onPriceAction?: () => void;
   onProductsAction?: () => void;
   onSettingsAction?: () => void;
+  /** Wenn true, werden die Schnellaktionen unten nicht gerendert */
+  hideQuickActions?: boolean;
 }
 
 const TIER_LABELS: Record<string, string> = {
@@ -67,6 +69,7 @@ export function FortschrittsCard({
   onPriceAction,
   onProductsAction,
   onSettingsAction,
+  hideQuickActions = false,
 }: FortschrittsCardProps) {
   const tierLabel      = TIER_LABELS[level] ?? 'Bronze';
   const nextLevelLabel = NEXT_LABELS[level] ?? 'Silber';
@@ -126,8 +129,8 @@ export function FortschrittsCard({
         ))}
       </div>
 
-      {/* ── Schnellaktionen — Icon Cards ── */}
-      <div className="piq-qa-wrap">
+      {/* ── Schnellaktionen — nur wenn nicht extern gerendert ── */}
+      {!hideQuickActions && <div className="piq-qa-wrap">
         <div className="piq-qa-lbl">Schnellaktionen</div>
         <div className="piq-qa-grid">
           {actions.map((action) => (
@@ -148,7 +151,7 @@ export function FortschrittsCard({
             </div>
           ))}
         </div>
-      </div>
+      </div>}
 
     </div>
   );

@@ -40,28 +40,11 @@ function useShopSuffix(): string {
   return q ? `?${q}` : '';
 }
 
-function RevenueIcon() {
-  return (
-    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#059669" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9.5 2v15M14 6.5c0-1.2-.9-2.2-2.2-2.2H7.5a2.2 2.2 0 0 0 0 4.4h4a2.2 2.2 0 0 1 0 4.4H6" />
-    </svg>
-  );
-}
-
 function PendingIcon() {
   return (
     <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#d97706" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="9.5" cy="9.5" r="7.5" />
       <path d="M9.5 5.5v4.5l3 1.5" />
-    </svg>
-  );
-}
-
-function AvgIcon() {
-  return (
-    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#4f46e5" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 14l5-6 4.5 3.5 4.5-8" />
-      <circle cx="16.5" cy="3.5" r="1.5" fill="#4f46e5" stroke="none" />
     </svg>
   );
 }
@@ -84,10 +67,29 @@ function TaskIcon() {
   );
 }
 
-function ArrowRight() {
+function PriceActionIcon() {
   return (
-    <svg className="piq-step-arr" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6">
-      <path d="M5 2.5l4 4.5-4 4.5" />
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 1v14M11 5c0-1-.9-1.8-1.8-1.8H6.5a1.8 1.8 0 0 0 0 3.6h3a1.8 1.8 0 0 1 0 3.6H5" />
+    </svg>
+  );
+}
+
+function ProductActionIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#d97706" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 2.5h2.5l2 8.5h6.5l1.3-5.5H5.5" />
+      <circle cx="8" cy="14" r="1" />
+      <circle cx="12.5" cy="14" r="1" />
+    </svg>
+  );
+}
+
+function SettingsActionIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="8" cy="8" r="2.5" />
+      <path d="M8 1v1.5M8 13.5V15M1 8h1.5M13.5 8H15M3 3l1 1M12 12l1 1M3 13l1-1M12 4l1-1" />
     </svg>
   );
 }
@@ -113,20 +115,20 @@ export default function DashboardPage() {
   const progressPct    = totalCount > 0 ? Math.min((affectedCount / totalCount) * 100, 100) : 0;
   const nextStepsCount = stats?.next_steps?.length ?? 0;
 
+  /* ── Loading ── */
   if (isLoading) {
     return (
       <s-page title="Übersicht">
         <div className="piq-dashboard">
           <div className="piq-card">
-            <div className="piq-loading">
-              <s-spinner size="small" />
-            </div>
+            <div className="piq-loading"><s-spinner size="small" /></div>
           </div>
         </div>
       </s-page>
     );
   }
 
+  /* ── Error ── */
   if (error || !stats) {
     return (
       <s-page title="Übersicht">
@@ -146,7 +148,7 @@ export default function DashboardPage() {
     <s-page title="Übersicht">
       <div className="piq-dashboard">
 
-        {/* ── Notification Bar ── */}
+        {/* ══ ZEILE 1: Notification Banner ══ */}
         {noticeVisible && pendingCount > 0 && (
           <div className="piq-notice" role="status">
             <div className="piq-notice-pip" aria-hidden="true" />
@@ -159,37 +161,39 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="piq-notice-actions">
-              <s-button
-                variant="primary"
-                size="slim"
-                onClick={() => router.push(`/dashboard/pricing${suffix}`)}
-              >
+              <s-button variant="primary" size="slim" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
                 Empfehlungen ansehen
               </s-button>
-              <button
-                className="piq-notice-dismiss"
-                onClick={() => setNoticeVisible(false)}
-                aria-label="Benachrichtigung schließen"
-              >
+              <button className="piq-notice-dismiss" onClick={() => setNoticeVisible(false)} aria-label="Schließen">
                 ×
               </button>
             </div>
           </div>
         )}
 
-        {/* ── KPI Strip — 3 gleich hohe Cards ── */}
-        <div className="piq-kpi">
+        {/* ══ ZEILE 2: Hero (2/3) + Satellit Ausstehend (1/3) ══ */}
+        <div className="piq-hero-grid">
 
-          <div className="piq-kc piq-kc--green">
-            <div className="piq-kc-icon piq-kc-icon--green">
-              <RevenueIcon />
+          {/* Hero: Möglicher Mehrumsatz */}
+          <div className="piq-hero-card">
+            <div className="piq-hero-top">
+              <s-badge tone="success">Aktiv</s-badge>
             </div>
-            <div className="piq-kc-lbl">Möglicher Mehrumsatz</div>
-            <div className="piq-kc-val">{revenueFormatted}</div>
-            <div className="piq-kc-sub">{affectedCount} von {totalCount} Produkten optimierbar</div>
-            <div className="piq-kc-prog">
+            <div className="piq-hero-lbl">Möglicher Mehrumsatz</div>
+            <div className="piq-hero-val">{revenueFormatted}</div>
+            <div className="piq-hero-sub">
+              <div className="piq-hero-sub-item">
+                <div className="piq-hero-sub-dot" />
+                <span>{affectedCount} von {totalCount} Produkten optimierbar</span>
+              </div>
+              <div className="piq-hero-sub-item">
+                <div className="piq-hero-sub-dot" style={{ background: 'var(--indigo)' }} />
+                <span>Ø €{Math.abs(Math.round(avgPerProduct))} pro Produkt</span>
+              </div>
+            </div>
+            <div className="piq-kc-prog" style={{ marginTop: 'auto' }}>
               <div className="piq-kc-prog-row">
-                <span>Fortschritt</span>
+                <span>Optimierungsfortschritt</span>
                 <span>{Math.round(progressPct)}%</span>
               </div>
               <div className="piq-kc-bar">
@@ -198,63 +202,65 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="piq-kc piq-kc--amber">
-            <div className="piq-kc-icon piq-kc-icon--amber">
+          {/* Satellit: Ausstehend */}
+          <div className="piq-sat-card">
+            <div className="piq-sat-icon">
               <PendingIcon />
             </div>
-            <div className="piq-kc-lbl">Ausstehend</div>
-            <div className="piq-kc-val piq-kc-val--amber">
+            <div className="piq-sat-lbl">Ausstehend</div>
+            <div className="piq-sat-val">
               <AnimatedNumber value={pendingCount} />
             </div>
-            <div className="piq-kc-sub">offene Empfehlungen warten auf Bearbeitung</div>
-          </div>
-
-          <div className="piq-kc piq-kc--indigo">
-            <div className="piq-kc-icon piq-kc-icon--indigo">
-              <AvgIcon />
-            </div>
-            <div className="piq-kc-lbl">Ø pro Produkt</div>
-            <div className="piq-kc-val piq-kc-val--indigo">
-              €<AnimatedNumber value={Math.abs(Math.round(avgPerProduct))} />
-            </div>
-            <div className="piq-kc-sub">möglicher Mehrumsatz je Produkt</div>
+            <div className="piq-sat-sub">offene Empfehlungen warten auf Bearbeitung</div>
+            <s-button
+              variant="primary"
+              size="slim"
+              onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+            >
+              Jetzt bearbeiten
+            </s-button>
           </div>
 
         </div>
 
-        {/* ── Unteres Grid ── */}
-        <div className={`piq-lower${!nextStepsCount ? ' piq-lower--single' : ''}`}>
-
-          {nextStepsCount > 0 && (
-            <div className="piq-card">
-              <div className="piq-card-head">
-                <div className="piq-card-ttl">Nächste Schritte</div>
-                <div className="piq-card-meta">{nextStepsCount} ausstehend</div>
-              </div>
-              <div className="piq-card-body">
+        {/* ══ ZEILE 3: Nächste Schritte — volle Breite, 2-Spalten mit CTAs ══ */}
+        {nextStepsCount > 0 && (
+          <div className="piq-card">
+            <div className="piq-card-head">
+              <div className="piq-card-ttl">Nächste Schritte</div>
+              <s-badge tone={stats.next_steps!.some((s) => s.urgent) ? 'critical' : 'attention'}>
+                {nextStepsCount} ausstehend
+              </s-badge>
+            </div>
+            <div className="piq-card-body">
+              <div className="piq-steps-grid">
                 {stats.next_steps!.slice(0, 4).map((step, i) => (
-                  <div
-                    key={i}
-                    className="piq-step"
-                    onClick={() => router.push(`${step.href}${suffix}`)}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => e.key === 'Enter' && router.push(`${step.href}${suffix}`)}
-                  >
-                    <div className={`piq-step-ic ${step.urgent ? 'piq-step-ic--urgent' : 'piq-step-ic--normal'}`}>
+                  <div key={i} className="piq-step-row">
+                    <div className={`piq-step-ic ${step.urgent ? 'piq-step-ic--urgent' : 'piq-step-ic--normal'}`} style={{ flexShrink: 0 }}>
                       {step.urgent ? <AlertIcon /> : <TaskIcon />}
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="piq-step-ttl">{step.title}</div>
-                      <div className="piq-step-dsc">{step.description}</div>
+                    <div className="piq-step-row-body">
+                      <div className="piq-step-row-ttl">{step.title}</div>
+                      <div className="piq-step-row-dsc">{step.description}</div>
                     </div>
-                    <ArrowRight />
+                    <s-button
+                      variant={step.urgent ? 'primary' : 'secondary'}
+                      size="slim"
+                      onClick={() => router.push(`${step.href}${suffix}`)}
+                    >
+                      {step.urgent ? 'Jetzt umsetzen' : 'Öffnen'}
+                    </s-button>
                   </div>
                 ))}
               </div>
             </div>
-          )}
+          </div>
+        )}
 
+        {/* ══ ZEILE 4: Fortschritt (2/3) + Schnellaktionen (1/3) ══ */}
+        <div className="piq-bottom-grid">
+
+          {/* Fortschritt – ohne Quick Actions (werden rechts separat gezeigt) */}
           <FortschrittsCard
             level={stats?.progress?.level ?? 'bronze'}
             points={stats?.progress?.points ?? 0}
@@ -262,10 +268,35 @@ export default function DashboardPage() {
             pointsNeeded={stats?.progress?.points_needed ?? 20}
             completedSteps={stats?.progress?.completed_steps ?? []}
             pendingSteps={stats?.progress?.pending_steps ?? []}
-            onPriceAction={() => router.push(`/dashboard/pricing${suffix}`)}
-            onProductsAction={() => router.push(`/dashboard/products${suffix}`)}
-            onSettingsAction={() => router.push(`/dashboard/settings${suffix}`)}
+            hideQuickActions
           />
+
+          {/* Schnellaktionen — volle Breite, vertikal gestapelt */}
+          <div className="piq-qa-section">
+            <div className="piq-card-head">
+              <div className="piq-card-ttl">Schnellaktionen</div>
+            </div>
+            <div className="piq-qa-vert">
+              <s-button variant="secondary" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <PriceActionIcon />
+                  Preise optimieren
+                </span>
+              </s-button>
+              <s-button variant="secondary" onClick={() => router.push(`/dashboard/products${suffix}`)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <ProductActionIcon />
+                  Produkte synchronisieren
+                </span>
+              </s-button>
+              <s-button variant="secondary" onClick={() => router.push(`/dashboard/settings${suffix}`)}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <SettingsActionIcon />
+                  Einstellungen
+                </span>
+              </s-button>
+            </div>
+          </div>
 
         </div>
       </div>
