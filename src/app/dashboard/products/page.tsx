@@ -34,22 +34,6 @@ function ArrowRightIcon() {
   );
 }
 
-function CheckIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M2.5 6.5l2.5 2.5 4.5-5" />
-    </svg>
-  );
-}
-
-function XIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-      <path d="M2 2l6 6M8 2l-6 6" />
-    </svg>
-  );
-}
-
 function stockLevel(qty: number): { label: string; tone: string } {
   if (qty === 0) return { label: 'Ausverkauft', tone: 'red' };
   if (qty <= 10) return { label: 'Niedrig', tone: 'amber' };
@@ -212,7 +196,15 @@ export default function ProductsPage() {
 
           {/* ── Tabelle ── */}
           <div style={{ overflowX: 'auto' }}>
-            <table className="piq-table piq-table--rich">
+            <table className="piq-table piq-table--rich piq-table--fixed">
+              <colgroup>
+                <col className="piq-col-product" />
+                <col className="piq-col-price" />
+                <col className="piq-col-stock" />
+                <col className="piq-col-cost" />
+                <col className="piq-col-status" />
+                <col className="piq-col-action" />
+              </colgroup>
               <thead>
                 <tr>
                   <th>Produkt</th>
@@ -297,9 +289,9 @@ export default function ProductsPage() {
                         {/* Kosten */}
                         <td style={{ textAlign: 'center' }}>
                           {hasCost ? (
-                            <span className="piq-cost-icon piq-cost-icon--ok" title="Kosten hinterlegt"><CheckIcon /></span>
+                            <span className="piq-cost-badge piq-cost-badge--ok">Vorhanden</span>
                           ) : (
-                            <span className="piq-cost-icon piq-cost-icon--missing" title="Kosten fehlen"><XIcon /></span>
+                            <span className="piq-cost-badge piq-cost-badge--missing">Fehlt</span>
                           )}
                         </td>
 

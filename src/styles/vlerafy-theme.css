@@ -1060,10 +1060,10 @@ body {
   color: var(--ink);
 }
 .piq-tab--active {
-  background: var(--bg);
-  color: var(--ink);
+  background: #f4f5fa;
+  color: var(--indigo);
   font-weight: 650;
-  box-shadow: inset 0 0 0 1px var(--border);
+  box-shadow: inset 0 0 0 1px var(--indigo-border);
 }
 .piq-tab:focus-visible {
   outline: 2px solid var(--indigo);
@@ -1085,8 +1085,8 @@ body {
   line-height: 1;
 }
 .piq-tab--active .piq-tab-badge {
-  background: var(--ghost);
-  color: var(--muted);
+  background: var(--indigo);
+  color: #fff;
 }
 .piq-tab-badge--amber {
   background: var(--amber-bg);
@@ -1163,7 +1163,7 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 14px 20px;
+  padding: 10px 16px;
   border-bottom: 1px solid var(--border-sub);
 }
 
@@ -1200,12 +1200,25 @@ body {
   border-collapse: collapse;
 }
 
+.piq-table--fixed {
+  table-layout: fixed;
+}
+
+/* Column widths */
+.piq-col-product { width: 40%; }
+.piq-col-price   { width: 16%; }
+.piq-col-stock   { width: 11%; }
+.piq-col-cost    { width: 11%; }
+.piq-col-status  { width: 14%; }
+.piq-col-action  { width: 8%; }
+
 .piq-table thead tr {
-  border-bottom: 1px solid var(--border-sub);
+  background: var(--bg);
+  border-bottom: 2px solid var(--border);
 }
 
 .piq-table thead th {
-  padding: 11px 18px;
+  padding: 11px 16px;
   text-align: left;
   font-size: 10.5px;
   font-weight: 700;
@@ -1221,12 +1234,13 @@ body {
   transition: background 0.12s;
 }
 .piq-table tbody tr:last-child { border-bottom: none; }
-.piq-table tbody tr:hover { background: var(--bg); }
+.piq-table tbody tr:nth-child(even) { background: rgba(0,0,0,0.015); }
+.piq-table tbody tr:hover { background: #f4f5fa; }
 .piq-table tbody tr:hover .piq-table-action-btn { opacity: 1; transform: translateX(0); }
 .piq-table tbody tr:focus-visible { outline: 2px solid var(--indigo); outline-offset: -2px; }
 
 .piq-table tbody td {
-  padding: 14px 18px;
+  padding: 12px 16px;
   font-size: 13.5px;
   color: var(--ink);
   vertical-align: middle;
@@ -1236,8 +1250,8 @@ body {
 .piq-product-avatar {
   width: 38px;
   height: 38px;
-  border-radius: 9px;
-  background: var(--bg);
+  border-radius: 10px;
+  background: linear-gradient(135deg, #f4f5fa 0%, #e8eafe 100%);
   border: 1px solid var(--border);
   display: flex;
   align-items: center;
@@ -1246,7 +1260,7 @@ body {
   flex-shrink: 0;
   font-size: 14px;
   font-weight: 700;
-  color: var(--faint);
+  color: var(--indigo);
 }
 .piq-product-avatar img {
   width: 100%;
@@ -1261,6 +1275,9 @@ body {
   color: var(--ink);
   letter-spacing: -0.01em;
   line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Price */
@@ -1364,6 +1381,26 @@ body {
   background: var(--bg);
 }
 
+/* Cost badge (text) */
+.piq-cost-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.piq-cost-badge--ok {
+  background: var(--green-bg);
+  color: var(--green);
+  border: 1px solid var(--green-border);
+}
+.piq-cost-badge--missing {
+  background: var(--bg);
+  color: var(--faint);
+  border: 1px solid var(--border);
+}
+
 /* Status chip */
 .piq-status-chip {
   font-size: 11px;
@@ -1427,9 +1464,10 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .piq-price-rec {
-  font-size: 11px;
+  font-size: 11.5px;
   font-weight: 600;
   color: var(--green);
+  opacity: 0.85;
 }
 
 /* Stock pill */
