@@ -28,21 +28,6 @@ function ArrowRight() {
   );
 }
 
-function ConfidenceDots({ value }: { value: number }) {
-  const pct = Math.round(value * 100);
-  const filled = Math.round(value * 5);
-  return (
-    <div className="piq-conf-wrap" title={`${pct}% Konfidenz`}>
-      <div className="piq-conf-dots">
-        {[0, 1, 2, 3, 4].map((i) => (
-          <span key={i} className={`piq-conf-dot${i < filled ? ' piq-conf-dot--filled' : ''}`} />
-        ))}
-      </div>
-      <span className="piq-conf-pct">{pct}%</span>
-    </div>
-  );
-}
-
 const truncate = (s: string, max = 30) =>
   s.length > max ? s.slice(0, max) + '…' : s;
 
@@ -104,7 +89,6 @@ export function TopRecommendations({ recommendations, suffix = '' }: TopRecommen
   return (
     <div className="piq-toprec-list">
       {top5.map((rec, idx) => {
-        const isPositive = rec.monthly > 0;
         const monthlyAbs = Math.abs(rec.monthly);
         const label = readableStrategy(rec.strategy);
 
@@ -117,27 +101,20 @@ export function TopRecommendations({ recommendations, suffix = '' }: TopRecommen
             onClick={() => router.push(`/dashboard/products/${rec.product_id}${suffix}`)}
             onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${rec.product_id}${suffix}`)}
           >
-            {/* Rank */}
             <div className="piq-toprec-rank">{idx + 1}</div>
 
-            {/* Product + Strategy */}
             <div className="piq-toprec-info">
               <div className="piq-toprec-name">{truncate(rec.product_name)}</div>
               <div className="piq-toprec-strat">{label}</div>
             </div>
 
-            {/* Monthly Potential */}
-            <div className={`piq-toprec-monthly${isPositive ? ' piq-toprec-monthly--up' : ' piq-toprec-monthly--down'}`}>
+            <div className="piq-toprec-monthly piq-toprec-monthly--up">
               <span className="piq-toprec-monthly-val">
-                {isPositive ? '+' : '-'}€{monthlyAbs.toLocaleString('de-DE', { maximumFractionDigits: 0 })}
+                +€{monthlyAbs.toLocaleString('de-DE', { maximumFractionDigits: 0 })}
               </span>
               <span className="piq-toprec-monthly-lbl">/ Monat</span>
             </div>
 
-            {/* Confidence */}
-            <ConfidenceDots value={rec.confidence} />
-
-            {/* Arrow */}
             <div className="piq-toprec-go"><ArrowRight /></div>
           </div>
         );

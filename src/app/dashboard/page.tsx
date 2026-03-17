@@ -91,9 +91,7 @@ export default function DashboardPage() {
 
   const pendingCount     = stats?.recommendations_pending ?? 0;
   const revenueAmount    = stats?.missed_revenue?.total ?? 0;
-  const revenueFormatted = revenueAmount !== 0
-    ? `+€${Math.abs(revenueAmount).toLocaleString('de-DE', { maximumFractionDigits: 0 })}`
-    : '€0';
+  const revenueRounded   = Math.abs(Math.round(revenueAmount));
   const avgPerProduct = stats?.missed_revenue?.avg_per_product ?? 0;
   const affectedCount = stats?.missed_revenue?.product_count ?? 0;
   const totalCount    = stats?.products_count ?? 1;
@@ -139,7 +137,7 @@ export default function DashboardPage() {
               <RevenueIcon />
             </div>
             <div className="piq-hero-lbl">Möglicher mehr Umsatz (monatlich)</div>
-            <div className="piq-hero-val">{revenueFormatted}</div>
+            <div className="piq-hero-val">+€<AnimatedNumber value={revenueRounded} /></div>
             <div className="piq-hero-sub">
               {affectedCount} von {totalCount} Produkten optimierbar
             </div>
