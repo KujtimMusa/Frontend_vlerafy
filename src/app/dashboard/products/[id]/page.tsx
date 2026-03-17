@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useParams, useSearchParams } from 'next/navigation';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   fetchProducts,
   getRecommendation,
@@ -11,29 +11,14 @@ import {
   searchCompetitors,
   getProductCosts,
   saveProductCosts,
-  calculateMargin,
   applyPrice,
   explainPrice,
   chatWithAI,
-  getCategoryDefaults,
 } from '@/lib/api';
 import { showToast } from '@/lib/toast';
 import type { Recommendation } from '@/types/models';
 
-const PAYMENT_PROVIDERS = [
-  { label: 'Stripe (2.9% + 0.30 €)', value: 'stripe' },
-  { label: 'PayPal (2.49% + 0.35 €)', value: 'paypal' },
-  { label: 'Klarna (4.5%)', value: 'klarna' },
-  { label: 'Custom', value: 'custom' },
-];
-
-const CATEGORIES = [
-  { label: 'Fashion', value: 'fashion' },
-  { label: 'Electronics', value: 'electronics' },
-  { label: 'Beauty', value: 'beauty' },
-  { label: 'Home', value: 'home' },
-  { label: 'Food', value: 'food' },
-];
+const VAT_RATE = 0.19;
 
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
@@ -67,14 +52,8 @@ export default function ProductDetailPage() {
   const qc = useQueryClient();
   const suffix = useShopSuffix();
 
-  type PaymentProvider = 'stripe' | 'paypal' | 'klarna' | 'custom';
-  const initialCostForm = {
-    purchase_cost: '', shipping_cost: '', packaging_cost: '',
-    payment_provider: 'stripe' as PaymentProvider, payment_fee_percentage: '2.9', payment_fee_fixed: '0.30',
-    country_code: 'DE', category: 'fashion',
-  };
-  const [costForm, setCostForm] = useState(initialCostForm);
-  const [costFormDirty, setCostFormDirty] = useState(false);
+  const [costInput, setCostInput] = useState('');
+  const [costSaved, setCostSaved] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<{
     explanation: string; key_reason: string; confidence_text: string; action_hint: string;
   } | null>(null);
@@ -84,12 +63,7 @@ export default function ProductDetailPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  // Refs for Polaris Web Components (Shadow DOM needs native event binding)
-  const purchaseRef = useRef<HTMLElement>(null);
-  const shippingRef = useRef<HTMLElement>(null);
-  const packagingRef = useRef<HTMLElement>(null);
-  const categoryRef = useRef<HTMLElement>(null);
-  const paymentRef = useRef<HTMLElement>(null);
+  const costRef = useRef<HTMLElement>(null);
   const chatFieldRef = useRef<HTMLElement>(null);
 
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
@@ -115,24 +89,10 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (existingCosts) {
-      setCostForm({
-        purchase_cost: String(existingCosts.purchase_cost),
-        shipping_cost: String(existingCosts.shipping_cost),
-        packaging_cost: String(existingCosts.packaging_cost),
-        payment_provider: (existingCosts.payment_provider || 'stripe') as PaymentProvider,
-        payment_fee_percentage: String(existingCosts.payment_fee_percentage),
-        payment_fee_fixed: String(existingCosts.payment_fee_fixed),
-        country_code: existingCosts.country_code,
-        category: existingCosts.category ?? 'fashion',
-      });
+      setCostInput(String(existingCosts.purchase_cost || ''));
+      setCostSaved(true);
     }
   }, [existingCosts]);
-
-  const { data: margin } = useQuery({
-    queryKey: ['margin', product?.shopify_product_id, recommendation?.recommended_price ?? product?.price],
-    queryFn: () => calculateMargin(product!.shopify_product_id, recommendation?.recommended_price ?? product!.price ?? 0),
-    enabled: !!existingCosts && !!product?.shopify_product_id,
-  });
 
   const generateMutation = useMutation({
     mutationFn: () => generateRecommendation(productId),
@@ -152,12 +112,12 @@ export default function ProductDetailPage() {
   const saveCostsMutation = useMutation({
     mutationFn: () => saveProductCosts({
       product_id: product!.shopify_product_id,
-      purchase_cost: parseFloat(costForm.purchase_cost), shipping_cost: parseFloat(costForm.shipping_cost),
-      packaging_cost: parseFloat(costForm.packaging_cost), payment_provider: costForm.payment_provider,
-      payment_fee_percentage: parseFloat(costForm.payment_fee_percentage), payment_fee_fixed: parseFloat(costForm.payment_fee_fixed),
-      country_code: costForm.country_code, category: costForm.category,
+      purchase_cost: parseFloat(costInput) || 0, shipping_cost: 0,
+      packaging_cost: 0, payment_provider: 'stripe',
+      payment_fee_percentage: 2.9, payment_fee_fixed: 0.30,
+      country_code: 'DE', category: 'general',
     }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['costs', product?.shopify_product_id] }); qc.invalidateQueries({ queryKey: ['margin'] }); setCostFormDirty(false); showToast('Kostendaten gespeichert!', { duration: 3000 }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['costs', product?.shopify_product_id] }); setCostSaved(true); showToast('Einkaufspreis gespeichert!', { duration: 3000 }); },
     onError: () => showToast('Fehler beim Speichern', { isError: true }),
   });
 
@@ -166,24 +126,6 @@ export default function ProductDetailPage() {
     onSuccess: () => { qc.invalidateQueries({ queryKey: ['competitors', productId] }); showToast('Wettbewerber aktualisiert!', { duration: 3000 }); },
     onError: () => showToast('Competitor Search fehlgeschlagen', { isError: true }),
   });
-
-  const handleCostDiscard = () => {
-    if (existingCosts) {
-      setCostForm({
-        purchase_cost: String(existingCosts.purchase_cost), shipping_cost: String(existingCosts.shipping_cost),
-        packaging_cost: String(existingCosts.packaging_cost), payment_provider: (existingCosts.payment_provider || 'stripe') as PaymentProvider,
-        payment_fee_percentage: String(existingCosts.payment_fee_percentage), payment_fee_fixed: String(existingCosts.payment_fee_fixed),
-        country_code: existingCosts.country_code, category: existingCosts.category ?? 'fashion',
-      });
-    } else { setCostForm({ ...initialCostForm }); }
-    setCostFormDirty(false);
-  };
-
-  const loadCategoryDefaults = useCallback(async (category: string) => {
-    const defaults = await getCategoryDefaults(category);
-    setCostFormDirty(true);
-    setCostForm((prev) => ({ ...prev, category, shipping_cost: String(defaults.shipping_estimate), packaging_cost: String(defaults.packaging_estimate) }));
-  }, []);
 
   useEffect(() => {
     const cleanups: Array<() => void> = [];
@@ -199,11 +141,7 @@ export default function ProductDetailPage() {
       el.addEventListener('input', cb);
       cleanups.push(() => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); });
     };
-    bind(purchaseRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, purchase_cost: v })); });
-    bind(shippingRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, shipping_cost: v })); });
-    bind(packagingRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, packaging_cost: v })); });
-    bind(categoryRef, (v) => loadCategoryDefaults(v));
-    bind(paymentRef, (v) => { setCostFormDirty(true); setCostForm(p => ({ ...p, payment_provider: v as PaymentProvider })); });
+    bind(costRef, (v) => setCostInput(v));
     bind(chatFieldRef, (v) => setChatInput(v));
 
     const chatEl = chatFieldRef.current;
@@ -212,9 +150,8 @@ export default function ProductDetailPage() {
       chatEl.addEventListener('keydown', keyHandler);
       cleanups.push(() => chatEl.removeEventListener('keydown', keyHandler));
     }
-
     return () => cleanups.forEach(fn => fn());
-  }, [loadCategoryDefaults]);
+  }, []);
 
   const handleAiExplain = async () => {
     if (!recommendation) return;
@@ -225,7 +162,7 @@ export default function ProductDetailPage() {
         current_price: recommendation.current_price, recommended_price: recommendation.recommended_price,
         confidence: recommendation.confidence ?? 0, price_change_pct: recommendation.price_change_pct ?? 0,
         strategies: recommendation.reasoning_object?.strategies as Record<string, unknown> | undefined,
-        competitor_avg: recommendation.competitor_avg_price, break_even: margin?.break_even_price,
+        competitor_avg: recommendation.competitor_avg_price, break_even: hasEk ? ek : undefined,
         inventory: product?.inventory ?? recommendation?.days_of_stock ?? undefined,
         product_title: product?.title, currency: 'EUR',
       });
@@ -244,7 +181,7 @@ export default function ProductDetailPage() {
       const result = await chatWithAI({
         message: msg, product_title: product?.title, current_price: recommendation?.current_price,
         recommended_price: recommendation?.recommended_price, confidence: recommendation?.confidence,
-        competitor_avg: recommendation?.competitor_avg_price, break_even: margin?.break_even_price,
+        competitor_avg: recommendation?.competitor_avg_price, break_even: hasEk ? ek : undefined,
         history: chatMessages.slice(-6),
       });
       setChatMessages([...newMessages, { role: 'assistant', content: result.reply }]);
@@ -297,16 +234,18 @@ export default function ProductDetailPage() {
       : compDisplay.length > 0 ? `Du bist einer der günstigsten Anbieter. Preiserhöhung auf Ø ${formatEuro(competitors?.competitor_avg ?? 0)} möglich.` : null,
   };
 
-  const purchaseCost = parseFloat(costForm.purchase_cost) || 0;
-  const shippingCost = parseFloat(costForm.shipping_cost) || 0;
-  const packagingCost = parseFloat(costForm.packaging_cost) || 0;
-  const totalCost = purchaseCost + shippingCost + packagingCost;
-  const sellingPrice = recommendedPrice > 0 ? recommendedPrice : currentPrice;
-  const grossMargin = sellingPrice - totalCost;
-  const grossMarginPct = sellingPrice > 0 ? (grossMargin / sellingPrice) * 100 : 0;
-  const netMargin = margin?.margin?.euro ?? grossMargin;
-  const netMarginPct = margin?.margin?.percent ?? grossMarginPct;
-  const breakEven = margin?.break_even_price ?? totalCost;
+  const ek = parseFloat(costInput) || 0;
+  const hasEk = ek > 0;
+
+  const marginCurrent = hasEk ? currentPrice - ek : 0;
+  const marginCurrentPct = hasEk && currentPrice > 0 ? (marginCurrent / currentPrice) * 100 : 0;
+  const marginRec = hasEk && recommendedPrice > 0 ? recommendedPrice - ek : 0;
+  const marginRecPct = hasEk && recommendedPrice > 0 ? (marginRec / recommendedPrice) * 100 : 0;
+  const marginDiff = marginRec - marginCurrent;
+  const roiCurrent = hasEk ? (marginCurrent / ek) * 100 : 0;
+  const roiRec = hasEk && recommendedPrice > 0 ? (marginRec / ek) * 100 : 0;
+  const netAfterVat = hasEk && recommendedPrice > 0 ? (recommendedPrice / (1 + VAT_RATE)) - ek : 0;
+  const breakEvenUnits = hasEk && marginRec > 0 ? Math.ceil(ek / marginRec) : 0;
 
   const barMin = Math.min(minPrice > 0 ? minPrice : Infinity, myPrice);
   const barMax = Math.max(maxPrice, myPrice);
@@ -317,14 +256,6 @@ export default function ProductDetailPage() {
 
   return (
     <>
-      {costFormDirty && (
-        <s-contextual-save-bar
-          message="Nicht gespeicherte Änderungen"
-          onSave={() => saveCostsMutation.mutate()}
-          onDiscard={handleCostDiscard}
-          saveLoading={saveCostsMutation.isPending}
-        />
-      )}
       <s-page
         title={product.title}
         back-action={JSON.stringify({ content: 'Produkte', url: `/dashboard/products${suffix}` })}
@@ -449,74 +380,100 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* ══ Margen-Analyse ══ */}
+          {/* ══ Margen-Rechner ══ */}
           <div className="piq-detail-card">
             <div className="piq-detail-card-head">
-              <span className="piq-detail-section-lbl">Margen-Analyse</span>
-              {totalCost > 0 && (
-                <span className={`piq-detail-badge ${netMarginPct >= 30 ? 'piq-detail-badge--green' : netMarginPct >= 15 ? 'piq-detail-badge--amber' : 'piq-detail-badge--red'}`}>
-                  Marge: {netMarginPct.toFixed(1)}%
+              <span className="piq-detail-section-lbl">Margen-Rechner</span>
+              {hasEk && (
+                <span className={`piq-detail-badge ${marginRecPct >= 30 ? 'piq-detail-badge--green' : marginRecPct >= 15 ? 'piq-detail-badge--amber' : 'piq-detail-badge--red'}`}>
+                  Marge: {marginRecPct.toFixed(1)}%
                 </span>
               )}
             </div>
             <div className="piq-detail-card-body">
-              <div className="piq-margin-form">
-                <div className="piq-margin-form-row">
-                  <div className="piq-margin-form-field">
-                    <s-text-field ref={purchaseRef} label="Einkaufspreis (€)" type="number" value={costForm.purchase_cost} placeholder="0.00" />
-                  </div>
-                  <div className="piq-margin-form-field">
-                    <s-text-field ref={shippingRef} label="Versandkosten (€)" type="number" value={costForm.shipping_cost} placeholder="0.00" />
-                  </div>
-                  <div className="piq-margin-form-field">
-                    <s-text-field ref={packagingRef} label="Verpackung (€)" type="number" value={costForm.packaging_cost} placeholder="0.00" />
-                  </div>
+              <div className="piq-margin-input-row">
+                <div className="piq-margin-input-wrap">
+                  <s-text-field ref={costRef} label="Dein Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" />
                 </div>
-                <div className="piq-margin-form-row">
-                  <div className="piq-margin-form-field">
-                    <s-select ref={categoryRef} label="Kategorie" value={costForm.category} options={JSON.stringify(CATEGORIES.map(c => ({ label: c.label, value: c.value })))} />
-                  </div>
-                  <div className="piq-margin-form-field">
-                    <s-select ref={paymentRef} label="Zahlungsanbieter" value={costForm.payment_provider} options={JSON.stringify(PAYMENT_PROVIDERS.map(c => ({ label: c.label, value: c.value })))} />
-                  </div>
-                </div>
-                {costFormDirty && (
-                  <div className="piq-margin-form-actions">
-                    <button className="piq-cta piq-cta--primary piq-cta--sm" onClick={() => saveCostsMutation.mutate()} disabled={saveCostsMutation.isPending}>
-                      {saveCostsMutation.isPending ? 'Speichert…' : 'Kosten speichern'}
-                    </button>
-                    <button className="piq-cta piq-cta--secondary piq-cta--sm" onClick={handleCostDiscard}>
-                      Verwerfen
-                    </button>
-                  </div>
+                {costInput && !costSaved && (
+                  <button className="piq-cta piq-cta--primary piq-cta--sm" onClick={() => saveCostsMutation.mutate()} disabled={saveCostsMutation.isPending}>
+                    {saveCostsMutation.isPending ? 'Speichert…' : 'Speichern'}
+                  </button>
                 )}
+                {costSaved && <span className="piq-margin-saved-hint">✓ Gespeichert</span>}
               </div>
 
-              {totalCost > 0 && (
-                <div className="piq-margin-result">
-                  <div className="piq-margin-grid">
-                    <div className="piq-margin-item">
-                      <span className="piq-margin-lbl">Verkaufspreis</span>
-                      <span className="piq-margin-val">{formatEuro(sellingPrice)}</span>
+              {hasEk && recommendation && (
+                <div className="piq-margin-analysis">
+                  <div className="piq-margin-compare">
+                    <div className="piq-margin-compare-col">
+                      <span className="piq-margin-compare-lbl">Aktueller Preis</span>
+                      <span className="piq-margin-compare-price">{formatEuro(currentPrice)}</span>
+                      <span className={`piq-margin-compare-margin ${marginCurrentPct >= 30 ? 'green' : marginCurrentPct >= 15 ? 'amber' : 'red'}`}>
+                        {formatEuro(marginCurrent)} Gewinn ({marginCurrentPct.toFixed(1)}%)
+                      </span>
+                      <span className="piq-margin-compare-roi">ROI: {roiCurrent.toFixed(0)}%</span>
                     </div>
-                    <div className="piq-margin-item">
-                      <span className="piq-margin-lbl">Gesamtkosten</span>
-                      <span className="piq-margin-val piq-margin-val--cost">−{formatEuro(totalCost)}</span>
+                    <div className="piq-margin-compare-arrow">→</div>
+                    <div className="piq-margin-compare-col piq-margin-compare-col--rec">
+                      <span className="piq-margin-compare-lbl">Empfohlener Preis</span>
+                      <span className="piq-margin-compare-price">{formatEuro(recommendedPrice)}</span>
+                      <span className={`piq-margin-compare-margin ${marginRecPct >= 30 ? 'green' : marginRecPct >= 15 ? 'amber' : 'red'}`}>
+                        {formatEuro(marginRec)} Gewinn ({marginRecPct.toFixed(1)}%)
+                      </span>
+                      <span className="piq-margin-compare-roi">ROI: {roiRec.toFixed(0)}%</span>
                     </div>
-                    <div className="piq-margin-divider" />
-                    <div className="piq-margin-item piq-margin-item--total">
-                      <span className="piq-margin-lbl">Netto-Marge</span>
-                      <span className={`piq-margin-val piq-margin-val--${netMargin >= 0 ? 'profit' : 'loss'}`}>
-                        {netMargin >= 0 ? '+' : ''}{formatEuro(netMargin)} ({netMarginPct.toFixed(1)}%)
+                  </div>
+
+                  <div className="piq-margin-insights">
+                    <div className="piq-margin-insight-item">
+                      <span className="piq-margin-insight-icon">{marginDiff >= 0 ? '📈' : '📉'}</span>
+                      <span className="piq-margin-insight-text">
+                        {marginDiff >= 0
+                          ? `+${formatEuro(marginDiff)} mehr Gewinn pro Stück mit dem empfohlenen Preis`
+                          : `${formatEuro(Math.abs(marginDiff))} weniger Gewinn, aber höheres Verkaufsvolumen erwartet`}
                       </span>
                     </div>
-                    {breakEven > 0 && (
-                      <div className="piq-margin-item">
-                        <span className="piq-margin-lbl">Break-Even Preis</span>
-                        <span className="piq-margin-val">{formatEuro(breakEven)}</span>
+                    <div className="piq-margin-insight-item">
+                      <span className="piq-margin-insight-icon">🏷️</span>
+                      <span className="piq-margin-insight-text">
+                        Netto nach 19% MwSt: {formatEuro(netAfterVat)} Gewinn pro Stück
+                      </span>
+                    </div>
+                    {breakEvenUnits > 0 && (
+                      <div className="piq-margin-insight-item">
+                        <span className="piq-margin-insight-icon">⚖️</span>
+                        <span className="piq-margin-insight-text">
+                          Ab {breakEvenUnits} verkauften Stück hast du den Einkauf refinanziert
+                        </span>
                       </div>
                     )}
                   </div>
+                </div>
+              )}
+
+              {hasEk && !recommendation && (
+                <div className="piq-margin-analysis">
+                  <div className="piq-margin-insights">
+                    <div className="piq-margin-insight-item">
+                      <span className="piq-margin-insight-icon">📊</span>
+                      <span className="piq-margin-insight-text">
+                        Aktuelle Marge: {formatEuro(marginCurrent)} ({marginCurrentPct.toFixed(1)}%) pro Stück
+                      </span>
+                    </div>
+                    <div className="piq-margin-insight-item">
+                      <span className="piq-margin-insight-icon">💡</span>
+                      <span className="piq-margin-insight-text">
+                        Generiere eine Empfehlung um den Margen-Vergleich zu sehen
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {!hasEk && (
+                <div className="piq-margin-empty">
+                  <span className="piq-margin-empty-text">Gib deinen Einkaufspreis ein um Marge, ROI und Gewinn pro Stück zu berechnen.</span>
                 </div>
               )}
             </div>
