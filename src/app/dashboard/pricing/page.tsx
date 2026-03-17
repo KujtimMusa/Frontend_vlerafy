@@ -155,36 +155,39 @@ export default function PricingPage() {
       </div>
 
       <div className="vlerafy-tabs vlerafy-tabs-mb">
-        {['Ausstehend', 'Umgesetzt', 'Alle'].map((tab, index) => (
-          <button
-            key={tab}
-            type="button"
-            className={`vlerafy-tab ${selectedTab === index ? 'vlerafy-tab--active' : ''}`}
-            onClick={() => setSelectedTab(index)}
-          >
-            {tab}
-          </button>
-        ))}
+        <s-stack direction="inline" gap="2">
+          {['Ausstehend', 'Umgesetzt', 'Alle'].map((tab, index) => (
+            <s-button
+              key={tab}
+              variant={selectedTab === index ? 'primary' : 'secondary'}
+              size="slim"
+              onClick={() => setSelectedTab(index)}
+            >
+              {tab}
+            </s-button>
+          ))}
+        </s-stack>
       </div>
 
       {filteredRecommendations.length === 0 ? (
-        <div className="vlerafy-empty-state">
-          <div className="vlerafy-empty-state-icon">💰</div>
-          <p className="vlerafy-empty-state-title">
-            {isLoading ? 'Lade Empfehlungen...' : selectedTab === 0 ? 'Alle Empfehlungen bearbeitet 🎉' : 'Keine Empfehlungen'}
-          </p>
-          <p className="vlerafy-empty-state-text">
-            {selectedTab === 0
-              ? 'Großartig! Alle Preisempfehlungen wurden verarbeitet.'
-              : 'Sobald Produkte analysiert wurden, erscheinen hier deine Preisempfehlungen.'}
-          </p>
-          <s-button
-            variant="primary"
-            onClick={() => router.push(`/dashboard/products${suffix}`)}
-          >
-            Produkte synchronisieren
-          </s-button>
-        </div>
+        <s-banner
+          tone={selectedTab === 0 && !isLoading ? 'success' : 'info'}
+          title={isLoading ? 'Lade Empfehlungen...' : selectedTab === 0 ? 'Alle Empfehlungen bearbeitet' : 'Keine Empfehlungen'}
+        >
+          <s-stack direction="block" gap="3">
+            <s-paragraph>
+              {selectedTab === 0
+                ? 'Großartig! Alle Preisempfehlungen wurden verarbeitet.'
+                : 'Sobald Produkte analysiert wurden, erscheinen hier deine Preisempfehlungen.'}
+            </s-paragraph>
+            <s-button
+              variant="primary"
+              onClick={() => router.push(`/dashboard/products${suffix}`)}
+            >
+              Produkte synchronisieren
+            </s-button>
+          </s-stack>
+        </s-banner>
       ) : (
         <div className="vlerafy-table-card">
           <div className="vlerafy-table-wrapper">

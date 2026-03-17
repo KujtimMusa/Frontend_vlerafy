@@ -118,25 +118,28 @@ export default function DashboardPage() {
     <s-page title="Übersicht">
       <div className="piq-dashboard">
 
-        {/* ── Topbar-Benachrichtigung ── */}
+        {/* ── Benachrichtigung ausstehende Empfehlungen ── */}
         {bannerVisible && pendingCount > 0 && (
-          <div className="piq-topbar">
-            <div className="piq-topbar-pip" />
-            <div className="piq-topbar-txt">
-              <strong>{pendingCount} Preisempfehlungen ausstehend</strong>
-              {' '}— Durchschnittlich +€{avgPerProduct.toFixed(0)} Mehrumsatz pro Produkt möglich.
-            </div>
-            <button className="piq-topbar-btn" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
-              Ansehen →
-            </button>
-            <button className="piq-topbar-x" onClick={() => setBannerVisible(false)}>✕</button>
-          </div>
+          <s-banner
+            tone="info"
+            title={`${pendingCount} Preisempfehlungen ausstehend`}
+            onDismiss={() => setBannerVisible(false)}
+          >
+            <s-stack direction="block" gap="2">
+              <s-paragraph>
+                Durchschnittlich +€{avgPerProduct.toFixed(0)} Mehrumsatz pro Produkt möglich.
+              </s-paragraph>
+              <s-button variant="primary" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
+                Empfehlungen ansehen
+              </s-button>
+            </s-stack>
+          </s-banner>
         )}
 
         {/* ── KPI-Strip ── */}
         <div className="piq-kpi">
           <div className="piq-kc">
-            <span className="piq-kc-badge piq-kc-badge--green">Aktiv</span>
+            <s-badge tone="success">Aktiv</s-badge>
             <div className="piq-kc-lbl">Möglicher Mehrumsatz</div>
             <div className="piq-kc-val">{revenueFormatted}</div>
             <div className="piq-kc-bar-wrap">

@@ -120,15 +120,15 @@ export function FortschrittsCard({
       <div className="piq-qa-wrap">
         <div className="piq-qa-lbl">Schnellaktionen</div>
         <div className="piq-qa-grid">
-          <button className="piq-qa-btn" onClick={onPriceAction} type="button">
-            <PriceIcon /> Preise
-          </button>
-          <button className="piq-qa-btn" onClick={onProductsAction} type="button">
-            <SyncIcon /> Produkte
-          </button>
-          <button className="piq-qa-btn" onClick={onSettingsAction} type="button">
-            <SettingsIcon /> Einstellungen
-          </button>
+          <s-button variant="secondary" size="slim" onClick={onPriceAction}>
+            Preise
+          </s-button>
+          <s-button variant="secondary" size="slim" onClick={onProductsAction}>
+            Produkte
+          </s-button>
+          <s-button variant="secondary" size="slim" onClick={onSettingsAction}>
+            Einstellungen
+          </s-button>
         </div>
       </div>
 

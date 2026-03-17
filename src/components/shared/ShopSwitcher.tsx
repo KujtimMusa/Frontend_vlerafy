@@ -19,7 +19,7 @@ export function ShopSwitcher() {
       qc.invalidateQueries({ queryKey: ['shops'] });
       qc.invalidateQueries({ queryKey: ['products'] });
       qc.invalidateQueries({ queryKey: ['dashboard-stats'] });
-      window.location.reload();
+      qc.invalidateQueries({ queryKey: ['recommendations'] });
     },
     onError: () => showToast('Fehler beim Wechseln', { isError: true }),
   });
@@ -31,32 +31,23 @@ export function ShopSwitcher() {
   const activeExists = shops.some((s) => String(s.id) === activeId);
   const displayValue = activeExists ? activeId : (activeId === '999' ? '999' : String(shops[0]?.id ?? ''));
 
+  const options = [
+    ...(!activeExists && activeId === '999' ? [{ label: 'Bitte Shop verbinden', value: '999' }] : []),
+    ...shops.map((s) => ({ label: s.name, value: String(s.id) })),
+  ];
+
   return (
-    <label>
-      Aktiver Shop
-      <select
-        value={displayValue}
-        onChange={(e) => {
-          const val = e.target.value;
-          if (!val || val === '999') return;
-          const shop = shops.find((s) => s.id === Number(val));
-          if (shop)
-            mutation.mutate({
-              shopId: shop.id,
-              useDemo: false,
-            });
-        }}
-        disabled={mutation.isPending}
-      >
-        {!activeExists && activeId === '999' && (
-          <option value="999">Bitte Shop verbinden</option>
-        )}
-        {shops.map((s) => (
-          <option key={s.id} value={String(s.id)}>
-            {s.name}
-          </option>
-        ))}
-      </select>
-    </label>
+    <s-select
+      label="Aktiver Shop"
+      value={displayValue}
+      options={JSON.stringify(options)}
+      disabled={mutation.isPending}
+      onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) => {
+        const val = (e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '';
+        if (!val || val === '999') return;
+        const shop = shops.find((s) => s.id === Number(val));
+        if (shop) mutation.mutate({ shopId: shop.id, useDemo: false });
+      }}
+    />
   );
 }

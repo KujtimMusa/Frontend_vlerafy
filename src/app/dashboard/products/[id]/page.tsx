@@ -334,14 +334,18 @@ export default function ProductDetailPage() {
     new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(v);
 
   if (!product) {
+    const suffix = typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('shop') ? `?shop=${new URLSearchParams(window.location.search).get('shop')}` : '')
+      : '';
     return (
-      <div className="vlerafy-main">
-        <div className="vlerafy-page-header">
-          <div className="vlerafy-skeleton vlerafy-skeleton-title" />
-          <div className="vlerafy-skeleton vlerafy-skeleton-text vlerafy-skeleton-text--40" />
-        </div>
+      <s-page
+        title="Produkt laden…"
+        back-action={JSON.stringify({ content: 'Produkte', url: `/dashboard/products${suffix}` })}
+      >
+        <div className="vlerafy-skeleton vlerafy-skeleton-title" />
+        <div className="vlerafy-skeleton vlerafy-skeleton-text vlerafy-skeleton-text--40" />
         <div className="vlerafy-skeleton vlerafy-skeleton-card vlerafy-detail-card" />
-      </div>
+      </s-page>
     );
   }
 
@@ -433,8 +437,7 @@ export default function ProductDetailPage() {
           <div className="vlerafy-page-header">
         <s-stack direction="inline" align-items="center" justify-content="space-between">
           <div>
-            <h1 className="vlerafy-page-title">{product.title}</h1>
-            <p className="vlerafy-page-subtitle">{vendor} · {productType}</p>
+            <s-paragraph tone="subdued">{vendor} · {productType}</s-paragraph>
           </div>
           <s-stack direction="inline" gap="2">
             <s-button
@@ -522,31 +525,27 @@ export default function ProductDetailPage() {
               <p className="vlerafy-section-label">Margen-Analyse</p>
               <s-stack direction="inline" gap="4" style={{ marginTop: '12px' }}>
                 <div>
-                  <p className="vlerafy-kpi-label">Kategorie</p>
-                  <select
-                    className="vlerafy-select"
+                  <s-select
+                    label="Kategorie"
                     value={costForm.category}
-                    onChange={(e) => loadCategoryDefaults(e.target.value)}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
+                    options={JSON.stringify(CATEGORIES.map(c => ({ label: c.label, value: c.value })))}
+                    onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) => {
+                      const val = (e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '';
+                      loadCategoryDefaults(val);
+                    }}
+                  />
                 </div>
                 <div>
-                  <p className="vlerafy-kpi-label">Zahlungsanbieter</p>
-                  <select
-                    className="vlerafy-select"
+                  <s-select
+                    label="Zahlungsanbieter"
                     value={costForm.payment_provider}
-                    onChange={(e) => {
-                    setCostFormDirty(true);
-                    setCostForm((p) => ({ ...p, payment_provider: e.target.value as PaymentProvider }));
-                  }}
-                  >
-                    {PAYMENT_PROVIDERS.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
-                    ))}
-                  </select>
+                    options={JSON.stringify(PAYMENT_PROVIDERS.map(c => ({ label: c.label, value: c.value })))}
+                    onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) => {
+                      const val = (e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '';
+                      setCostFormDirty(true);
+                      setCostForm((p) => ({ ...p, payment_provider: val as PaymentProvider }));
+                    }}
+                  />
                 </div>
               </s-stack>
             </div>
@@ -734,12 +733,14 @@ export default function ProductDetailPage() {
                 <div ref={chatBottomRef} />
               </div>
               <div className="vlerafy-chat-input-row">
-                <input
-                  className="vlerafy-search-input vlerafy-chat-input-flex"
+                <s-text-field
+                  label=""
                   placeholder="Frage zur Preisempfehlung..."
                   value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && handleChatSend()}
+                  onChange={(e: CustomEvent & { target?: { value?: string } }) =>
+                    setChatInput((e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '')
+                  }
+                  onKeyDown={(e: KeyboardEvent) => e.key === 'Enter' && handleChatSend()}
                 />
                 <s-button variant="primary" size="slim" onClick={handleChatSend} disabled={!chatInput.trim() || chatLoading}>
                   Senden

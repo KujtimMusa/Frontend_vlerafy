@@ -14,6 +14,28 @@ import type {
 // Fest auf Backend – NEXT_PUBLIC_API_URL ignoriert, da oft falsch konfiguriert.
 export const API_URL = 'https://api.vlerafy.com';
 
+/**
+ * fetch mit automatischem Retry bei HTTP 429 (Too Many Requests).
+ * Respektiert den Retry-After-Header von Shopify/Backend.
+ */
+async function fetchWithRetry(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  maxRetries = 3,
+): Promise<Response> {
+  let attempt = 0;
+  while (attempt <= maxRetries) {
+    const res = await fetch(input, init);  // nativer fetch, kein rekursiver Aufruf
+    if (res.status !== 429 || attempt === maxRetries) return res;
+
+    const retryAfter = res.headers.get('Retry-After');
+    const delayMs = retryAfter ? parseFloat(retryAfter) * 1000 : 2 ** attempt * 500;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    attempt++;
+  }
+  return fetch(input, init);
+}
+
 declare global {
   interface Window {
     shopify?: {
@@ -116,7 +138,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = params ? `${API_URL}/api/dashboard/stats?${params}` : `${API_URL}/api/dashboard/stats`;
-  const res = await fetch(url, { headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Dashboard stats fehler');
   return res.json();
 }
@@ -134,7 +156,12 @@ function redirectToOAuthInstallIfNeeded(res: Response): boolean {
     const installUrl = host
       ? `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shopDomain)}&host=${encodeURIComponent(host)}`
       : `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shopDomain)}`;
-    window.location.href = installUrl;
+    // OAuth erfordert Top-Level-Redirect (nicht innerhalb des iFrames)
+    if (window.top) {
+      window.top.location.href = installUrl;
+    } else {
+      window.location.href = installUrl;
+    }
     return true;
   }
   return false;
@@ -159,7 +186,7 @@ export async function fetchProducts(shopId?: number): Promise<Product[]> {
       });
     }
   }
-  const res = await fetch(url, { headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { headers, credentials: 'include' });
   if (redirectToOAuthInstallIfNeeded(res)) return [];
   if (!res.ok) throw new Error('Produkte laden fehlgeschlagen');
   const data = await res.json();
@@ -175,7 +202,7 @@ export async function syncProductsFromShopify(): Promise<{ synced: number; updat
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = params ? `${API_URL}/products/sync?${params}` : `${API_URL}/products/sync`;
-  const res = await fetch(url, { method: 'POST', headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { method: 'POST', headers, credentials: 'include' });
   if (!res.ok) throw new Error('Produktsync fehlgeschlagen');
   const data = await res.json();
   return { synced: data.synced ?? 0, updated: data.updated ?? 0 };
@@ -186,7 +213,7 @@ export async function getRecommendation(
   productId: number
 ): Promise<Recommendation | null> {
   const headers = await getApiHeaders();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_URL}/recommendations/product/${productId}`,
     { headers, credentials: 'include' }
   );
@@ -199,7 +226,7 @@ export async function generateRecommendation(
   productId: number
 ): Promise<Recommendation> {
   const headers = await getApiHeaders();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_URL}/recommendations/generate/${productId}`,
     { method: 'POST', headers, credentials: 'include' }
   );
@@ -229,7 +256,7 @@ export async function rejectRecommendation(id: number, reason?: string) {
 
 export async function markRecommendationApplied(id: number) {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/recommendations/${id}/mark-applied`, {
+  const res = await fetchWithRetry(`${API_URL}/recommendations/${id}/mark-applied`, {
     method: 'PATCH',
     headers,
     credentials: 'include',
@@ -257,7 +284,7 @@ export async function explainPrice(data: {
   if (typeof window !== 'undefined') {
     console.log('[KI DEBUG] explainPrice →', url, 'hasAuth:', !!(headers as Record<string, string>)['Authorization']);
   }
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -299,7 +326,7 @@ export async function chatWithAI(data: {
   if (typeof window !== 'undefined') {
     console.log('[KI DEBUG] chatWithAI →', url, 'msg:', data.message?.slice(0, 30), 'hasAuth:', !!(headers as Record<string, string>)['Authorization']);
   }
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -326,7 +353,7 @@ export async function getAiStatus(): Promise<{
   model: string;
   message: string;
 }> {
-  const res = await fetch(`${API_URL}/api/ai/status`, { credentials: 'include' });
+  const res = await fetchWithRetry(`${API_URL}/api/ai/status`, { credentials: 'include' });
   const data = await res.json();
   if (typeof window !== 'undefined') {
     console.log('[KI DEBUG] getAiStatus:', data);
@@ -336,7 +363,7 @@ export async function getAiStatus(): Promise<{
 
 export async function getEngineStatus() {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/recommendations/engine-status`, {
+  const res = await fetchWithRetry(`${API_URL}/recommendations/engine-status`, {
     headers,
     credentials: 'include',
   });
@@ -361,7 +388,7 @@ export async function getRecommendationsList(
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = `${API_URL}/recommendations/list?status=${status}${params ? `&${params}` : ''}`;
-  const res = await fetch(url, { headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Empfehlungen laden fehlgeschlagen');
   return res.json();
 }
@@ -373,7 +400,7 @@ export async function getMarginHistory(
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = `${API_URL}/margin/history/${productId}?days=${days}${params ? `&${params}` : ''}`;
-  const res = await fetch(url, { headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Preishistorie laden fehlgeschlagen');
   return res.json();
 }
@@ -384,7 +411,7 @@ export async function predictPrice(
   confidenceThreshold = 0.6
 ) {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/api/v1/pricing/predict-price`, {
+  const res = await fetchWithRetry(`${API_URL}/api/v1/pricing/predict-price`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -402,7 +429,7 @@ export async function getProductCosts(
   productId: string
 ): Promise<ProductCostData | null> {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/margin/costs/${productId}`, {
+  const res = await fetchWithRetry(`${API_URL}/margin/costs/${productId}`, {
     headers,
     credentials: 'include',
   });
@@ -413,7 +440,7 @@ export async function getProductCosts(
 
 export async function hasProductCosts(productId: string): Promise<boolean> {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/margin/has-costs/${productId}`, {
+  const res = await fetchWithRetry(`${API_URL}/margin/has-costs/${productId}`, {
     headers,
     credentials: 'include',
   });
@@ -425,7 +452,7 @@ export async function saveProductCosts(
   costs: Omit<ProductCostData, 'last_updated' | 'created_at' | 'vat_rate'>
 ) {
   const headers = await getApiHeaders();
-  const res = await fetch(`${API_URL}/margin/costs`, {
+  const res = await fetchWithRetry(`${API_URL}/margin/costs`, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -453,7 +480,7 @@ export async function calculateMargin(
   sellingPrice: number
 ): Promise<MarginCalculationResult> {
   const headers = await getApiHeaders();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_URL}/margin/calculate/${productId}`,
     {
       method: 'POST',
@@ -470,7 +497,7 @@ export async function getCategoryDefaults(
   category: string
 ): Promise<CategoryDefaults> {
   const headers = await getApiHeaders();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_URL}/margin/category-defaults/${category}`,
     { headers, credentials: 'include' }
   );
@@ -483,7 +510,7 @@ export async function searchCompetitors(
   maxResults = 5
 ): Promise<CompetitorSearchResponse> {
   const headers = await getApiHeaders();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_URL}/competitors/products/${productId}/competitor-search?max_results=${maxResults}`,
     { method: 'POST', headers, credentials: 'include' }
   );
@@ -495,7 +522,7 @@ export async function getCompetitorAnalysis(
   productId: number
 ): Promise<CompetitorAnalysis> {
   const headers = await getApiHeaders();
-  const res = await fetch(
+  const res = await fetchWithRetry(
     `${API_URL}/competitors/products/${productId}/analysis`,
     { headers, credentials: 'include' }
   );
@@ -527,7 +554,7 @@ export async function applyPrice(
   };
   if (recommendationId != null) body.recommendation_id = recommendationId;
 
-  const res = await fetch(url, {
+  const res = await fetchWithRetry(url, {
     method: 'POST',
     headers,
     credentials: 'include',
@@ -557,7 +584,7 @@ export async function getAvailableShops(): Promise<{
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = params ? `${API_URL}/shops?${params}` : `${API_URL}/shops`;
-  const res = await fetch(url, { headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { headers, credentials: 'include' });
   if (!res.ok) throw new Error('Shops laden fehlgeschlagen');
   return res.json();
 }
@@ -566,7 +593,7 @@ export async function getCurrentShop() {
   const headers = await getApiHeaders();
   const params = getShopParamsForUrl();
   const url = params ? `${API_URL}/shops/current?${params}` : `${API_URL}/shops/current`;
-  const res = await fetch(url, { headers, credentials: 'include' });
+  const res = await fetchWithRetry(url, { headers, credentials: 'include' });
   return res.json();
 }
 
@@ -579,3 +606,4 @@ export async function switchShop(shopId: number, useDemo: boolean) {
     body: JSON.stringify({ shop_id: shopId, use_demo: useDemo }),
   });
 }
+

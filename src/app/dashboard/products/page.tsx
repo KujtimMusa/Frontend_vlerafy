@@ -93,22 +93,14 @@ export default function ProductsPage() {
   if (products.length === 0 && !syncMutation.isPending) {
     return (
       <s-page title="Produkte" back-action={JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix })}>
-        <div className="vlerafy-main">
-          <div className="vlerafy-empty-state">
-          <div className="vlerafy-empty-state-icon">📦</div>
-          <p className="vlerafy-empty-state-title">Noch keine Produkte geladen</p>
-          <p className="vlerafy-empty-state-text">
-            Verbinde deinen Shopify-Shop um smarte Preisempfehlungen zu erhalten.
-          </p>
-          <s-button
-            variant="primary"
-            onClick={handleSync}
-            disabled={syncMutation.isPending}
-          >
-            Produkte synchronisieren
-          </s-button>
-        </div>
-      </div>
+        <s-banner tone="info" title="Noch keine Produkte geladen">
+          <s-stack direction="block" gap="3">
+            <s-paragraph>Verbinde deinen Shopify-Shop um smarte Preisempfehlungen zu erhalten.</s-paragraph>
+            <s-button variant="primary" onClick={handleSync} disabled={syncMutation.isPending}>
+              Produkte synchronisieren
+            </s-button>
+          </s-stack>
+        </s-banner>
       </s-page>
     );
   }
@@ -158,37 +150,37 @@ export default function ProductsPage() {
         <div className="vlerafy-kpi-card">
           <div className="vlerafy-kpi-card--accent-neutral" />
           <div className="vlerafy-kpi-body">
-            <p className="vlerafy-kpi-label">Produkte gesamt</p>
-            <p className="vlerafy-kpi-value">{totalProducts}</p>
+            <s-paragraph tone="subdued">Produkte gesamt</s-paragraph>
+            <s-paragraph>{totalProducts}</s-paragraph>
           </div>
         </div>
 
         <div className="vlerafy-kpi-card">
           <div className="vlerafy-kpi-card--accent-warning" />
           <div className="vlerafy-kpi-body">
-            <p className="vlerafy-kpi-label">Mit Empfehlung</p>
-            <p className="vlerafy-kpi-value">{withRecommendation}</p>
-            <p className="vlerafy-kpi-sub">
+            <s-paragraph tone="subdued">Mit Empfehlung</s-paragraph>
+            <s-paragraph>{withRecommendation}</s-paragraph>
+            <s-paragraph tone="subdued">
               {totalProducts > 0 ? `${Math.round((withRecommendation / totalProducts) * 100)}% aller Produkte` : '—'}
-            </p>
+            </s-paragraph>
           </div>
         </div>
 
         <div className="vlerafy-kpi-card">
           <div className="vlerafy-kpi-card--accent-critical" />
           <div className="vlerafy-kpi-body">
-            <p className="vlerafy-kpi-label">Kein Lagerbestand</p>
-            <p className="vlerafy-kpi-value vlerafy-kpi-value--critical">{noStock}</p>
-            <p className="vlerafy-kpi-sub">Produkte prüfen</p>
+            <s-paragraph tone="subdued">Kein Lagerbestand</s-paragraph>
+            <s-paragraph tone="critical">{noStock}</s-paragraph>
+            <s-paragraph tone="subdued">Produkte prüfen</s-paragraph>
           </div>
         </div>
 
         <div className="vlerafy-kpi-card">
           <div className="vlerafy-kpi-card--accent-success" />
           <div className="vlerafy-kpi-body">
-            <p className="vlerafy-kpi-label">Möglicher Mehrumsatz</p>
-            <p className="vlerafy-kpi-value vlerafy-kpi-value--success">{revenue}</p>
-            <p className="vlerafy-kpi-sub">bei Umsetzung aller Empfehlungen</p>
+            <s-paragraph tone="subdued">Möglicher Mehrumsatz</s-paragraph>
+            <s-paragraph tone="success">{revenue}</s-paragraph>
+            <s-paragraph tone="subdued">bei Umsetzung aller Empfehlungen</s-paragraph>
           </div>
         </div>
       </s-grid>
@@ -208,11 +200,13 @@ export default function ProductsPage() {
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
             </svg>
-            <input
-              className="vlerafy-search-input"
+            <s-text-field
+              label=""
               placeholder="Produkt suchen..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e: CustomEvent & { target?: { value?: string }; detail?: { value?: string } }) =>
+                setSearchQuery((e as unknown as { target: { value: string } }).target?.value ?? (e as unknown as { detail: { value: string } }).detail?.value ?? '')
+              }
             />
           </div>
           <span className="vlerafy-table-count">{filteredProducts.length} Produkte</span>
@@ -234,10 +228,10 @@ export default function ProductsPage() {
                 <tr>
                   <td colSpan={5} className="vlerafy-empty-state vlerafy-empty-state--compact">
                     <div className="vlerafy-empty-state-icon" style={{ fontSize: 32 }}>🔍</div>
-                    <p className="vlerafy-empty-state-title">Keine Produkte gefunden</p>
+                    <p className="vlerafy-empty-state-title">Keine Produkte gefunden</s-paragraph>
                     <p className="vlerafy-empty-state-text">
                       Keine Produkte für „{searchQuery}“
-                    </p>
+                    </s-paragraph>
                   </td>
                 </tr>
               ) : (
@@ -265,13 +259,9 @@ export default function ProductsPage() {
                     </td>
                     <td>
                       {(product.inventory ?? 0) === 0 ? (
-                        <span className="vlerafy-stock-badge vlerafy-stock-badge--empty">
-                          0 Stück
-                        </span>
+                        <s-badge tone="critical">0 Stück</s-badge>
                       ) : (
-                        <span className="vlerafy-stock-badge vlerafy-stock-badge--ok">
-                          {product.inventory} Stück
-                        </span>
+                        <s-badge tone="success">{product.inventory} Stück</s-badge>
                       )}
                     </td>
                     <td>
@@ -297,3 +287,4 @@ export default function ProductsPage() {
 }
 
 // ✅ BFS [Punkt 2, 8] erledigt — s-page + back-action auf Produkte
+

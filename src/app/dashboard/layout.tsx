@@ -13,12 +13,8 @@ export default function DashboardLayout({
   return (
     <Suspense fallback={null}>
       <ShopInitializer>
-        <main className="vlerafy-main">
-          <s-stack direction="block" gap="4">
-            <ShopVerbindungBanner />
-            <s-box padding="2">{children}</s-box>
-          </s-stack>
-        </main>
+        <ShopVerbindungBanner />
+        {children}
       </ShopInitializer>
     </Suspense>
   );

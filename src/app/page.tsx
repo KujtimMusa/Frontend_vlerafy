@@ -34,13 +34,19 @@ function HomePageContent() {
     }
 
     // shop vorhanden OHNE shopId = User von Shopify Admin, Shop evtl. nicht in DB
-    // → Install-Endpoint (prüft DB, startet OAuth oder leitet zu Frontend weiter)
+    // → Top-Level-Redirect zu Install-Endpoint (OAuth erfordert Top-Level-Navigation)
     if (shop) {
       const installUrl =
         host
           ? `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shop)}&host=${encodeURIComponent(host)}`
           : `https://api.vlerafy.com/auth/shopify/install?shop=${encodeURIComponent(shop)}`;
-      window.location.href = installUrl;
+      // OAuth-Flow benötigt einen echten Top-Level-Redirect (kein SPA-Router).
+      // App Bridge window.open würde den OAuth-Flow in einem Popup öffnen – nicht erlaubt.
+      if (window.top) {
+        window.top.location.href = installUrl;
+      } else {
+        window.location.href = installUrl;
+      }
       return;
     }
 
@@ -48,8 +54,8 @@ function HomePageContent() {
   }, [router, searchParams]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-slate-400">Lade Dashboard...</div>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <s-spinner />
     </div>
   );
 }
@@ -57,8 +63,8 @@ function HomePageContent() {
 export default function HomePage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-pulse text-slate-400">Lade Dashboard...</div>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <s-spinner />
       </div>
     }>
       <HomePageContent />

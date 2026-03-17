@@ -35,7 +35,7 @@ export function ShopVerbindungBanner() {
     queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
     queryClient.invalidateQueries({ queryKey: ['products'] });
     queryClient.invalidateQueries({ queryKey: ['shops'] });
-    window.location.reload();
+    // Kein window.location.reload() – TanStack Query-Invalidierung reicht für BFS-Compliance
   };
 
   if (!show) return null;
