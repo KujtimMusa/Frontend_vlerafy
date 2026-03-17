@@ -50,6 +50,26 @@ function XIcon() {
   );
 }
 
+const strategyLabels: Record<string, string> = {
+  demand_pricing: 'Nachfrage',
+  demand_inventory_signal: 'Nachfrage-Signal',
+  competitive_pricing: 'Wettbewerb',
+  margin_optimization: 'Marge',
+  inventory_clearance: 'Abverkauf',
+  inventory_normal_no_sales: 'Lager-Optimierung',
+  premium_pricing: 'Premium',
+  psychological_pricing: 'Psycho-Preis',
+  ML_OPTIMIZED_CONSTRAINED: 'KI-optimiert',
+  ml_optimized: 'KI-optimiert',
+};
+
+function readableStrategy(raw: string): string {
+  if (strategyLabels[raw]) return strategyLabels[raw];
+  return raw
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 function stockLevel(qty: number): { label: string; tone: string } {
   if (qty === 0) return { label: 'Ausverkauft', tone: 'red' };
   if (qty <= 10) return { label: 'Niedrig', tone: 'amber' };
@@ -107,9 +127,6 @@ export default function ProductsPage() {
   const noStock            = products.filter((p) => (p.inventory ?? 0) === 0).length;
   const withCost           = products.filter((p) => p.cost != null && p.cost > 0).length;
   const noCost             = totalProducts - withCost;
-  const totalPotential     = Array.from(recMap.values())
-    .filter((r) => r.recommended_price > r.current_price)
-    .reduce((sum, r) => sum + (r.recommended_price - r.current_price), 0);
 
   /* ── Filter ── */
   const tabFiltered = products.filter((p) => {
@@ -135,8 +152,7 @@ export default function ProductsPage() {
     }
   }, [isLoading, products.length, syncMutation]);
 
-  const handleSync       = () => syncMutation.mutate();
-  const handleAnalyzeAll = () => router.push(`/dashboard/pricing${suffix}`);
+  const handleSync = () => syncMutation.mutate();
   const backAction       = JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix });
 
   /* ── Loading ── */
@@ -212,13 +228,6 @@ export default function ProductsPage() {
             <div className="piq-prod-kpi-val piq-prod-kpi-val--red">{noStock}</div>
             <div className="piq-prod-kpi-lbl">Ausverkauft</div>
           </div>
-          <div className="piq-prod-kpi-sep" />
-          <div className="piq-prod-kpi">
-            <div className="piq-prod-kpi-val piq-prod-kpi-val--indigo">
-              +€{Math.round(totalPotential).toLocaleString('de-DE')}
-            </div>
-            <div className="piq-prod-kpi-lbl">Gesamt-Potenzial</div>
-          </div>
         </div>
 
         {/* ══ TABELLE ══ */}
@@ -251,15 +260,6 @@ export default function ProductsPage() {
               >
                 Ohne Kosten <span className="piq-tab-badge">{noCost}</span>
               </button>
-            </div>
-            <div className="piq-tab-actions">
-              <s-button variant="secondary" size="slim" onClick={handleSync}
-                disabled={syncMutation.isPending} loading={syncMutation.isPending}>
-                Synchronisieren
-              </s-button>
-              <s-button variant="primary" size="slim" onClick={handleAnalyzeAll}>
-                Alle Empfehlungen
-              </s-button>
             </div>
           </div>
 
@@ -349,7 +349,7 @@ export default function ProductsPage() {
                               <span className="piq-product-name">{product.title}</span>
                               {rec && (
                                 <span className="piq-prod-meta">
-                                  {rec.strategy} · {Math.round(rec.confidence * 100)}% Konfidenz
+                                  {readableStrategy(rec.strategy)} · {Math.round(rec.confidence * 100)}%
                                 </span>
                               )}
                             </div>

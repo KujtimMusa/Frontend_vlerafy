@@ -1585,9 +1585,9 @@ body {
   border: 1px solid var(--green-border);
 }
 .piq-cost-badge--missing {
-  color: var(--red);
-  background: var(--red-bg);
-  border: 1px solid var(--red-border);
+  color: var(--faint);
+  background: var(--bg);
+  border: 1px solid var(--border);
 }
 
 /* Rec time hint */
