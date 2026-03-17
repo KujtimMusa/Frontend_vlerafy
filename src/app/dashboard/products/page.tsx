@@ -10,7 +10,7 @@ import {
   syncProductsFromShopify,
 } from '@/lib/api';
 
-type FilterTab = 'all' | 'recommended' | 'no-stock';
+type FilterTab = 'all' | 'recommended' | 'no-stock' | 'no-cost';
 
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
@@ -32,6 +32,39 @@ function ArrowRightIcon() {
       <path d="M4.5 2.5l4 4-4 4" />
     </svg>
   );
+}
+
+function CheckIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 6.5l2.5 2.5 4.5-5" />
+    </svg>
+  );
+}
+
+function XIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 11 11" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+      <path d="M2.5 2.5l6 6M8.5 2.5l-6 6" />
+    </svg>
+  );
+}
+
+function stockLevel(qty: number): { label: string; tone: string } {
+  if (qty === 0) return { label: 'Ausverkauft', tone: 'red' };
+  if (qty <= 10) return { label: 'Niedrig', tone: 'amber' };
+  return { label: 'Verfügbar', tone: 'green' };
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'Heute';
+  if (days === 1) return 'Gestern';
+  if (days < 7) return `vor ${days} Tagen`;
+  if (days < 30) return `vor ${Math.floor(days / 7)} Wo.`;
+  return `vor ${Math.floor(days / 30)} Mon.`;
 }
 
 export default function ProductsPage() {
@@ -63,19 +96,26 @@ export default function ProductsPage() {
     },
   });
 
-  const productIdsWithRec = new Set(
-    (recsData?.recommendations ?? []).map((r) => r.product_id)
-  );
+  /* ── Recommendation lookup ── */
+  type Rec = NonNullable<typeof recsData>['recommendations'][number];
+  const recMap = new Map<number, Rec>();
+  (recsData?.recommendations ?? []).forEach((r) => recMap.set(r.product_id, r));
 
-  /* ── Derived counts (für Tabs) ── */
+  /* ── Derived counts ── */
   const totalProducts      = products.length || (stats?.products_count ?? 0);
-  const withRecommendation = productIdsWithRec.size || (stats?.products_with_recommendations ?? 0);
-  const noStock            = (products ?? []).filter((p) => (p.inventory ?? 0) === 0).length;
+  const withRecommendation = recMap.size || (stats?.products_with_recommendations ?? 0);
+  const noStock            = products.filter((p) => (p.inventory ?? 0) === 0).length;
+  const withCost           = products.filter((p) => p.cost != null && p.cost > 0).length;
+  const noCost             = totalProducts - withCost;
+  const totalPotential     = Array.from(recMap.values())
+    .filter((r) => r.recommended_price > r.current_price)
+    .reduce((sum, r) => sum + (r.recommended_price - r.current_price), 0);
 
-  /* ── Filter: zuerst Tab, dann Suche ── */
-  const tabFiltered = (products ?? []).filter((p) => {
-    if (activeTab === 'recommended') return productIdsWithRec.has(p.id);
+  /* ── Filter ── */
+  const tabFiltered = products.filter((p) => {
+    if (activeTab === 'recommended') return recMap.has(p.id);
     if (activeTab === 'no-stock')    return (p.inventory ?? 0) === 0;
+    if (activeTab === 'no-cost')     return p.cost == null || p.cost === 0;
     return true;
   });
   const filteredProducts = tabFiltered.filter((p) =>
@@ -112,7 +152,7 @@ export default function ProductsPage() {
     );
   }
 
-  /* ── Empty State (keine Produkte im Shop) ── */
+  /* ── Empty State ── */
   if (products.length === 0 && !syncMutation.isPending) {
     return (
       <s-page title="Produkte" back-action={backAction}>
@@ -132,10 +172,10 @@ export default function ProductsPage() {
     <s-page title="Produkte" back-action={backAction}>
       <div className="piq-dashboard">
 
-        {/* ── Status-Banner ── */}
+        {/* ── Status-Banners ── */}
         {syncMutation.isPending && (
           <s-banner tone="info">
-            <s-paragraph>Produkte werden von deinem Shopify-Shop synchronisiert…</s-paragraph>
+            <s-paragraph>Produkte werden synchronisiert…</s-paragraph>
           </s-banner>
         )}
         {syncMutation.isError && (
@@ -149,48 +189,72 @@ export default function ProductsPage() {
           </s-banner>
         )}
 
-        {/* ══ TABELLE mit integrierter Tab-Navigation + Actions ══ */}
+        {/* ══ KPI Summary Strip ══ */}
+        <div className="piq-prod-kpi-strip">
+          <div className="piq-prod-kpi">
+            <div className="piq-prod-kpi-val">{totalProducts}</div>
+            <div className="piq-prod-kpi-lbl">Produkte gesamt</div>
+          </div>
+          <div className="piq-prod-kpi-sep" />
+          <div className="piq-prod-kpi">
+            <div className="piq-prod-kpi-val piq-prod-kpi-val--amber">{withRecommendation}</div>
+            <div className="piq-prod-kpi-lbl">Mit Empfehlung</div>
+          </div>
+          <div className="piq-prod-kpi-sep" />
+          <div className="piq-prod-kpi">
+            <div className="piq-prod-kpi-val piq-prod-kpi-val--green">
+              {withCost}/{totalProducts}
+            </div>
+            <div className="piq-prod-kpi-lbl">Kosten hinterlegt</div>
+          </div>
+          <div className="piq-prod-kpi-sep" />
+          <div className="piq-prod-kpi">
+            <div className="piq-prod-kpi-val piq-prod-kpi-val--red">{noStock}</div>
+            <div className="piq-prod-kpi-lbl">Ausverkauft</div>
+          </div>
+          <div className="piq-prod-kpi-sep" />
+          <div className="piq-prod-kpi">
+            <div className="piq-prod-kpi-val piq-prod-kpi-val--indigo">
+              +€{Math.round(totalPotential).toLocaleString('de-DE')}
+            </div>
+            <div className="piq-prod-kpi-lbl">Gesamt-Potenzial</div>
+          </div>
+        </div>
+
+        {/* ══ TABELLE ══ */}
         <div className="piq-table-card">
 
-          {/* ── Tab-Bar: Tabs links, Actions rechts ── */}
+          {/* ── Tab-Bar ── */}
           <div className="piq-tab-bar">
             <div className="piq-tabs" role="tablist">
-              <button
-                role="tab"
-                aria-selected={activeTab === 'all'}
+              <button role="tab" aria-selected={activeTab === 'all'}
                 className={`piq-tab${activeTab === 'all' ? ' piq-tab--active' : ''}`}
                 onClick={() => setActiveTab('all')}
               >
-                Alle
-                <span className="piq-tab-badge">{totalProducts}</span>
+                Alle <span className="piq-tab-badge">{totalProducts}</span>
               </button>
-              <button
-                role="tab"
-                aria-selected={activeTab === 'recommended'}
+              <button role="tab" aria-selected={activeTab === 'recommended'}
                 className={`piq-tab${activeTab === 'recommended' ? ' piq-tab--active' : ''}`}
                 onClick={() => setActiveTab('recommended')}
               >
-                Mit Empfehlung
-                <span className="piq-tab-badge piq-tab-badge--amber">{withRecommendation}</span>
+                Mit Empfehlung <span className="piq-tab-badge piq-tab-badge--amber">{withRecommendation}</span>
               </button>
-              <button
-                role="tab"
-                aria-selected={activeTab === 'no-stock'}
+              <button role="tab" aria-selected={activeTab === 'no-stock'}
                 className={`piq-tab${activeTab === 'no-stock' ? ' piq-tab--active' : ''}`}
                 onClick={() => setActiveTab('no-stock')}
               >
-                Kein Lagerbestand
-                <span className="piq-tab-badge piq-tab-badge--red">{noStock}</span>
+                Kein Lagerbestand <span className="piq-tab-badge piq-tab-badge--red">{noStock}</span>
+              </button>
+              <button role="tab" aria-selected={activeTab === 'no-cost'}
+                className={`piq-tab${activeTab === 'no-cost' ? ' piq-tab--active' : ''}`}
+                onClick={() => setActiveTab('no-cost')}
+              >
+                Ohne Kosten <span className="piq-tab-badge">{noCost}</span>
               </button>
             </div>
             <div className="piq-tab-actions">
-              <s-button
-                variant="secondary"
-                size="slim"
-                onClick={handleSync}
-                disabled={syncMutation.isPending}
-                loading={syncMutation.isPending}
-              >
+              <s-button variant="secondary" size="slim" onClick={handleSync}
+                disabled={syncMutation.isPending} loading={syncMutation.isPending}>
                 Synchronisieren
               </s-button>
               <s-button variant="primary" size="slim" onClick={handleAnalyzeAll}>
@@ -221,98 +285,154 @@ export default function ProductsPage() {
 
           {/* ── Tabelle ── */}
           <div style={{ overflowX: 'auto' }}>
-            <table className="piq-table">
+            <table className="piq-table piq-table--rich">
               <thead>
                 <tr>
                   <th>Produkt</th>
                   <th style={{ textAlign: 'right' }}>Preis</th>
                   <th style={{ textAlign: 'center' }}>Lagerbestand</th>
+                  <th style={{ textAlign: 'center' }}>Kosten</th>
                   <th style={{ textAlign: 'center' }}>Empfehlung</th>
+                  <th style={{ textAlign: 'right' }}>Potenzial</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
                 {filteredProducts.length === 0 ? (
                   <tr>
-                    <td colSpan={5}>
+                    <td colSpan={7}>
                       <div className="piq-table-empty">
                         <div className="piq-table-empty-icon">
-                          {activeTab === 'no-stock' ? '📦' : '🔍'}
+                          {activeTab === 'no-stock' ? '📦' : activeTab === 'no-cost' ? '💰' : '🔍'}
                         </div>
                         <s-paragraph>
                           {activeTab === 'recommended'
                             ? 'Keine Produkte mit ausstehenden Empfehlungen.'
                             : activeTab === 'no-stock'
                             ? 'Alle Produkte haben Lagerbestand.'
+                            : activeTab === 'no-cost'
+                            ? 'Alle Produkte haben Kosten hinterlegt.'
                             : searchQuery
-                            ? `Keine Ergebnisse für „${searchQuery}"`
+                            ? `Keine Ergebnisse f\u00FCr \u201E${searchQuery}\u201C`
                             : 'Keine Produkte gefunden.'}
                         </s-paragraph>
-                        {activeTab === 'all' && searchQuery && (
-                          <s-paragraph tone="subdued">Versuche einen anderen Suchbegriff.</s-paragraph>
-                        )}
-                        {activeTab === 'all' && !searchQuery && (
-                          <div style={{ marginTop: 12 }}>
-                            <s-button variant="primary" size="slim" onClick={handleSync}>
-                              Jetzt synchronisieren
-                            </s-button>
-                          </div>
-                        )}
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  filteredProducts.map((product) => (
-                    <tr
-                      key={product.id}
-                      tabIndex={0}
-                      onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
-                      onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${product.id}${suffix}`)}
-                    >
-                      {/* Produkt-Name + Avatar */}
-                      <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <div className="piq-product-avatar">
-                            {product.image
-                              ? <img src={product.image} alt={product.title} />
-                              : <span>{product.title.charAt(0)}</span>
-                            }
+                  filteredProducts.map((product) => {
+                    const rec = recMap.get(product.id);
+                    const hasCost = product.cost != null && product.cost > 0;
+                    const stock = stockLevel(product.inventory ?? 0);
+                    const potential = rec && rec.recommended_price > rec.current_price
+                      ? rec.recommended_price - rec.current_price
+                      : 0;
+                    const isApplied = rec?.applied_at != null;
+
+                    return (
+                      <tr
+                        key={product.id}
+                        tabIndex={0}
+                        onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
+                        onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${product.id}${suffix}`)}
+                      >
+                        {/* Produkt */}
+                        <td>
+                          <div className="piq-prod-cell">
+                            <div className="piq-product-avatar">
+                              {product.image
+                                ? <img src={product.image} alt={product.title} />
+                                : <span>{product.title.charAt(0)}</span>
+                              }
+                            </div>
+                            <div className="piq-prod-info">
+                              <span className="piq-product-name">{product.title}</span>
+                              {rec && (
+                                <span className="piq-prod-meta">
+                                  {rec.strategy} · {Math.round(rec.confidence * 100)}% Konfidenz
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <span className="piq-product-name">{product.title}</span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Preis */}
-                      <td className="piq-table-price" style={{ textAlign: 'right' }}>
-                        {product.price != null
-                          ? `${product.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
-                          : '—'}
-                      </td>
+                        {/* Preis */}
+                        <td style={{ textAlign: 'right' }}>
+                          <div className="piq-price-cell">
+                            <span className="piq-price-current">
+                              {product.price != null
+                                ? `${product.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
+                                : '—'}
+                            </span>
+                            {rec && rec.recommended_price !== rec.current_price && (
+                              <span className="piq-price-rec">
+                                → {rec.recommended_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+                              </span>
+                            )}
+                          </div>
+                        </td>
 
-                      {/* Lagerbestand — nur 0 = roter Badge, sonst plain text */}
-                      <td style={{ textAlign: 'center' }}>
-                        {(product.inventory ?? 0) === 0
-                          ? <s-badge tone="critical">0 Stück</s-badge>
-                          : <span className="piq-stock-text">{product.inventory} Stück</span>
-                        }
-                      </td>
+                        {/* Lagerbestand */}
+                        <td style={{ textAlign: 'center' }}>
+                          <div className={`piq-stock-pill piq-stock-pill--${stock.tone}`}>
+                            <span className="piq-stock-dot" />
+                            {product.inventory ?? 0} Stk.
+                          </div>
+                          <div className="piq-stock-label">{stock.label}</div>
+                        </td>
 
-                      {/* Empfehlung — warning für ausstehend, neutral für keine Daten */}
-                      <td style={{ textAlign: 'center' }}>
-                        {productIdsWithRec.has(product.id)
-                          ? <s-badge tone="warning">Ausstehend</s-badge>
-                          : <span className="piq-table-muted">—</span>
-                        }
-                      </td>
+                        {/* Kosten */}
+                        <td style={{ textAlign: 'center' }}>
+                          {hasCost ? (
+                            <span className="piq-cost-badge piq-cost-badge--ok">
+                              <CheckIcon /> Hinterlegt
+                            </span>
+                          ) : (
+                            <span className="piq-cost-badge piq-cost-badge--missing">
+                              <XIcon /> Fehlt
+                            </span>
+                          )}
+                        </td>
 
-                      {/* Action — nur bei ausstehender Empfehlung */}
-                      <td style={{ textAlign: 'right' }}>
-                        <span className="piq-table-action-btn">
-                          Ansehen <ArrowRightIcon />
-                        </span>
-                      </td>
-                    </tr>
-                  ))
+                        {/* Empfehlung */}
+                        <td style={{ textAlign: 'center' }}>
+                          {isApplied ? (
+                            <div>
+                              <s-badge tone="success">Umgesetzt</s-badge>
+                              <div className="piq-rec-time">{timeAgo(rec!.applied_at)}</div>
+                            </div>
+                          ) : rec ? (
+                            <div>
+                              <s-badge tone="warning">Ausstehend</s-badge>
+                              <div className="piq-rec-time">
+                                {Math.round(rec.confidence * 100)}% sicher
+                              </div>
+                            </div>
+                          ) : (
+                            <span className="piq-table-muted">—</span>
+                          )}
+                        </td>
+
+                        {/* Potenzial */}
+                        <td style={{ textAlign: 'right' }}>
+                          {potential > 0 ? (
+                            <span className="piq-potential-val">
+                              +€{potential.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </span>
+                          ) : (
+                            <span className="piq-table-muted">—</span>
+                          )}
+                        </td>
+
+                        {/* Action */}
+                        <td style={{ textAlign: 'right' }}>
+                          <span className="piq-table-action-btn">
+                            Ansehen <ArrowRightIcon />
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
                 )}
               </tbody>
             </table>
