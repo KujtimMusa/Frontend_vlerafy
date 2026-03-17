@@ -31,24 +31,6 @@ function ArrowRight() {
 const truncate = (s: string, max = 30) =>
   s.length > max ? s.slice(0, max) + '…' : s;
 
-const strategyLabel: Record<string, string> = {
-  demand_pricing: 'Nachfrage',
-  demand_inventory_signal: 'Nachfrage-Signal',
-  competitive_pricing: 'Wettbewerb',
-  margin_optimization: 'Marge',
-  inventory_clearance: 'Abverkauf',
-  inventory_normal_no_sales: 'Lager-Optimierung',
-  premium_pricing: 'Premium',
-  psychological_pricing: 'Psycho-Preis',
-  ML_OPTIMIZED_CONSTRAINED: 'KI-optimiert',
-  ml_optimized: 'KI-optimiert',
-};
-
-function readableStrategy(raw: string): string {
-  if (strategyLabel[raw]) return strategyLabel[raw];
-  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
-}
-
 function monthlyPotential(rec: Recommendation): number {
   const diff = rec.recommended_price - rec.current_price;
   if (rec.sales_30d && rec.sales_30d > 0) return rec.sales_30d * diff;
@@ -90,7 +72,6 @@ export function TopRecommendations({ recommendations, suffix = '' }: TopRecommen
     <div className="piq-toprec-list">
       {top5.map((rec, idx) => {
         const monthlyAbs = Math.abs(rec.monthly);
-        const label = readableStrategy(rec.strategy);
 
         return (
           <div
@@ -105,12 +86,11 @@ export function TopRecommendations({ recommendations, suffix = '' }: TopRecommen
 
             <div className="piq-toprec-info">
               <div className="piq-toprec-name">{truncate(rec.product_name)}</div>
-              <div className="piq-toprec-strat">{label}</div>
             </div>
 
             <div className="piq-toprec-monthly piq-toprec-monthly--up">
               <span className="piq-toprec-monthly-val">
-                +€{monthlyAbs.toLocaleString('de-DE', { maximumFractionDigits: 0 })}
+                +{monthlyAbs.toLocaleString('de-DE', { maximumFractionDigits: 0 })} €
               </span>
               <span className="piq-toprec-monthly-lbl">/ Monat</span>
             </div>

@@ -23,7 +23,7 @@ function AnimatedNumber({ value }: { value: number }) {
     }, duration / steps);
     return () => clearInterval(timer);
   }, [value]);
-  return <>{display}</>;
+  return <>{display.toLocaleString('de-DE')}</>;
 }
 
 function useShopSuffix(): string {
@@ -137,7 +137,7 @@ export default function DashboardPage() {
               <RevenueIcon />
             </div>
             <div className="piq-hero-lbl">Möglicher mehr Umsatz (monatlich)</div>
-            <div className="piq-hero-val">+€<AnimatedNumber value={revenueRounded} /></div>
+            <div className="piq-hero-val">+<AnimatedNumber value={revenueRounded} /> €</div>
             <div className="piq-hero-sub">
               {affectedCount} von {totalCount} Produkten optimierbar
             </div>
@@ -177,7 +177,7 @@ export default function DashboardPage() {
             </div>
             <div className="piq-avg-lbl">Ø pro Produkt</div>
             <div className="piq-avg-val">
-              €<AnimatedNumber value={Math.abs(Math.round(avgPerProduct))} />
+              <AnimatedNumber value={Math.abs(Math.round(avgPerProduct))} /> €
             </div>
             <div className="piq-avg-sub">möglicher mehr Umsatz je Produkt</div>
             <button
