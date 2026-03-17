@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
@@ -58,24 +58,6 @@ function AvgIcon() {
   );
 }
 
-function AlertIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#dc2626" strokeWidth="1.6" strokeLinecap="round">
-      <circle cx="7.5" cy="7.5" r="6" />
-      <path d="M7.5 4.5v3.5M7.5 10.2h.01" />
-    </svg>
-  );
-}
-
-function TaskIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#4f46e5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2.5" y="2.5" width="10" height="10" rx="2.5" />
-      <path d="M5 7.5l2 2 3-3" />
-    </svg>
-  );
-}
-
 function ArrowRight() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
@@ -85,9 +67,8 @@ function ArrowRight() {
 }
 
 export default function DashboardPage() {
-  const router  = useRouter();
-  const suffix  = useShopSuffix();
-  const [noticeVisible, setNoticeVisible] = useState(true);
+  const router = useRouter();
+  const suffix = useShopSuffix();
 
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -99,11 +80,10 @@ export default function DashboardPage() {
   const revenueFormatted = revenueAmount !== 0
     ? `+€${Math.abs(revenueAmount).toLocaleString('de-DE', { maximumFractionDigits: 0 })}`
     : '€0';
-  const avgPerProduct  = stats?.missed_revenue?.avg_per_product ?? 0;
-  const affectedCount  = stats?.missed_revenue?.product_count ?? 0;
-  const totalCount     = stats?.products_count ?? 1;
-  const progressPct    = totalCount > 0 ? Math.min((affectedCount / totalCount) * 100, 100) : 0;
-  const nextStepsCount = stats?.next_steps?.length ?? 0;
+  const avgPerProduct = stats?.missed_revenue?.avg_per_product ?? 0;
+  const affectedCount = stats?.missed_revenue?.product_count ?? 0;
+  const totalCount    = stats?.products_count ?? 1;
+  const progressPct   = totalCount > 0 ? Math.min((affectedCount / totalCount) * 100, 100) : 0;
 
   if (isLoading) {
     return (
@@ -136,37 +116,7 @@ export default function DashboardPage() {
     <s-page title="Übersicht">
       <div className="piq-dashboard">
 
-        {/* ══ ZEILE 1: Notification Banner ══ */}
-        {noticeVisible && pendingCount > 0 && (
-          <div className="piq-notice" role="status">
-            <div className="piq-notice-pip" aria-hidden="true" />
-            <div className="piq-notice-body">
-              <div className="piq-notice-title">
-                {pendingCount} Preisempfehlungen ausstehend
-              </div>
-              <div className="piq-notice-sub">
-                Durchschnittlich +€{Math.abs(Math.round(avgPerProduct))} mehr Umsatz pro Produkt möglich.
-              </div>
-            </div>
-            <div className="piq-notice-actions">
-              <button
-                className="piq-cta piq-cta--primary piq-cta--sm"
-                onClick={() => router.push(`/dashboard/pricing${suffix}`)}
-              >
-                Empfehlungen ansehen <ArrowRight />
-              </button>
-              <button
-                className="piq-notice-dismiss"
-                onClick={() => setNoticeVisible(false)}
-                aria-label="Schließen"
-              >
-                ×
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ══ ZEILE 2: 3 KPI-Cards ══ */}
+        {/* ══ 3 KPI-Cards ══ */}
         <div className="piq-hero-grid">
 
           {/* Card 1: Möglicher mehr Umsatz */}
@@ -204,7 +154,7 @@ export default function DashboardPage() {
             </div>
             <div className="piq-sat-sub">offene Empfehlungen warten auf Bearbeitung</div>
             <button
-              className="piq-cta piq-cta--primary"
+              className="piq-cta piq-cta--secondary"
               onClick={() => router.push(`/dashboard/pricing${suffix}`)}
             >
               Jetzt bearbeiten <ArrowRight />
@@ -231,40 +181,7 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* ══ ZEILE 3: Nächste Schritte ══ */}
-        {nextStepsCount > 0 && (
-          <div className="piq-card">
-            <div className="piq-card-head">
-              <div className="piq-card-ttl">Nächste Schritte</div>
-              <s-badge tone={stats.next_steps!.some((s) => s.urgent) ? 'critical' : 'attention'}>
-                {nextStepsCount} ausstehend
-              </s-badge>
-            </div>
-            <div className="piq-card-body">
-              <div className="piq-steps-grid">
-                {stats.next_steps!.slice(0, 4).map((step, i) => (
-                  <div key={i} className="piq-step-row">
-                    <div className={`piq-step-ic ${step.urgent ? 'piq-step-ic--urgent' : 'piq-step-ic--normal'}`}>
-                      {step.urgent ? <AlertIcon /> : <TaskIcon />}
-                    </div>
-                    <div className="piq-step-row-body">
-                      <div className="piq-step-row-ttl">{step.title}</div>
-                      <div className="piq-step-row-dsc">{step.description}</div>
-                    </div>
-                    <button
-                      className={`piq-cta ${step.urgent ? 'piq-cta--primary' : 'piq-cta--secondary'} piq-cta--sm`}
-                      onClick={() => router.push(`${step.href}${suffix}`)}
-                    >
-                      {step.urgent ? 'Jetzt umsetzen' : 'Öffnen'} <ArrowRight />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ══ ZEILE 4: Fortschritt — volle Breite ══ */}
+        {/* ══ Fortschritt — volle Breite ══ */}
         <FortschrittsCard
           level={stats?.progress?.level ?? 'bronze'}
           points={stats?.progress?.points ?? 0}
