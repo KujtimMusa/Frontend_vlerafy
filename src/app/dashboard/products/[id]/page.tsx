@@ -51,11 +51,18 @@ export default function ProductDetailPage() {
   const suffix = useShopSuffix();
 
   const [costInput, setCostInput] = useState('');
-  const [shippingInput, setShippingInput] = useState('');
-  const [packagingInput, setPackagingInput] = useState('');
+  const [inboundShipInput, setInboundShipInput] = useState('');
   const [customsInput, setCustomsInput] = useState('');
+  const [packagingInput, setPackagingInput] = useState('');
+  const [outboundShipInput, setOutboundShipInput] = useState('');
+  const [fulfillmentInput, setFulfillmentInput] = useState('');
+  const [payFeePctInput, setPayFeePctInput] = useState('2.9');
+  const [payFeeFixInput, setPayFeeFixInput] = useState('0.30');
+  const [platformFeePctInput, setPlatformFeePctInput] = useState('0');
+  const [storageInput, setStorageInput] = useState('');
+  const [marketingInput, setMarketingInput] = useState('');
+  const [returnRateInput, setReturnRateInput] = useState('');
   const [otherInput, setOtherInput] = useState('');
-  const [payFeeInput, setPayFeeInput] = useState('2.9');
   const [vatInput, setVatInput] = useState('19');
   const [showDetails, setShowDetails] = useState(false);
   const [costSaved, setCostSaved] = useState(false);
@@ -69,11 +76,18 @@ export default function ProductDetailPage() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const costRef = useRef<HTMLElement>(null);
-  const shippingRef = useRef<HTMLElement>(null);
+  const inboundShipRef = useRef<HTMLElement>(null);
+  const customsRef2 = useRef<HTMLElement>(null);
   const packagingRef = useRef<HTMLElement>(null);
-  const customsRef = useRef<HTMLElement>(null);
+  const outboundShipRef = useRef<HTMLElement>(null);
+  const fulfillmentRef = useRef<HTMLElement>(null);
+  const payFeePctRef = useRef<HTMLElement>(null);
+  const payFeeFixRef = useRef<HTMLElement>(null);
+  const platformFeePctRef = useRef<HTMLElement>(null);
+  const storageRef = useRef<HTMLElement>(null);
+  const marketingRef = useRef<HTMLElement>(null);
+  const returnRateRef = useRef<HTMLElement>(null);
   const otherRef = useRef<HTMLElement>(null);
-  const payFeeRef = useRef<HTMLElement>(null);
   const vatRef = useRef<HTMLElement>(null);
   const chatFieldRef = useRef<HTMLElement>(null);
 
@@ -101,11 +115,31 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (existingCosts) {
       setCostInput(String(existingCosts.purchase_cost || ''));
-      if (existingCosts.shipping_cost) setShippingInput(String(existingCosts.shipping_cost));
+      if (existingCosts.shipping_cost) setInboundShipInput(String(existingCosts.shipping_cost));
       if (existingCosts.packaging_cost) setPackagingInput(String(existingCosts.packaging_cost));
+      if (existingCosts.payment_fee_percentage) setPayFeePctInput(String(existingCosts.payment_fee_percentage));
+      if (existingCosts.payment_fee_fixed) setPayFeeFixInput(String(existingCosts.payment_fee_fixed));
+      if (existingCosts.vat_rate) setVatInput(String(existingCosts.vat_rate));
       setCostSaved(true);
     }
   }, [existingCosts]);
+
+  useEffect(() => {
+    if (!product?.shopify_product_id) return;
+    try {
+      const raw = localStorage.getItem(`vlerafy-extra-costs-${product.shopify_product_id}`);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.customs) setCustomsInput(d.customs);
+      if (d.outboundShip) setOutboundShipInput(d.outboundShip);
+      if (d.fulfillment) setFulfillmentInput(d.fulfillment);
+      if (d.platformFeePct) setPlatformFeePctInput(d.platformFeePct);
+      if (d.storage) setStorageInput(d.storage);
+      if (d.marketing) setMarketingInput(d.marketing);
+      if (d.returnRate) setReturnRateInput(d.returnRate);
+      if (d.other) setOtherInput(d.other);
+    } catch { /* ignore */ }
+  }, [product?.shopify_product_id]);
 
   const generateMutation = useMutation({
     mutationFn: () => generateRecommendation(productId),
@@ -123,17 +157,26 @@ export default function ProductDetailPage() {
   });
 
   const saveCostsMutation = useMutation({
-    mutationFn: () => saveProductCosts({
-      product_id: product!.shopify_product_id,
-      purchase_cost: parseFloat(costInput) || 0,
-      shipping_cost: parseFloat(shippingInput) || 0,
-      packaging_cost: parseFloat(packagingInput) || 0,
-      payment_provider: 'stripe',
-      payment_fee_percentage: parseFloat(payFeeInput) || 2.9,
-      payment_fee_fixed: 0.30,
-      country_code: 'DE', category: 'general',
-    }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['costs', product?.shopify_product_id] }); setCostSaved(true); showToast('Kosten gespeichert!', { duration: 3000 }); },
+    mutationFn: async () => {
+      const pid = product!.shopify_product_id;
+      await saveProductCosts({
+        product_id: pid,
+        purchase_cost: parseFloat(costInput) || 0,
+        shipping_cost: parseFloat(inboundShipInput) || 0,
+        packaging_cost: parseFloat(packagingInput) || 0,
+        payment_provider: 'stripe',
+        payment_fee_percentage: parseFloat(payFeePctInput) || 2.9,
+        payment_fee_fixed: parseFloat(payFeeFixInput) || 0.30,
+        country_code: 'DE', category: 'general',
+      });
+      localStorage.setItem(`vlerafy-extra-costs-${pid}`, JSON.stringify({
+        customs: customsInput, outboundShip: outboundShipInput,
+        fulfillment: fulfillmentInput, platformFeePct: platformFeePctInput,
+        storage: storageInput, marketing: marketingInput,
+        returnRate: returnRateInput, other: otherInput,
+      }));
+    },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['costs', product?.shopify_product_id] }); setCostSaved(true); showToast('Alle Kosten gespeichert!', { duration: 3000 }); },
     onError: () => showToast('Fehler beim Speichern', { isError: true }),
   });
 
@@ -157,13 +200,21 @@ export default function ProductDetailPage() {
       el.addEventListener('input', cb);
       cleanups.push(() => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); });
     };
-    bind(costRef, (v) => { setCostInput(v); setCostSaved(false); });
-    bind(shippingRef, (v) => { setShippingInput(v); setCostSaved(false); });
-    bind(packagingRef, (v) => { setPackagingInput(v); setCostSaved(false); });
-    bind(customsRef, (v) => { setCustomsInput(v); setCostSaved(false); });
-    bind(otherRef, (v) => { setOtherInput(v); setCostSaved(false); });
-    bind(payFeeRef, (v) => { setPayFeeInput(v); setCostSaved(false); });
-    bind(vatRef, (v) => { setVatInput(v); setCostSaved(false); });
+    const dirty = (setter: (v: string) => void) => (v: string) => { setter(v); setCostSaved(false); };
+    bind(costRef, dirty(setCostInput));
+    bind(inboundShipRef, dirty(setInboundShipInput));
+    bind(customsRef2, dirty(setCustomsInput));
+    bind(packagingRef, dirty(setPackagingInput));
+    bind(outboundShipRef, dirty(setOutboundShipInput));
+    bind(fulfillmentRef, dirty(setFulfillmentInput));
+    bind(payFeePctRef, dirty(setPayFeePctInput));
+    bind(payFeeFixRef, dirty(setPayFeeFixInput));
+    bind(platformFeePctRef, dirty(setPlatformFeePctInput));
+    bind(storageRef, dirty(setStorageInput));
+    bind(marketingRef, dirty(setMarketingInput));
+    bind(returnRateRef, dirty(setReturnRateInput));
+    bind(otherRef, dirty(setOtherInput));
+    bind(vatRef, dirty(setVatInput));
     bind(chatFieldRef, (v) => setChatInput(v));
 
     const chatEl = chatFieldRef.current;
@@ -257,39 +308,55 @@ export default function ProductDetailPage() {
   };
 
   const ek = parseFloat(costInput) || 0;
-  const shipping = parseFloat(shippingInput) || 0;
-  const packaging = parseFloat(packagingInput) || 0;
+  const inboundShip = parseFloat(inboundShipInput) || 0;
   const customs = parseFloat(customsInput) || 0;
+  const packaging = parseFloat(packagingInput) || 0;
+  const outboundShip = parseFloat(outboundShipInput) || 0;
+  const fulfillment = parseFloat(fulfillmentInput) || 0;
+  const payFeePct = parseFloat(payFeePctInput) || 0;
+  const payFeeFix = parseFloat(payFeeFixInput) || 0;
+  const platformFeePct = parseFloat(platformFeePctInput) || 0;
+  const storageCost = parseFloat(storageInput) || 0;
+  const marketingCost = parseFloat(marketingInput) || 0;
+  const returnRate = parseFloat(returnRateInput) || 0;
   const other = parseFloat(otherInput) || 0;
-  const payFeePct = parseFloat(payFeeInput) || 0;
   const vatRate = (parseFloat(vatInput) || 19) / 100;
-
-  const totalFixedCosts = ek + shipping + packaging + customs + other;
   const hasEk = ek > 0;
 
-  const calcPayFee = (price: number) => price * (payFeePct / 100) + 0.30;
-  const totalCostCurrent = totalFixedCosts + (hasEk ? calcPayFee(currentPrice) : 0);
-  const totalCostRec = totalFixedCosts + (hasEk && recommendedPrice > 0 ? calcPayFee(recommendedPrice) : 0);
+  const cogsFixed = ek + inboundShip + customs + packaging;
+  const fulfillFixed = outboundShip + fulfillment;
+  const opsFixed = storageCost + marketingCost + other;
+  const totalFixedCosts = cogsFixed + fulfillFixed + opsFixed;
+
+  const calcPayFee = (price: number) => price * (payFeePct / 100) + payFeeFix;
+  const calcPlatformFee = (price: number) => price * (platformFeePct / 100);
+  const totalVarCosts = (price: number) => calcPayFee(price) + calcPlatformFee(price);
+
+  const totalCostCurrent = totalFixedCosts + (hasEk ? totalVarCosts(currentPrice) : 0);
+  const totalCostRec = totalFixedCosts + (hasEk && recommendedPrice > 0 ? totalVarCosts(recommendedPrice) : 0);
+
+  const returnMultiplier = returnRate > 0 ? 1 / (1 - returnRate / 100) : 1;
+  const effectiveCostCurrent = totalCostCurrent * returnMultiplier;
+  const effectiveCostRec = totalCostRec * returnMultiplier;
 
   const netRevenueCurrent = currentPrice / (1 + vatRate);
   const netRevenueRec = recommendedPrice > 0 ? recommendedPrice / (1 + vatRate) : 0;
 
-  const grossMarginCurrent = hasEk ? currentPrice - totalCostCurrent : 0;
+  const grossMarginCurrent = hasEk ? currentPrice - effectiveCostCurrent : 0;
   const grossMarginCurrentPct = hasEk && currentPrice > 0 ? (grossMarginCurrent / currentPrice) * 100 : 0;
-  const grossMarginRec = hasEk && recommendedPrice > 0 ? recommendedPrice - totalCostRec : 0;
+  const grossMarginRec = hasEk && recommendedPrice > 0 ? recommendedPrice - effectiveCostRec : 0;
   const grossMarginRecPct = hasEk && recommendedPrice > 0 ? (grossMarginRec / recommendedPrice) * 100 : 0;
 
-  const netProfitCurrent = hasEk ? netRevenueCurrent - totalCostCurrent : 0;
-  const netProfitRec = hasEk && recommendedPrice > 0 ? netRevenueRec - totalCostRec : 0;
+  const netProfitCurrent = hasEk ? netRevenueCurrent - effectiveCostCurrent : 0;
+  const netProfitRec = hasEk && recommendedPrice > 0 ? netRevenueRec - effectiveCostRec : 0;
   const netProfitCurrentPct = hasEk && netRevenueCurrent > 0 ? (netProfitCurrent / netRevenueCurrent) * 100 : 0;
   const netProfitRecPct = hasEk && netRevenueRec > 0 ? (netProfitRec / netRevenueRec) * 100 : 0;
 
   const marginDiff = grossMarginRec - grossMarginCurrent;
-  const roiCurrent = hasEk && totalCostCurrent > 0 ? (grossMarginCurrent / totalCostCurrent) * 100 : 0;
-  const roiRec = hasEk && totalCostRec > 0 ? (grossMarginRec / totalCostRec) * 100 : 0;
-  const breakEvenUnits = hasEk && grossMarginRec > 0 ? Math.ceil(totalCostRec / grossMarginRec) : 0;
+  const roiCurrent = hasEk && effectiveCostCurrent > 0 ? (grossMarginCurrent / effectiveCostCurrent) * 100 : 0;
+  const roiRec = hasEk && effectiveCostRec > 0 ? (grossMarginRec / effectiveCostRec) * 100 : 0;
+  const breakEvenUnits = hasEk && grossMarginRec > 0 ? Math.ceil(effectiveCostRec / grossMarginRec) : 0;
 
-  const hasDetailCosts = shipping > 0 || packaging > 0 || customs > 0 || other > 0 || payFeePct !== 2.9;
   const displayMarginPct = recommendation ? grossMarginRecPct : grossMarginCurrentPct;
 
   const barMin = Math.min(minPrice > 0 ? minPrice : Infinity, myPrice);
@@ -437,99 +504,132 @@ export default function ProductDetailPage() {
             </div>
             <div className="piq-detail-card-body">
 
-              {/* Basis-Eingabe: Einkaufspreis */}
               <div className="piq-margin-input-row">
-                <div className="piq-margin-input-wrap">
-                  <s-text-field ref={costRef} label="Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" help-text="Dein Netto-Einkaufspreis pro Stück ohne Versand und Gebühren" />
+                <div className="piq-margin-input-wrap piq-margin-input-wrap--wide">
+                  <s-text-field ref={costRef} label="Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" help-text="Netto-Einkaufspreis pro Stück ohne Nebenkosten" />
                 </div>
               </div>
 
-              {/* Aufklappbare Details */}
               <div className="piq-margin-toggle-row">
                 <button className="piq-margin-toggle-btn" onClick={() => setShowDetails(!showDetails)} type="button">
                   <span className={`piq-margin-toggle-chevron ${showDetails ? 'piq-margin-toggle-chevron--open' : ''}`}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 2l4 4-4 4" /></svg>
                   </span>
-                  {showDetails ? 'Weniger Details' : 'Detaillierte Kostenaufstellung'}
-                  {hasDetailCosts && !showDetails && <span className="piq-margin-toggle-hint">({[shipping > 0 && 'Versand', packaging > 0 && 'Verpackung', customs > 0 && 'Zoll', other > 0 && 'Sonstiges'].filter(Boolean).join(', ')} hinterlegt)</span>}
+                  {showDetails ? 'Weniger Details' : 'Alle Kosten aufschlüsseln'}
                 </button>
               </div>
 
-              {showDetails && (
-                <div className="piq-margin-details">
+              {/* Detail-Felder: IMMER im DOM (CSS toggle), damit Refs korrekt binden */}
+              <div className="piq-margin-details" style={{ display: showDetails ? 'block' : 'none' }}>
+
+                <div className="piq-margin-group">
+                  <span className="piq-margin-group-lbl">Warenbezug</span>
                   <div className="piq-margin-details-grid">
                     <div className="piq-margin-field">
-                      <s-text-field ref={shippingRef} label="Versandkosten (€)" type="number" value={shippingInput} placeholder="0.00" help-text="Kosten für Versand pro Stück" />
+                      <s-text-field ref={inboundShipRef} label="Fracht zum Lager (€)" type="number" value={inboundShipInput} placeholder="0.00" help-text="Transport vom Lieferanten zu deinem Lager, pro Stück" />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={packagingRef} label="Verpackung (€)" type="number" value={packagingInput} placeholder="0.00" help-text="Verpackungsmaterial pro Stück" />
+                      <s-text-field ref={customsRef2} label="Zoll & Einfuhrumsatzsteuer (€)" type="number" value={customsInput} placeholder="0.00" help-text="Zollgebühren + Einfuhrumsatzsteuer pro Stück" />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={customsRef} label="Zoll / Import (€)" type="number" value={customsInput} placeholder="0.00" help-text="Zollgebühren, Importsteuer pro Stück" />
-                    </div>
-                    <div className="piq-margin-field">
-                      <s-text-field ref={otherRef} label="Sonstige Kosten (€)" type="number" value={otherInput} placeholder="0.00" help-text="Lager, Marketing, Retourenanteil etc." />
-                    </div>
-                    <div className="piq-margin-field">
-                      <s-text-field ref={payFeeRef} label="Zahlungsgebühr (%)" type="number" value={payFeeInput} placeholder="2.9" help-text="z.B. Stripe 2,9%, PayPal 2,49%" />
-                    </div>
-                    <div className="piq-margin-field">
-                      <s-text-field ref={vatRef} label="MwSt-Satz (%)" type="number" value={vatInput} placeholder="19" help-text="Standard DE: 19%, ermäßigt: 7%" />
+                      <s-text-field ref={packagingRef} label="Verpackungsmaterial (€)" type="number" value={packagingInput} placeholder="0.00" help-text="Karton, Füllmaterial, Klebeband pro Stück" />
                     </div>
                   </div>
                 </div>
-              )}
+
+                <div className="piq-margin-group">
+                  <span className="piq-margin-group-lbl">Versand & Fulfillment</span>
+                  <div className="piq-margin-details-grid">
+                    <div className="piq-margin-field">
+                      <s-text-field ref={outboundShipRef} label="Versand an Kunden (€)" type="number" value={outboundShipInput} placeholder="0.00" help-text="Versandkosten pro Paket an den Endkunden" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={fulfillmentRef} label="Fulfillment / Handling (€)" type="number" value={fulfillmentInput} placeholder="0.00" help-text="Picking, Packing, Labeling pro Bestellung" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="piq-margin-group">
+                  <span className="piq-margin-group-lbl">Gebühren & Transaktionen</span>
+                  <div className="piq-margin-details-grid">
+                    <div className="piq-margin-field">
+                      <s-text-field ref={payFeePctRef} label="Zahlungsgebühr (%)" type="number" value={payFeePctInput} placeholder="2.9" help-text="Stripe: 2,9%, PayPal: 2,49%, Klarna: 2,99%" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={payFeeFixRef} label="Zahlungsgebühr fix (€)" type="number" value={payFeeFixInput} placeholder="0.30" help-text="Fixbetrag pro Transaktion (z.B. 0,30 €)" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={platformFeePctRef} label="Shopify/Plattform-Gebühr (%)" type="number" value={platformFeePctInput} placeholder="0" help-text="Shopify Payments: 0%, Basic Plan Transaction Fee: 2%" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="piq-margin-group">
+                  <span className="piq-margin-group-lbl">Betrieb & Marketing</span>
+                  <div className="piq-margin-details-grid">
+                    <div className="piq-margin-field">
+                      <s-text-field ref={storageRef} label="Lagerkosten (€/Stück)" type="number" value={storageInput} placeholder="0.00" help-text="Anteilige Lagermiete, Strom etc. pro Stück" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={marketingRef} label="Marketing (€/Stück)" type="number" value={marketingInput} placeholder="0.00" help-text="Werbekosten pro verkauftem Stück (CAC)" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={returnRateRef} label="Retourenquote (%)" type="number" value={returnRateInput} placeholder="0" help-text="Erwartete Rücksendequote – erhöht effektive Kosten pro Sale" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={otherRef} label="Sonstige Kosten (€)" type="number" value={otherInput} placeholder="0.00" help-text="Kundenservice, Garantie, sonstige Fixkosten pro Stück" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="piq-margin-group">
+                  <span className="piq-margin-group-lbl">Steuern</span>
+                  <div className="piq-margin-details-grid">
+                    <div className="piq-margin-field">
+                      <s-text-field ref={vatRef} label="MwSt-Satz (%)" type="number" value={vatInput} placeholder="19" help-text="Deutschland: 19% (Standard) oder 7% (ermäßigt)" />
+                    </div>
+                  </div>
+                </div>
+
+              </div>
 
               {/* Speichern */}
               <div className="piq-margin-save-row">
                 {hasEk && !costSaved && (
                   <button className="piq-cta piq-cta--primary piq-cta--sm" onClick={() => saveCostsMutation.mutate()} disabled={saveCostsMutation.isPending}>
-                    {saveCostsMutation.isPending ? 'Speichert…' : 'Kosten speichern'}
+                    {saveCostsMutation.isPending ? 'Speichert…' : 'Alle Kosten speichern'}
                   </button>
                 )}
                 {costSaved && <span className="piq-margin-saved-hint">✓ Gespeichert</span>}
               </div>
 
-              {/* Kostenübersicht (zusammengeklappt, aber Summe sichtbar) */}
+              {/* Kostenübersicht */}
               {hasEk && (
                 <div className="piq-margin-cost-summary">
-                  <div className="piq-margin-cost-summary-row">
-                    <span className="piq-margin-cost-summary-lbl">Einkaufspreis</span>
-                    <span className="piq-margin-cost-summary-val">{formatEuro(ek)}</span>
-                  </div>
-                  {shipping > 0 && (
+                  <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">Einkaufspreis</span><span className="piq-margin-cost-summary-val">{formatEuro(ek)}</span></div>
+                  {inboundShip > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Fracht zum Lager</span><span className="piq-margin-cost-summary-val">{formatEuro(inboundShip)}</span></div>}
+                  {customs > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Zoll & Einfuhr</span><span className="piq-margin-cost-summary-val">{formatEuro(customs)}</span></div>}
+                  {packaging > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Verpackung</span><span className="piq-margin-cost-summary-val">{formatEuro(packaging)}</span></div>}
+                  {outboundShip > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Versand an Kunden</span><span className="piq-margin-cost-summary-val">{formatEuro(outboundShip)}</span></div>}
+                  {fulfillment > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Fulfillment</span><span className="piq-margin-cost-summary-val">{formatEuro(fulfillment)}</span></div>}
+                  {storageCost > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Lagerkosten</span><span className="piq-margin-cost-summary-val">{formatEuro(storageCost)}</span></div>}
+                  {marketingCost > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Marketing</span><span className="piq-margin-cost-summary-val">{formatEuro(marketingCost)}</span></div>}
+                  {other > 0 && <div className="piq-margin-cost-summary-row"><span className="piq-margin-cost-summary-lbl">+ Sonstiges</span><span className="piq-margin-cost-summary-val">{formatEuro(other)}</span></div>}
+                  {totalVarCosts(recommendation ? recommendedPrice : currentPrice) > 0 && (
                     <div className="piq-margin-cost-summary-row">
-                      <span className="piq-margin-cost-summary-lbl">+ Versand</span>
-                      <span className="piq-margin-cost-summary-val">{formatEuro(shipping)}</span>
+                      <span className="piq-margin-cost-summary-lbl">+ Gebühren ({payFeePct}% + {formatEuro(payFeeFix)}{platformFeePct > 0 ? ` + ${platformFeePct}% Plattform` : ''})</span>
+                      <span className="piq-margin-cost-summary-val">{formatEuro(totalVarCosts(recommendation ? recommendedPrice : currentPrice))}</span>
                     </div>
                   )}
-                  {packaging > 0 && (
-                    <div className="piq-margin-cost-summary-row">
-                      <span className="piq-margin-cost-summary-lbl">+ Verpackung</span>
-                      <span className="piq-margin-cost-summary-val">{formatEuro(packaging)}</span>
-                    </div>
-                  )}
-                  {customs > 0 && (
-                    <div className="piq-margin-cost-summary-row">
-                      <span className="piq-margin-cost-summary-lbl">+ Zoll / Import</span>
-                      <span className="piq-margin-cost-summary-val">{formatEuro(customs)}</span>
-                    </div>
-                  )}
-                  {other > 0 && (
-                    <div className="piq-margin-cost-summary-row">
-                      <span className="piq-margin-cost-summary-lbl">+ Sonstiges</span>
-                      <span className="piq-margin-cost-summary-val">{formatEuro(other)}</span>
-                    </div>
-                  )}
-                  {(recommendation ? calcPayFee(recommendedPrice) : calcPayFee(currentPrice)) > 0.30 && (
-                    <div className="piq-margin-cost-summary-row">
-                      <span className="piq-margin-cost-summary-lbl">+ Zahlungsgebühr ({payFeePct}%)</span>
-                      <span className="piq-margin-cost-summary-val">{formatEuro(recommendation ? calcPayFee(recommendedPrice) : calcPayFee(currentPrice))}</span>
+                  {returnRate > 0 && (
+                    <div className="piq-margin-cost-summary-row piq-margin-cost-summary-row--warn">
+                      <span className="piq-margin-cost-summary-lbl">⚠ Retouren-Aufschlag ({returnRate}%)</span>
+                      <span className="piq-margin-cost-summary-val">+{formatEuro((recommendation ? effectiveCostRec : effectiveCostCurrent) - (recommendation ? totalCostRec : totalCostCurrent))}</span>
                     </div>
                   )}
                   <div className="piq-margin-cost-summary-row piq-margin-cost-summary-row--total">
                     <span className="piq-margin-cost-summary-lbl">Gesamtkosten pro Stück</span>
-                    <span className="piq-margin-cost-summary-val">{formatEuro(recommendation ? totalCostRec : totalCostCurrent)}</span>
+                    <span className="piq-margin-cost-summary-val">{formatEuro(recommendation ? effectiveCostRec : effectiveCostCurrent)}</span>
                   </div>
                 </div>
               )}
@@ -608,11 +708,11 @@ export default function ProductDetailPage() {
                         </span>
                       </div>
                     )}
-                    {(shipping > 0 || packaging > 0 || customs > 0 || other > 0) && (
+                    {returnRate > 0 && (
                       <div className="piq-margin-insight-item">
-                        <span className="piq-margin-insight-icon">📦</span>
+                        <span className="piq-margin-insight-icon">🔄</span>
                         <span className="piq-margin-insight-text">
-                          Nebenkosten machen {formatEuro(shipping + packaging + customs + other)} ({((shipping + packaging + customs + other) / totalCostRec * 100).toFixed(1)}%) deiner Gesamtkosten aus
+                          {returnRate}% Retourenquote erhöht deine effektiven Kosten um {formatEuro((effectiveCostRec - totalCostRec))} pro erfolgreichem Verkauf
                         </span>
                       </div>
                     )}
@@ -620,7 +720,6 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
-              {/* Nur aktueller Preis (kein Empfehlung) */}
               {hasEk && !recommendation && (
                 <div className="piq-margin-analysis">
                   <div className="piq-margin-insights">
