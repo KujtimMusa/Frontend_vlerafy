@@ -1570,23 +1570,6 @@ body {
   flex-wrap: wrap;
 }
 
-.piq-detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 380px;
-  gap: 20px;
-  align-items: start;
-}
-
-@media (max-width: 1100px) {
-  .piq-detail-grid { grid-template-columns: 1fr; }
-}
-
-.piq-detail-col {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 .piq-detail-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -1741,6 +1724,13 @@ body {
   margin-bottom: 16px;
 }
 
+/* KI inline within recommendation card */
+.piq-rec-ai {
+  margin-top: 24px;
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
 /* ── Margin Analysis ── */
 .piq-margin-grid {
   display: flex;
@@ -1786,9 +1776,14 @@ body {
   color: var(--faint);
 }
 
-.piq-margin-form {
-  border-top: 1px solid var(--border-sub);
+.piq-margin-result {
+  border-top: 1px solid var(--border);
   padding-top: 20px;
+  margin-top: 20px;
+}
+
+.piq-margin-form {
+  margin-bottom: 0;
 }
 .piq-margin-form-row {
   display: grid;
