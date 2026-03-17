@@ -1738,29 +1738,127 @@ body {
   padding-top: 20px;
 }
 
-/* ── Margin Rechner (neu) ── */
+/* ── Margin Rechner ── */
 .piq-margin-input-row {
   display: flex;
   align-items: flex-end;
   gap: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 4px;
 }
 .piq-margin-input-wrap {
   flex: 1;
-  max-width: 280px;
+  max-width: 320px;
 }
 .piq-margin-input-wrap s-text-field {
   display: block;
   width: 100%;
+}
+
+/* Toggle für Details */
+.piq-margin-toggle-row {
+  margin-bottom: 12px;
+}
+.piq-margin-toggle-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--indigo);
+  padding: 6px 0;
+  transition: color .15s;
+}
+.piq-margin-toggle-btn:hover { color: #3730a3; }
+.piq-margin-toggle-chevron {
+  display: inline-flex;
+  transition: transform .2s ease;
+}
+.piq-margin-toggle-chevron--open { transform: rotate(90deg); }
+.piq-margin-toggle-hint {
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--faint);
+  margin-left: 4px;
+}
+
+/* Detail-Felder */
+.piq-margin-details {
+  margin-bottom: 16px;
+  padding: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  animation: piq-slideDown .2s ease;
+}
+@keyframes piq-slideDown {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.piq-margin-details-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.piq-margin-field s-text-field {
+  display: block;
+  width: 100%;
+}
+
+/* Speichern-Reihe */
+.piq-margin-save-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  min-height: 28px;
 }
 .piq-margin-saved-hint {
   font-size: 12px;
   font-weight: 600;
   color: var(--green);
   white-space: nowrap;
-  padding-bottom: 8px;
 }
 
+/* Kostenübersicht */
+.piq-margin-cost-summary {
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.piq-margin-cost-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+.piq-margin-cost-summary-lbl {
+  font-size: 13px;
+  color: var(--muted);
+}
+.piq-margin-cost-summary-val {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.piq-margin-cost-summary-row--total {
+  border-top: 1px solid var(--border);
+  margin-top: 6px;
+  padding-top: 8px;
+}
+.piq-margin-cost-summary-row--total .piq-margin-cost-summary-lbl {
+  font-weight: 700;
+  color: var(--ink);
+}
+.piq-margin-cost-summary-row--total .piq-margin-cost-summary-val {
+  font-weight: 800;
+}
+
+/* Analyse Vergleich */
 .piq-margin-analysis { margin-top: 4px; }
 
 .piq-margin-compare {
@@ -1803,19 +1901,31 @@ body {
   font-weight: 800;
   color: var(--ink);
 }
-.piq-margin-compare-margin {
+.piq-margin-compare-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 6px;
+}
+.piq-margin-kpi {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.piq-margin-kpi-lbl {
+  font-size: 12px;
+  color: var(--faint);
+}
+.piq-margin-kpi-val {
   font-size: 13px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.piq-margin-compare-margin.green { color: var(--green); }
-.piq-margin-compare-margin.amber { color: var(--amber); }
-.piq-margin-compare-margin.red { color: var(--red); }
-.piq-margin-compare-roi {
-  font-size: 11px;
-  color: var(--faint);
-}
+.piq-margin-kpi-val.green { color: var(--green); }
+.piq-margin-kpi-val.amber { color: var(--amber); }
+.piq-margin-kpi-val.red { color: var(--red); }
 
+/* Insights */
 .piq-margin-insights {
   display: flex;
   flex-direction: column;
@@ -1879,7 +1989,7 @@ body {
 
 .piq-comp-position {
   margin-bottom: 20px;
-  padding: 14px 16px;
+  padding: 16px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -1890,79 +2000,75 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--faint);
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   display: block;
 }
-.piq-comp-pos-track {
-  height: 8px;
-  background: var(--border-sub);
-  border-radius: 99px;
+
+/* Container für Labels-oben / Track / Labels-unten */
+.piq-comp-bar-container {
   position: relative;
-  margin-top: 28px;
-  margin-bottom: 28px;
 }
 
-/* ── Position Marker (Günstigster / Ø Markt / Dein Preis) ── */
-.piq-pos-marker {
-  position: absolute;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  z-index: 1;
+/* Label-Reihen */
+.piq-comp-bar-labels-top,
+.piq-comp-bar-labels-bottom {
+  position: relative;
+  height: 34px;
 }
-.piq-pos-marker-dot {
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  border: 2px solid var(--surface);
-  box-shadow: 0 1px 3px rgba(0,0,0,.12);
-}
-.piq-pos-marker-tip {
+.piq-bar-label {
   position: absolute;
-  bottom: calc(100% + 6px);
-  left: 50%;
   transform: translateX(-50%);
   text-align: center;
   white-space: nowrap;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1px;
+  gap: 0;
 }
-.piq-pos-marker-label {
+.piq-comp-bar-labels-top .piq-bar-label { bottom: 0; }
+.piq-comp-bar-labels-bottom .piq-bar-label { top: 0; }
+
+.piq-bar-label-name {
   font-size: 10px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
-.piq-pos-marker-price {
-  font-size: 11px;
+.piq-bar-label-price {
+  font-size: 12px;
   font-weight: 700;
 }
-.piq-pos-marker--cheap .piq-pos-marker-dot { background: #16a34a; }
-.piq-pos-marker--cheap .piq-pos-marker-label { color: #16a34a; }
-.piq-pos-marker--cheap .piq-pos-marker-price { color: #16a34a; }
 
-.piq-pos-marker--avg .piq-pos-marker-dot { background: #6b7280; }
-.piq-pos-marker--avg .piq-pos-marker-label { color: #6b7280; }
-.piq-pos-marker--avg .piq-pos-marker-price { color: #6b7280; }
-.piq-pos-marker--avg .piq-pos-marker-tip {
-  bottom: auto;
-  top: calc(100% + 6px);
+.piq-bar-label--cheap .piq-bar-label-name { color: #16a34a; }
+.piq-bar-label--cheap .piq-bar-label-price { color: #16a34a; }
+.piq-bar-label--avg .piq-bar-label-name { color: #6b7280; }
+.piq-bar-label--avg .piq-bar-label-price { color: #6b7280; }
+.piq-bar-label--mine .piq-bar-label-name { color: var(--indigo); }
+.piq-bar-label--mine .piq-bar-label-price { color: var(--indigo); }
+
+/* Track */
+.piq-comp-pos-track {
+  height: 8px;
+  background: linear-gradient(90deg, #dcfce7 0%, #e0e7ff 100%);
+  border-radius: 99px;
+  position: relative;
 }
 
-.piq-pos-marker--mine .piq-pos-marker-dot { background: var(--indigo); width: 16px; height: 16px; }
-.piq-pos-marker--mine .piq-pos-marker-label { color: var(--indigo); }
-.piq-pos-marker--mine .piq-pos-marker-price { color: var(--indigo); }
-
-.piq-comp-pos-range {
-  display: flex;
-  justify-content: space-between;
-  font-size: 11px;
-  color: var(--faint);
+/* Dots on track */
+.piq-bar-dot {
+  position: absolute;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2.5px solid #fff;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  transform: translate(-50%, -50%);
+  z-index: 2;
 }
+.piq-bar-dot--cheap { background: #16a34a; }
+.piq-bar-dot--avg { background: #6b7280; width: 12px; height: 12px; }
+.piq-bar-dot--mine { background: var(--indigo); width: 16px; height: 16px; z-index: 3; }
 
 .piq-comp-table-wrap {
   margin-bottom: 16px;

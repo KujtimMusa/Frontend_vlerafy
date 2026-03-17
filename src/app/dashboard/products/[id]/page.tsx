@@ -18,8 +18,6 @@ import {
 import { showToast } from '@/lib/toast';
 import type { Recommendation } from '@/types/models';
 
-const VAT_RATE = 0.19;
-
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
   const shop = searchParams.get('shop') ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain') : null) ?? '';
@@ -53,6 +51,13 @@ export default function ProductDetailPage() {
   const suffix = useShopSuffix();
 
   const [costInput, setCostInput] = useState('');
+  const [shippingInput, setShippingInput] = useState('');
+  const [packagingInput, setPackagingInput] = useState('');
+  const [customsInput, setCustomsInput] = useState('');
+  const [otherInput, setOtherInput] = useState('');
+  const [payFeeInput, setPayFeeInput] = useState('2.9');
+  const [vatInput, setVatInput] = useState('19');
+  const [showDetails, setShowDetails] = useState(false);
   const [costSaved, setCostSaved] = useState(false);
   const [aiExplanation, setAiExplanation] = useState<{
     explanation: string; key_reason: string; confidence_text: string; action_hint: string;
@@ -64,6 +69,12 @@ export default function ProductDetailPage() {
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
   const costRef = useRef<HTMLElement>(null);
+  const shippingRef = useRef<HTMLElement>(null);
+  const packagingRef = useRef<HTMLElement>(null);
+  const customsRef = useRef<HTMLElement>(null);
+  const otherRef = useRef<HTMLElement>(null);
+  const payFeeRef = useRef<HTMLElement>(null);
+  const vatRef = useRef<HTMLElement>(null);
   const chatFieldRef = useRef<HTMLElement>(null);
 
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
@@ -90,6 +101,8 @@ export default function ProductDetailPage() {
   useEffect(() => {
     if (existingCosts) {
       setCostInput(String(existingCosts.purchase_cost || ''));
+      if (existingCosts.shipping_cost) setShippingInput(String(existingCosts.shipping_cost));
+      if (existingCosts.packaging_cost) setPackagingInput(String(existingCosts.packaging_cost));
       setCostSaved(true);
     }
   }, [existingCosts]);
@@ -112,12 +125,15 @@ export default function ProductDetailPage() {
   const saveCostsMutation = useMutation({
     mutationFn: () => saveProductCosts({
       product_id: product!.shopify_product_id,
-      purchase_cost: parseFloat(costInput) || 0, shipping_cost: 0,
-      packaging_cost: 0, payment_provider: 'stripe',
-      payment_fee_percentage: 2.9, payment_fee_fixed: 0.30,
+      purchase_cost: parseFloat(costInput) || 0,
+      shipping_cost: parseFloat(shippingInput) || 0,
+      packaging_cost: parseFloat(packagingInput) || 0,
+      payment_provider: 'stripe',
+      payment_fee_percentage: parseFloat(payFeeInput) || 2.9,
+      payment_fee_fixed: 0.30,
       country_code: 'DE', category: 'general',
     }),
-    onSuccess: () => { qc.invalidateQueries({ queryKey: ['costs', product?.shopify_product_id] }); setCostSaved(true); showToast('Einkaufspreis gespeichert!', { duration: 3000 }); },
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['costs', product?.shopify_product_id] }); setCostSaved(true); showToast('Kosten gespeichert!', { duration: 3000 }); },
     onError: () => showToast('Fehler beim Speichern', { isError: true }),
   });
 
@@ -141,7 +157,13 @@ export default function ProductDetailPage() {
       el.addEventListener('input', cb);
       cleanups.push(() => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); });
     };
-    bind(costRef, (v) => setCostInput(v));
+    bind(costRef, (v) => { setCostInput(v); setCostSaved(false); });
+    bind(shippingRef, (v) => { setShippingInput(v); setCostSaved(false); });
+    bind(packagingRef, (v) => { setPackagingInput(v); setCostSaved(false); });
+    bind(customsRef, (v) => { setCustomsInput(v); setCostSaved(false); });
+    bind(otherRef, (v) => { setOtherInput(v); setCostSaved(false); });
+    bind(payFeeRef, (v) => { setPayFeeInput(v); setCostSaved(false); });
+    bind(vatRef, (v) => { setVatInput(v); setCostSaved(false); });
     bind(chatFieldRef, (v) => setChatInput(v));
 
     const chatEl = chatFieldRef.current;
@@ -235,17 +257,40 @@ export default function ProductDetailPage() {
   };
 
   const ek = parseFloat(costInput) || 0;
+  const shipping = parseFloat(shippingInput) || 0;
+  const packaging = parseFloat(packagingInput) || 0;
+  const customs = parseFloat(customsInput) || 0;
+  const other = parseFloat(otherInput) || 0;
+  const payFeePct = parseFloat(payFeeInput) || 0;
+  const vatRate = (parseFloat(vatInput) || 19) / 100;
+
+  const totalFixedCosts = ek + shipping + packaging + customs + other;
   const hasEk = ek > 0;
 
-  const marginCurrent = hasEk ? currentPrice - ek : 0;
-  const marginCurrentPct = hasEk && currentPrice > 0 ? (marginCurrent / currentPrice) * 100 : 0;
-  const marginRec = hasEk && recommendedPrice > 0 ? recommendedPrice - ek : 0;
-  const marginRecPct = hasEk && recommendedPrice > 0 ? (marginRec / recommendedPrice) * 100 : 0;
-  const marginDiff = marginRec - marginCurrent;
-  const roiCurrent = hasEk ? (marginCurrent / ek) * 100 : 0;
-  const roiRec = hasEk && recommendedPrice > 0 ? (marginRec / ek) * 100 : 0;
-  const netAfterVat = hasEk && recommendedPrice > 0 ? (recommendedPrice / (1 + VAT_RATE)) - ek : 0;
-  const breakEvenUnits = hasEk && marginRec > 0 ? Math.ceil(ek / marginRec) : 0;
+  const calcPayFee = (price: number) => price * (payFeePct / 100) + 0.30;
+  const totalCostCurrent = totalFixedCosts + (hasEk ? calcPayFee(currentPrice) : 0);
+  const totalCostRec = totalFixedCosts + (hasEk && recommendedPrice > 0 ? calcPayFee(recommendedPrice) : 0);
+
+  const netRevenueCurrent = currentPrice / (1 + vatRate);
+  const netRevenueRec = recommendedPrice > 0 ? recommendedPrice / (1 + vatRate) : 0;
+
+  const grossMarginCurrent = hasEk ? currentPrice - totalCostCurrent : 0;
+  const grossMarginCurrentPct = hasEk && currentPrice > 0 ? (grossMarginCurrent / currentPrice) * 100 : 0;
+  const grossMarginRec = hasEk && recommendedPrice > 0 ? recommendedPrice - totalCostRec : 0;
+  const grossMarginRecPct = hasEk && recommendedPrice > 0 ? (grossMarginRec / recommendedPrice) * 100 : 0;
+
+  const netProfitCurrent = hasEk ? netRevenueCurrent - totalCostCurrent : 0;
+  const netProfitRec = hasEk && recommendedPrice > 0 ? netRevenueRec - totalCostRec : 0;
+  const netProfitCurrentPct = hasEk && netRevenueCurrent > 0 ? (netProfitCurrent / netRevenueCurrent) * 100 : 0;
+  const netProfitRecPct = hasEk && netRevenueRec > 0 ? (netProfitRec / netRevenueRec) * 100 : 0;
+
+  const marginDiff = grossMarginRec - grossMarginCurrent;
+  const roiCurrent = hasEk && totalCostCurrent > 0 ? (grossMarginCurrent / totalCostCurrent) * 100 : 0;
+  const roiRec = hasEk && totalCostRec > 0 ? (grossMarginRec / totalCostRec) * 100 : 0;
+  const breakEvenUnits = hasEk && grossMarginRec > 0 ? Math.ceil(totalCostRec / grossMarginRec) : 0;
+
+  const hasDetailCosts = shipping > 0 || packaging > 0 || customs > 0 || other > 0 || payFeePct !== 2.9;
+  const displayMarginPct = recommendation ? grossMarginRecPct : grossMarginCurrentPct;
 
   const barMin = Math.min(minPrice > 0 ? minPrice : Infinity, myPrice);
   const barMax = Math.max(maxPrice, myPrice);
@@ -385,43 +430,158 @@ export default function ProductDetailPage() {
             <div className="piq-detail-card-head">
               <span className="piq-detail-section-lbl">Margen-Rechner</span>
               {hasEk && (
-                <span className={`piq-detail-badge ${marginRecPct >= 30 ? 'piq-detail-badge--green' : marginRecPct >= 15 ? 'piq-detail-badge--amber' : 'piq-detail-badge--red'}`}>
-                  Marge: {marginRecPct.toFixed(1)}%
+                <span className={`piq-detail-badge ${displayMarginPct >= 30 ? 'piq-detail-badge--green' : displayMarginPct >= 15 ? 'piq-detail-badge--amber' : 'piq-detail-badge--red'}`}>
+                  Marge: {displayMarginPct.toFixed(1)}%
                 </span>
               )}
             </div>
             <div className="piq-detail-card-body">
+
+              {/* Basis-Eingabe: Einkaufspreis */}
               <div className="piq-margin-input-row">
                 <div className="piq-margin-input-wrap">
-                  <s-text-field ref={costRef} label="Dein Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" />
+                  <s-text-field ref={costRef} label="Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" help-text="Dein Netto-Einkaufspreis pro Stück ohne Versand und Gebühren" />
                 </div>
-                {costInput && !costSaved && (
+              </div>
+
+              {/* Aufklappbare Details */}
+              <div className="piq-margin-toggle-row">
+                <button className="piq-margin-toggle-btn" onClick={() => setShowDetails(!showDetails)} type="button">
+                  <span className={`piq-margin-toggle-chevron ${showDetails ? 'piq-margin-toggle-chevron--open' : ''}`}>
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 2l4 4-4 4" /></svg>
+                  </span>
+                  {showDetails ? 'Weniger Details' : 'Detaillierte Kostenaufstellung'}
+                  {hasDetailCosts && !showDetails && <span className="piq-margin-toggle-hint">({[shipping > 0 && 'Versand', packaging > 0 && 'Verpackung', customs > 0 && 'Zoll', other > 0 && 'Sonstiges'].filter(Boolean).join(', ')} hinterlegt)</span>}
+                </button>
+              </div>
+
+              {showDetails && (
+                <div className="piq-margin-details">
+                  <div className="piq-margin-details-grid">
+                    <div className="piq-margin-field">
+                      <s-text-field ref={shippingRef} label="Versandkosten (€)" type="number" value={shippingInput} placeholder="0.00" help-text="Kosten für Versand pro Stück" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={packagingRef} label="Verpackung (€)" type="number" value={packagingInput} placeholder="0.00" help-text="Verpackungsmaterial pro Stück" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={customsRef} label="Zoll / Import (€)" type="number" value={customsInput} placeholder="0.00" help-text="Zollgebühren, Importsteuer pro Stück" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={otherRef} label="Sonstige Kosten (€)" type="number" value={otherInput} placeholder="0.00" help-text="Lager, Marketing, Retourenanteil etc." />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={payFeeRef} label="Zahlungsgebühr (%)" type="number" value={payFeeInput} placeholder="2.9" help-text="z.B. Stripe 2,9%, PayPal 2,49%" />
+                    </div>
+                    <div className="piq-margin-field">
+                      <s-text-field ref={vatRef} label="MwSt-Satz (%)" type="number" value={vatInput} placeholder="19" help-text="Standard DE: 19%, ermäßigt: 7%" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Speichern */}
+              <div className="piq-margin-save-row">
+                {hasEk && !costSaved && (
                   <button className="piq-cta piq-cta--primary piq-cta--sm" onClick={() => saveCostsMutation.mutate()} disabled={saveCostsMutation.isPending}>
-                    {saveCostsMutation.isPending ? 'Speichert…' : 'Speichern'}
+                    {saveCostsMutation.isPending ? 'Speichert…' : 'Kosten speichern'}
                   </button>
                 )}
                 {costSaved && <span className="piq-margin-saved-hint">✓ Gespeichert</span>}
               </div>
 
+              {/* Kostenübersicht (zusammengeklappt, aber Summe sichtbar) */}
+              {hasEk && (
+                <div className="piq-margin-cost-summary">
+                  <div className="piq-margin-cost-summary-row">
+                    <span className="piq-margin-cost-summary-lbl">Einkaufspreis</span>
+                    <span className="piq-margin-cost-summary-val">{formatEuro(ek)}</span>
+                  </div>
+                  {shipping > 0 && (
+                    <div className="piq-margin-cost-summary-row">
+                      <span className="piq-margin-cost-summary-lbl">+ Versand</span>
+                      <span className="piq-margin-cost-summary-val">{formatEuro(shipping)}</span>
+                    </div>
+                  )}
+                  {packaging > 0 && (
+                    <div className="piq-margin-cost-summary-row">
+                      <span className="piq-margin-cost-summary-lbl">+ Verpackung</span>
+                      <span className="piq-margin-cost-summary-val">{formatEuro(packaging)}</span>
+                    </div>
+                  )}
+                  {customs > 0 && (
+                    <div className="piq-margin-cost-summary-row">
+                      <span className="piq-margin-cost-summary-lbl">+ Zoll / Import</span>
+                      <span className="piq-margin-cost-summary-val">{formatEuro(customs)}</span>
+                    </div>
+                  )}
+                  {other > 0 && (
+                    <div className="piq-margin-cost-summary-row">
+                      <span className="piq-margin-cost-summary-lbl">+ Sonstiges</span>
+                      <span className="piq-margin-cost-summary-val">{formatEuro(other)}</span>
+                    </div>
+                  )}
+                  {(recommendation ? calcPayFee(recommendedPrice) : calcPayFee(currentPrice)) > 0.30 && (
+                    <div className="piq-margin-cost-summary-row">
+                      <span className="piq-margin-cost-summary-lbl">+ Zahlungsgebühr ({payFeePct}%)</span>
+                      <span className="piq-margin-cost-summary-val">{formatEuro(recommendation ? calcPayFee(recommendedPrice) : calcPayFee(currentPrice))}</span>
+                    </div>
+                  )}
+                  <div className="piq-margin-cost-summary-row piq-margin-cost-summary-row--total">
+                    <span className="piq-margin-cost-summary-lbl">Gesamtkosten pro Stück</span>
+                    <span className="piq-margin-cost-summary-val">{formatEuro(recommendation ? totalCostRec : totalCostCurrent)}</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Vergleich: Aktuell vs Empfohlen */}
               {hasEk && recommendation && (
                 <div className="piq-margin-analysis">
                   <div className="piq-margin-compare">
                     <div className="piq-margin-compare-col">
                       <span className="piq-margin-compare-lbl">Aktueller Preis</span>
                       <span className="piq-margin-compare-price">{formatEuro(currentPrice)}</span>
-                      <span className={`piq-margin-compare-margin ${marginCurrentPct >= 30 ? 'green' : marginCurrentPct >= 15 ? 'amber' : 'red'}`}>
-                        {formatEuro(marginCurrent)} Gewinn ({marginCurrentPct.toFixed(1)}%)
-                      </span>
-                      <span className="piq-margin-compare-roi">ROI: {roiCurrent.toFixed(0)}%</span>
+                      <div className="piq-margin-compare-details">
+                        <div className="piq-margin-kpi">
+                          <span className="piq-margin-kpi-lbl">Brutto-Marge</span>
+                          <span className={`piq-margin-kpi-val ${grossMarginCurrentPct >= 30 ? 'green' : grossMarginCurrentPct >= 15 ? 'amber' : 'red'}`}>
+                            {formatEuro(grossMarginCurrent)} ({grossMarginCurrentPct.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="piq-margin-kpi">
+                          <span className="piq-margin-kpi-lbl">Netto-Gewinn</span>
+                          <span className={`piq-margin-kpi-val ${netProfitCurrent >= 0 ? 'green' : 'red'}`}>
+                            {formatEuro(netProfitCurrent)} ({netProfitCurrentPct.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="piq-margin-kpi">
+                          <span className="piq-margin-kpi-lbl">ROI</span>
+                          <span className="piq-margin-kpi-val">{roiCurrent.toFixed(0)}%</span>
+                        </div>
+                      </div>
                     </div>
                     <div className="piq-margin-compare-arrow">→</div>
                     <div className="piq-margin-compare-col piq-margin-compare-col--rec">
                       <span className="piq-margin-compare-lbl">Empfohlener Preis</span>
                       <span className="piq-margin-compare-price">{formatEuro(recommendedPrice)}</span>
-                      <span className={`piq-margin-compare-margin ${marginRecPct >= 30 ? 'green' : marginRecPct >= 15 ? 'amber' : 'red'}`}>
-                        {formatEuro(marginRec)} Gewinn ({marginRecPct.toFixed(1)}%)
-                      </span>
-                      <span className="piq-margin-compare-roi">ROI: {roiRec.toFixed(0)}%</span>
+                      <div className="piq-margin-compare-details">
+                        <div className="piq-margin-kpi">
+                          <span className="piq-margin-kpi-lbl">Brutto-Marge</span>
+                          <span className={`piq-margin-kpi-val ${grossMarginRecPct >= 30 ? 'green' : grossMarginRecPct >= 15 ? 'amber' : 'red'}`}>
+                            {formatEuro(grossMarginRec)} ({grossMarginRecPct.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="piq-margin-kpi">
+                          <span className="piq-margin-kpi-lbl">Netto-Gewinn</span>
+                          <span className={`piq-margin-kpi-val ${netProfitRec >= 0 ? 'green' : 'red'}`}>
+                            {formatEuro(netProfitRec)} ({netProfitRecPct.toFixed(1)}%)
+                          </span>
+                        </div>
+                        <div className="piq-margin-kpi">
+                          <span className="piq-margin-kpi-lbl">ROI</span>
+                          <span className="piq-margin-kpi-val">{roiRec.toFixed(0)}%</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
@@ -437,14 +597,22 @@ export default function ProductDetailPage() {
                     <div className="piq-margin-insight-item">
                       <span className="piq-margin-insight-icon">🏷️</span>
                       <span className="piq-margin-insight-text">
-                        Netto nach 19% MwSt: {formatEuro(netAfterVat)} Gewinn pro Stück
+                        Netto nach {(vatRate * 100).toFixed(0)}% MwSt: {formatEuro(netProfitRec)} Gewinn pro Stück
                       </span>
                     </div>
                     {breakEvenUnits > 0 && (
                       <div className="piq-margin-insight-item">
                         <span className="piq-margin-insight-icon">⚖️</span>
                         <span className="piq-margin-insight-text">
-                          Ab {breakEvenUnits} verkauften Stück hast du den Einkauf refinanziert
+                          Ab {breakEvenUnits} verkauften Stück hast du alle Kosten refinanziert
+                        </span>
+                      </div>
+                    )}
+                    {(shipping > 0 || packaging > 0 || customs > 0 || other > 0) && (
+                      <div className="piq-margin-insight-item">
+                        <span className="piq-margin-insight-icon">📦</span>
+                        <span className="piq-margin-insight-text">
+                          Nebenkosten machen {formatEuro(shipping + packaging + customs + other)} ({((shipping + packaging + customs + other) / totalCostRec * 100).toFixed(1)}%) deiner Gesamtkosten aus
                         </span>
                       </div>
                     )}
@@ -452,13 +620,20 @@ export default function ProductDetailPage() {
                 </div>
               )}
 
+              {/* Nur aktueller Preis (kein Empfehlung) */}
               {hasEk && !recommendation && (
                 <div className="piq-margin-analysis">
                   <div className="piq-margin-insights">
                     <div className="piq-margin-insight-item">
                       <span className="piq-margin-insight-icon">📊</span>
                       <span className="piq-margin-insight-text">
-                        Aktuelle Marge: {formatEuro(marginCurrent)} ({marginCurrentPct.toFixed(1)}%) pro Stück
+                        Brutto-Marge: {formatEuro(grossMarginCurrent)} ({grossMarginCurrentPct.toFixed(1)}%) pro Stück
+                      </span>
+                    </div>
+                    <div className="piq-margin-insight-item">
+                      <span className="piq-margin-insight-icon">💰</span>
+                      <span className="piq-margin-insight-text">
+                        Netto-Gewinn nach MwSt: {formatEuro(netProfitCurrent)} ({netProfitCurrentPct.toFixed(1)}%)
                       </span>
                     </div>
                     <div className="piq-margin-insight-item">
@@ -509,36 +684,32 @@ export default function ProductDetailPage() {
 
                   <div className="piq-comp-position">
                     <span className="piq-comp-pos-lbl">Deine Marktposition</span>
-                    <div className="piq-comp-pos-track">
-                      {minPrice > 0 && (
-                        <div className="piq-pos-marker piq-pos-marker--cheap" style={{ left: `${cheapPct}%` }}>
-                          <span className="piq-pos-marker-dot" />
-                          <span className="piq-pos-marker-tip">
-                            <span className="piq-pos-marker-label">Günstigster</span>
-                            <span className="piq-pos-marker-price">{formatEuro(minPrice)}</span>
-                          </span>
+                    <div className="piq-comp-bar-container">
+                      <div className="piq-comp-bar-labels-top">
+                        {minPrice > 0 && (
+                          <div className="piq-bar-label piq-bar-label--cheap" style={{ left: `${cheapPct}%` }}>
+                            <span className="piq-bar-label-price">{formatEuro(minPrice)}</span>
+                            <span className="piq-bar-label-name">Günstigster</span>
+                          </div>
+                        )}
+                        <div className="piq-bar-label piq-bar-label--mine" style={{ left: `${myPct}%` }}>
+                          <span className="piq-bar-label-price">{formatEuro(myPrice)}</span>
+                          <span className="piq-bar-label-name">Dein Preis</span>
                         </div>
-                      )}
-                      {competition.avgPrice > 0 && (
-                        <div className="piq-pos-marker piq-pos-marker--avg" style={{ left: `${avgPct}%` }}>
-                          <span className="piq-pos-marker-dot" />
-                          <span className="piq-pos-marker-tip">
-                            <span className="piq-pos-marker-label">Ø Markt</span>
-                            <span className="piq-pos-marker-price">{formatEuro(competition.avgPrice)}</span>
-                          </span>
-                        </div>
-                      )}
-                      <div className="piq-pos-marker piq-pos-marker--mine" style={{ left: `${myPct}%` }}>
-                        <span className="piq-pos-marker-dot" />
-                        <span className="piq-pos-marker-tip">
-                          <span className="piq-pos-marker-label">Dein Preis</span>
-                          <span className="piq-pos-marker-price">{formatEuro(myPrice)}</span>
-                        </span>
                       </div>
-                    </div>
-                    <div className="piq-comp-pos-range">
-                      <span>{formatEuro(barMin)}</span>
-                      <span>{formatEuro(barMax)}</span>
+                      <div className="piq-comp-pos-track">
+                        {minPrice > 0 && <div className="piq-bar-dot piq-bar-dot--cheap" style={{ left: `${cheapPct}%` }} />}
+                        {competition.avgPrice > 0 && <div className="piq-bar-dot piq-bar-dot--avg" style={{ left: `${avgPct}%` }} />}
+                        <div className="piq-bar-dot piq-bar-dot--mine" style={{ left: `${myPct}%` }} />
+                      </div>
+                      <div className="piq-comp-bar-labels-bottom">
+                        {competition.avgPrice > 0 && (
+                          <div className="piq-bar-label piq-bar-label--avg" style={{ left: `${avgPct}%` }}>
+                            <span className="piq-bar-label-name">Ø Markt</span>
+                            <span className="piq-bar-label-price">{formatEuro(competition.avgPrice)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
 
