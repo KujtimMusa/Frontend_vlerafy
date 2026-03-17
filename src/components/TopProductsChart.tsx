@@ -11,6 +11,8 @@ interface Recommendation {
   confidence: number;
   strategy: string;
   applied_at: string | null;
+  sales_30d?: number | null;
+  sales_7d?: number | null;
 }
 
 interface TopRecommendationsProps {
@@ -33,10 +35,7 @@ function ConfidenceDots({ value }: { value: number }) {
     <div className="piq-conf-wrap" title={`${pct}% Konfidenz`}>
       <div className="piq-conf-dots">
         {[0, 1, 2, 3, 4].map((i) => (
-          <span
-            key={i}
-            className={`piq-conf-dot${i < filled ? ' piq-conf-dot--filled' : ''}`}
-          />
+          <span key={i} className={`piq-conf-dot${i < filled ? ' piq-conf-dot--filled' : ''}`} />
         ))}
       </div>
       <span className="piq-conf-pct">{pct}%</span>
@@ -44,31 +43,54 @@ function ConfidenceDots({ value }: { value: number }) {
   );
 }
 
-const truncate = (s: string, max = 28) =>
+const truncate = (s: string, max = 30) =>
   s.length > max ? s.slice(0, max) + '…' : s;
 
 const strategyLabel: Record<string, string> = {
   demand_pricing: 'Nachfrage',
+  demand_inventory_signal: 'Nachfrage-Signal',
   competitive_pricing: 'Wettbewerb',
   margin_optimization: 'Marge',
   inventory_clearance: 'Abverkauf',
+  inventory_normal_no_sales: 'Lager-Optimierung',
   premium_pricing: 'Premium',
   psychological_pricing: 'Psycho-Preis',
+  ML_OPTIMIZED_CONSTRAINED: 'KI-optimiert',
+  ml_optimized: 'KI-optimiert',
 };
+
+function readableStrategy(raw: string): string {
+  if (strategyLabel[raw]) return strategyLabel[raw];
+  return raw.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function monthlyPotential(rec: Recommendation): number {
+  const diff = rec.recommended_price - rec.current_price;
+  if (rec.sales_30d && rec.sales_30d > 0) return rec.sales_30d * diff;
+  if (rec.sales_7d && rec.sales_7d > 0) return (rec.sales_7d / 7) * 30 * diff;
+  return 5 * diff;
+}
 
 export function TopRecommendations({ recommendations, suffix = '' }: TopRecommendationsProps) {
   const router = useRouter();
 
-  const pending = recommendations
-    .filter((r) => r.applied_at == null)
-    .map((r) => {
-      const diff = r.recommended_price - r.current_price;
-      return { ...r, diff, absDiff: Math.abs(diff) };
-    })
-    .sort((a, b) => b.absDiff - a.absDiff)
+  const pending = recommendations.filter((r) => r.applied_at == null);
+
+  // Deduplizieren: nur eine Empfehlung pro Produkt (höchstes absolutes Monatspotenzial)
+  const byProduct = new Map<number, Recommendation & { monthly: number }>();
+  for (const r of pending) {
+    const monthly = monthlyPotential(r);
+    const existing = byProduct.get(r.product_id);
+    if (!existing || Math.abs(monthly) > Math.abs(existing.monthly)) {
+      byProduct.set(r.product_id, { ...r, monthly });
+    }
+  }
+
+  const top5 = Array.from(byProduct.values())
+    .sort((a, b) => Math.abs(b.monthly) - Math.abs(a.monthly))
     .slice(0, 5);
 
-  if (pending.length === 0) {
+  if (top5.length === 0) {
     return (
       <div className="piq-toprec-empty">
         <div className="piq-toprec-empty-title">Keine offenen Empfehlungen</div>
@@ -81,12 +103,10 @@ export function TopRecommendations({ recommendations, suffix = '' }: TopRecommen
 
   return (
     <div className="piq-toprec-list">
-      {pending.map((rec, idx) => {
-        const isUp = rec.diff > 0;
-        const changePct = rec.current_price > 0
-          ? ((rec.diff / rec.current_price) * 100).toFixed(1)
-          : '0';
-        const label = strategyLabel[rec.strategy] ?? rec.strategy;
+      {top5.map((rec, idx) => {
+        const isPositive = rec.monthly > 0;
+        const monthlyAbs = Math.abs(rec.monthly);
+        const label = readableStrategy(rec.strategy);
 
         return (
           <div
@@ -106,20 +126,12 @@ export function TopRecommendations({ recommendations, suffix = '' }: TopRecommen
               <div className="piq-toprec-strat">{label}</div>
             </div>
 
-            {/* Price: current → recommended */}
-            <div className="piq-toprec-prices">
-              <span className="piq-toprec-cur">
-                {rec.current_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
+            {/* Monthly Potential */}
+            <div className={`piq-toprec-monthly${isPositive ? ' piq-toprec-monthly--up' : ' piq-toprec-monthly--down'}`}>
+              <span className="piq-toprec-monthly-val">
+                {isPositive ? '+' : '-'}€{monthlyAbs.toLocaleString('de-DE', { maximumFractionDigits: 0 })}
               </span>
-              <span className="piq-toprec-arrow">→</span>
-              <span className={`piq-toprec-rec${isUp ? ' piq-toprec-rec--up' : ' piq-toprec-rec--down'}`}>
-                {rec.recommended_price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €
-              </span>
-            </div>
-
-            {/* Change badge */}
-            <div className={`piq-toprec-change${isUp ? ' piq-toprec-change--up' : ' piq-toprec-change--down'}`}>
-              {isUp ? '↑' : '↓'} {changePct}%
+              <span className="piq-toprec-monthly-lbl">/ Monat</span>
             </div>
 
             {/* Confidence */}

@@ -198,10 +198,12 @@ export default function DashboardPage() {
             <div className="piq-chart-header">
               <div className="piq-chart-title">Top Empfehlungen</div>
               <span className="piq-chart-badge">
-                {recsData!.recommendations.filter(
-                  (r: { applied_at: string | null }) => r.applied_at == null
-                ).length}{' '}
-                offen
+                {new Set(
+                  recsData!.recommendations
+                    .filter((r: { applied_at: string | null }) => r.applied_at == null)
+                    .map((r: { product_id: number }) => r.product_id)
+                ).size}{' '}
+                Produkte
               </span>
             </div>
             <TopRecommendations
