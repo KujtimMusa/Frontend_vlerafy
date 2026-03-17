@@ -75,21 +75,6 @@ export default function ProductDetailPage() {
   const [chatLoading, setChatLoading] = useState(false);
   const chatBottomRef = useRef<HTMLDivElement>(null);
 
-  const costRef = useRef<HTMLElement>(null);
-  const inboundShipRef = useRef<HTMLElement>(null);
-  const customsRef2 = useRef<HTMLElement>(null);
-  const packagingRef = useRef<HTMLElement>(null);
-  const outboundShipRef = useRef<HTMLElement>(null);
-  const fulfillmentRef = useRef<HTMLElement>(null);
-  const payFeePctRef = useRef<HTMLElement>(null);
-  const payFeeFixRef = useRef<HTMLElement>(null);
-  const platformFeePctRef = useRef<HTMLElement>(null);
-  const storageRef = useRef<HTMLElement>(null);
-  const marketingRef = useRef<HTMLElement>(null);
-  const returnRateRef = useRef<HTMLElement>(null);
-  const otherRef = useRef<HTMLElement>(null);
-  const vatRef = useRef<HTMLElement>(null);
-  const chatFieldRef = useRef<HTMLElement>(null);
 
   const { data: products = [] } = useQuery({ queryKey: ['products'], queryFn: () => fetchProducts() });
   const product = products.find((p) => p.id === productId);
@@ -186,58 +171,18 @@ export default function ProductDetailPage() {
     onError: () => showToast('Competitor Search fehlgeschlagen', { isError: true }),
   });
 
-  useEffect(() => {
-    const cleanups: Array<() => void> = [];
-    const bind = (ref: React.RefObject<HTMLElement | null>, handler: (v: string) => void) => {
-      const el = ref.current;
-      if (!el) return;
-      const cb = (e: Event) => {
-        const path = e.composedPath?.() ?? [];
-        const inner = path[0] as HTMLInputElement | undefined;
-        const v = inner?.value
-          ?? (e.target as HTMLInputElement)?.value
-          ?? (el as unknown as HTMLInputElement).value
-          ?? (e as CustomEvent)?.detail
-          ?? '';
-        handler(String(v));
-      };
-      el.addEventListener('change', cb);
-      el.addEventListener('input', cb);
-      cleanups.push(() => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); });
-    };
-    const dirty = (setter: (v: string) => void) => (v: string) => { setter(v); setCostSaved(false); };
-    bind(costRef, dirty(setCostInput));
-    bind(inboundShipRef, dirty(setInboundShipInput));
-    bind(customsRef2, dirty(setCustomsInput));
-    bind(packagingRef, dirty(setPackagingInput));
-    bind(outboundShipRef, dirty(setOutboundShipInput));
-    bind(fulfillmentRef, dirty(setFulfillmentInput));
-    bind(payFeePctRef, dirty(setPayFeePctInput));
-    bind(payFeeFixRef, dirty(setPayFeeFixInput));
-    bind(platformFeePctRef, dirty(setPlatformFeePctInput));
-    bind(storageRef, dirty(setStorageInput));
-    bind(marketingRef, dirty(setMarketingInput));
-    bind(returnRateRef, dirty(setReturnRateInput));
-    bind(otherRef, dirty(setOtherInput));
-    bind(vatRef, dirty(setVatInput));
-    return () => cleanups.forEach(fn => fn());
-  }, []);
+  const handleCostChange = (setter: (v: string) => void) => (e: unknown) => {
+    const evt = e as { target?: { value?: string }; detail?: string };
+    const val = evt.target?.value ?? evt.detail ?? '';
+    setter(String(val));
+    setCostSaved(false);
+  };
 
-  useEffect(() => {
-    const el = chatFieldRef.current;
-    if (!el) return;
-    const cb = (e: Event) => {
-      const path = e.composedPath?.() ?? [];
-      const inner = path[0] as HTMLInputElement | undefined;
-      const v = inner?.value ?? (e.target as HTMLInputElement)?.value ?? (el as unknown as HTMLInputElement).value ?? (e as CustomEvent)?.detail ?? '';
-      setChatInput(String(v));
-    };
-    el.addEventListener('change', cb);
-    el.addEventListener('input', cb);
-    const keyHandler = (e: Event) => { if ((e as KeyboardEvent).key === 'Enter') document.getElementById('piq-chat-send')?.click(); };
-    el.addEventListener('keydown', keyHandler);
-    return () => { el.removeEventListener('change', cb); el.removeEventListener('input', cb); el.removeEventListener('keydown', keyHandler); };
-  }, [aiExplanation, chatMessages.length]);
+  const handleChatFieldChange = (e: unknown) => {
+    const evt = e as { target?: { value?: string }; detail?: string };
+    const val = evt.target?.value ?? evt.detail ?? '';
+    setChatInput(String(val));
+  };
 
   const handleAiExplain = async () => {
     if (!recommendation) return;
@@ -500,7 +445,7 @@ export default function ProductDetailPage() {
                       )}
 
                       <div className="piq-ai-input">
-                        <s-text-field ref={chatFieldRef} label="" placeholder="Frag die KI z.B. 'Warum so ein großer Unterschied?'" value={chatInput} />
+                        <s-text-field label="" placeholder="Frag die KI z.B. 'Warum so ein großer Unterschied?'" value={chatInput} onChange={handleChatFieldChange} onInput={handleChatFieldChange} onKeyDown={(e: unknown) => { if ((e as KeyboardEvent).key === 'Enter') document.getElementById('piq-chat-send')?.click(); }} />
                         <button id="piq-chat-send" className="piq-cta piq-cta--primary piq-cta--sm" onClick={handleChatSend} disabled={!chatInput.trim() || chatLoading}>
                           {chatLoading ? '…' : 'Senden'}
                         </button>
@@ -533,7 +478,7 @@ export default function ProductDetailPage() {
 
               <div className="piq-margin-input-row">
                 <div className="piq-margin-input-wrap piq-margin-input-wrap--wide">
-                  <s-text-field ref={costRef} label="Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" help-text="Netto-Einkaufspreis pro Stück ohne Nebenkosten" />
+                  <s-text-field label="Einkaufspreis (netto, €)" type="number" value={costInput} placeholder="z.B. 120.00" help-text="Netto-Einkaufspreis pro Stück ohne Nebenkosten" onChange={handleCostChange(setCostInput)} onInput={handleCostChange(setCostInput)} />
                 </div>
               </div>
 
@@ -546,20 +491,20 @@ export default function ProductDetailPage() {
                 </button>
               </div>
 
-              {/* Detail-Felder: IMMER im DOM (CSS toggle), damit Refs korrekt binden */}
+              {/* Detail-Felder */}
               <div className="piq-margin-details" style={{ display: showDetails ? 'block' : 'none' }}>
 
                 <div className="piq-margin-group">
                   <span className="piq-margin-group-lbl">Warenbezug</span>
                   <div className="piq-margin-details-grid">
                     <div className="piq-margin-field">
-                      <s-text-field ref={inboundShipRef} label="Fracht zum Lager (€)" type="number" value={inboundShipInput} placeholder="0.00" help-text="Transport vom Lieferanten zu deinem Lager, pro Stück" />
+                      <s-text-field label="Fracht zum Lager (€)" type="number" value={inboundShipInput} placeholder="0.00" help-text="Transport vom Lieferanten zu deinem Lager, pro Stück" onChange={handleCostChange(setInboundShipInput)} onInput={handleCostChange(setInboundShipInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={customsRef2} label="Zoll & Einfuhrumsatzsteuer (€)" type="number" value={customsInput} placeholder="0.00" help-text="Zollgebühren + Einfuhrumsatzsteuer pro Stück" />
+                      <s-text-field label="Zoll & Einfuhrumsatzsteuer (€)" type="number" value={customsInput} placeholder="0.00" help-text="Zollgebühren + Einfuhrumsatzsteuer pro Stück" onChange={handleCostChange(setCustomsInput)} onInput={handleCostChange(setCustomsInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={packagingRef} label="Verpackungsmaterial (€)" type="number" value={packagingInput} placeholder="0.00" help-text="Karton, Füllmaterial, Klebeband pro Stück" />
+                      <s-text-field label="Verpackungsmaterial (€)" type="number" value={packagingInput} placeholder="0.00" help-text="Karton, Füllmaterial, Klebeband pro Stück" onChange={handleCostChange(setPackagingInput)} onInput={handleCostChange(setPackagingInput)} />
                     </div>
                   </div>
                 </div>
@@ -568,10 +513,10 @@ export default function ProductDetailPage() {
                   <span className="piq-margin-group-lbl">Versand & Fulfillment</span>
                   <div className="piq-margin-details-grid">
                     <div className="piq-margin-field">
-                      <s-text-field ref={outboundShipRef} label="Versand an Kunden (€)" type="number" value={outboundShipInput} placeholder="0.00" help-text="Versandkosten pro Paket an den Endkunden" />
+                      <s-text-field label="Versand an Kunden (€)" type="number" value={outboundShipInput} placeholder="0.00" help-text="Versandkosten pro Paket an den Endkunden" onChange={handleCostChange(setOutboundShipInput)} onInput={handleCostChange(setOutboundShipInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={fulfillmentRef} label="Fulfillment / Handling (€)" type="number" value={fulfillmentInput} placeholder="0.00" help-text="Picking, Packing, Labeling pro Bestellung" />
+                      <s-text-field label="Fulfillment / Handling (€)" type="number" value={fulfillmentInput} placeholder="0.00" help-text="Picking, Packing, Labeling pro Bestellung" onChange={handleCostChange(setFulfillmentInput)} onInput={handleCostChange(setFulfillmentInput)} />
                     </div>
                   </div>
                 </div>
@@ -580,13 +525,13 @@ export default function ProductDetailPage() {
                   <span className="piq-margin-group-lbl">Gebühren & Transaktionen</span>
                   <div className="piq-margin-details-grid">
                     <div className="piq-margin-field">
-                      <s-text-field ref={payFeePctRef} label="Zahlungsgebühr (%)" type="number" value={payFeePctInput} placeholder="2.9" help-text="Stripe: 2,9%, PayPal: 2,49%, Klarna: 2,99%" />
+                      <s-text-field label="Zahlungsgebühr (%)" type="number" value={payFeePctInput} placeholder="2.9" help-text="Stripe: 2,9%, PayPal: 2,49%, Klarna: 2,99%" onChange={handleCostChange(setPayFeePctInput)} onInput={handleCostChange(setPayFeePctInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={payFeeFixRef} label="Zahlungsgebühr fix (€)" type="number" value={payFeeFixInput} placeholder="0.30" help-text="Fixbetrag pro Transaktion (z.B. 0,30 €)" />
+                      <s-text-field label="Zahlungsgebühr fix (€)" type="number" value={payFeeFixInput} placeholder="0.30" help-text="Fixbetrag pro Transaktion (z.B. 0,30 €)" onChange={handleCostChange(setPayFeeFixInput)} onInput={handleCostChange(setPayFeeFixInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={platformFeePctRef} label="Shopify/Plattform-Gebühr (%)" type="number" value={platformFeePctInput} placeholder="0" help-text="Shopify Payments: 0%, Basic Plan Transaction Fee: 2%" />
+                      <s-text-field label="Shopify/Plattform-Gebühr (%)" type="number" value={platformFeePctInput} placeholder="0" help-text="Shopify Payments: 0%, Basic Plan Transaction Fee: 2%" onChange={handleCostChange(setPlatformFeePctInput)} onInput={handleCostChange(setPlatformFeePctInput)} />
                     </div>
                   </div>
                 </div>
@@ -595,16 +540,16 @@ export default function ProductDetailPage() {
                   <span className="piq-margin-group-lbl">Betrieb & Marketing</span>
                   <div className="piq-margin-details-grid">
                     <div className="piq-margin-field">
-                      <s-text-field ref={storageRef} label="Lagerkosten (€/Stück)" type="number" value={storageInput} placeholder="0.00" help-text="Anteilige Lagermiete, Strom etc. pro Stück" />
+                      <s-text-field label="Lagerkosten (€/Stück)" type="number" value={storageInput} placeholder="0.00" help-text="Anteilige Lagermiete, Strom etc. pro Stück" onChange={handleCostChange(setStorageInput)} onInput={handleCostChange(setStorageInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={marketingRef} label="Marketing (€/Stück)" type="number" value={marketingInput} placeholder="0.00" help-text="Werbekosten pro verkauftem Stück (CAC)" />
+                      <s-text-field label="Marketing (€/Stück)" type="number" value={marketingInput} placeholder="0.00" help-text="Werbekosten pro verkauftem Stück (CAC)" onChange={handleCostChange(setMarketingInput)} onInput={handleCostChange(setMarketingInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={returnRateRef} label="Retourenquote (%)" type="number" value={returnRateInput} placeholder="0" help-text="Erwartete Rücksendequote – erhöht effektive Kosten pro Sale" />
+                      <s-text-field label="Retourenquote (%)" type="number" value={returnRateInput} placeholder="0" help-text="Erwartete Rücksendequote – erhöht effektive Kosten pro Sale" onChange={handleCostChange(setReturnRateInput)} onInput={handleCostChange(setReturnRateInput)} />
                     </div>
                     <div className="piq-margin-field">
-                      <s-text-field ref={otherRef} label="Sonstige Kosten (€)" type="number" value={otherInput} placeholder="0.00" help-text="Kundenservice, Garantie, sonstige Fixkosten pro Stück" />
+                      <s-text-field label="Sonstige Kosten (€)" type="number" value={otherInput} placeholder="0.00" help-text="Kundenservice, Garantie, sonstige Fixkosten pro Stück" onChange={handleCostChange(setOtherInput)} onInput={handleCostChange(setOtherInput)} />
                     </div>
                   </div>
                 </div>
@@ -613,7 +558,7 @@ export default function ProductDetailPage() {
                   <span className="piq-margin-group-lbl">Steuern</span>
                   <div className="piq-margin-details-grid">
                     <div className="piq-margin-field">
-                      <s-text-field ref={vatRef} label="MwSt-Satz (%)" type="number" value={vatInput} placeholder="19" help-text="Deutschland: 19% (Standard) oder 7% (ermäßigt)" />
+                      <s-text-field label="MwSt-Satz (%)" type="number" value={vatInput} placeholder="19" help-text="Deutschland: 19% (Standard) oder 7% (ermäßigt)" onChange={handleCostChange(setVatInput)} onInput={handleCostChange(setVatInput)} />
                     </div>
                   </div>
                 </div>
