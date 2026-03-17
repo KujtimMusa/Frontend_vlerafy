@@ -192,8 +192,13 @@ export default function ProductDetailPage() {
       const el = ref.current;
       if (!el) return;
       const cb = (e: Event) => {
-        const t = e.target as HTMLInputElement;
-        const v = t?.value ?? (e as CustomEvent)?.detail ?? '';
+        const path = e.composedPath?.() ?? [];
+        const inner = path[0] as HTMLInputElement | undefined;
+        const v = inner?.value
+          ?? (e.target as HTMLInputElement)?.value
+          ?? (el as unknown as HTMLInputElement).value
+          ?? (e as CustomEvent)?.detail
+          ?? '';
         handler(String(v));
       };
       el.addEventListener('change', cb);
@@ -515,7 +520,7 @@ export default function ProductDetailPage() {
                   <span className={`piq-margin-toggle-chevron ${showDetails ? 'piq-margin-toggle-chevron--open' : ''}`}>
                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="M4 2l4 4-4 4" /></svg>
                   </span>
-                  {showDetails ? 'Weniger Details' : 'Alle Kosten aufschlüsseln'}
+                  {showDetails ? 'Details ausblenden' : 'Erweiterte Details'}
                 </button>
               </div>
 

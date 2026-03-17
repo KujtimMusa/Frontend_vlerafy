@@ -54,7 +54,9 @@ export default function ProductsPage() {
     const el = searchRef.current;
     if (!el) return;
     const handler = (e: Event) => {
-      const v = (e.target as HTMLInputElement)?.value ?? (e as CustomEvent)?.detail ?? '';
+      const path = e.composedPath?.() ?? [];
+      const inner = path[0] as HTMLInputElement | undefined;
+      const v = inner?.value ?? (e.target as HTMLInputElement)?.value ?? (el as unknown as HTMLInputElement).value ?? (e as CustomEvent)?.detail ?? '';
       setSearchQuery(String(v));
     };
     el.addEventListener('change', handler);
