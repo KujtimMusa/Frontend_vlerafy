@@ -40,6 +40,14 @@ function useShopSuffix(): string {
   return q ? `?${q}` : '';
 }
 
+function RevenueIcon() {
+  return (
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#059669" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2v15M14 6.5c0-1.2-.9-2.2-2.2-2.2H7.5a2.2 2.2 0 0 0 0 4.4h4a2.2 2.2 0 0 1 0 4.4H6" />
+    </svg>
+  );
+}
+
 function PendingIcon() {
   return (
     <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#d97706" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
@@ -121,16 +129,13 @@ export default function DashboardPage() {
 
           {/* Card 1: Möglicher mehr Umsatz */}
           <div className="piq-hero-card">
-            <div className="piq-hero-top">
-              <s-badge tone="success">Aktiv</s-badge>
+            <div className="piq-hero-icon">
+              <RevenueIcon />
             </div>
             <div className="piq-hero-lbl">Möglicher mehr Umsatz (monatlich)</div>
             <div className="piq-hero-val">{revenueFormatted}</div>
             <div className="piq-hero-sub">
-              <div className="piq-hero-sub-item">
-                <div className="piq-hero-sub-dot" />
-                <span>{affectedCount} von {totalCount} Produkten optimierbar</span>
-              </div>
+              {affectedCount} von {totalCount} Produkten optimierbar
             </div>
             <div className="piq-kc-prog piq-kc-prog--bottom">
               <div className="piq-kc-prog-row">
