@@ -10,11 +10,13 @@ import {
   syncProductsFromShopify,
 } from '@/lib/api';
 
+type FilterTab = 'all' | 'recommended' | 'no-stock';
+
 function useShopSuffix(): string {
   const searchParams = useSearchParams();
-  const shop   = searchParams.get('shop')     ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain')      : null) ?? '';
-  const host   = searchParams.get('host')     ?? (typeof window !== 'undefined' ? localStorage.getItem('shopify_host')     : null) ?? '';
-  const shopId = searchParams.get('shop_id') ?? (typeof window !== 'undefined' ? localStorage.getItem('current_shop_id')  : null) ?? '';
+  const shop    = searchParams.get('shop')     ?? (typeof window !== 'undefined' ? localStorage.getItem('shop_domain')      : null) ?? '';
+  const host    = searchParams.get('host')     ?? (typeof window !== 'undefined' ? localStorage.getItem('shopify_host')     : null) ?? '';
+  const shopId  = searchParams.get('shop_id') ?? (typeof window !== 'undefined' ? localStorage.getItem('current_shop_id')  : null) ?? '';
   const idToken = searchParams.get('id_token') ?? '';
   const p = new URLSearchParams();
   if (shop)    p.set('shop',     shop);
@@ -22,45 +24,6 @@ function useShopSuffix(): string {
   if (shopId)  p.set('shop_id',  shopId);
   if (idToken) p.set('id_token', idToken);
   return p.toString() ? `?${p.toString()}` : '';
-}
-
-function TotalIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#2d6bc4" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="6" height="6" rx="1.5" />
-      <rect x="10" y="2" width="6" height="6" rx="1.5" />
-      <rect x="2" y="10" width="6" height="6" rx="1.5" />
-      <rect x="10" y="10" width="6" height="6" rx="1.5" />
-    </svg>
-  );
-}
-
-function RecommendIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#d97706" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 1.5v15M12.5 5.5c0-1.1-.9-2-2-2H7.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H6" />
-    </svg>
-  );
-}
-
-function StockIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#dc2626" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 3h3l2 9h7l1.5-6H6.5" />
-      <circle cx="9" cy="15.5" r="1" />
-      <circle cx="14" cy="15.5" r="1" />
-      <path d="M1.5 1.5l15 15" />
-    </svg>
-  );
-}
-
-function RevenueIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 13l4-5 4 3.5 4-7.5" />
-      <circle cx="15" cy="3.5" r="1.5" fill="#059669" stroke="none" />
-    </svg>
-  );
 }
 
 function ArrowRightIcon() {
@@ -71,56 +34,53 @@ function ArrowRightIcon() {
   );
 }
 
-function SyncIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11 2.5A5.5 5.5 0 0 0 2 7" />
-      <path d="M2 10.5A5.5 5.5 0 0 0 11 6" />
-      <path d="M11 0.5v2h-2" />
-      <path d="M2 12.5v-2h2" />
-    </svg>
-  );
-}
-
 export default function ProductsPage() {
-  const router = useRouter();
-  const queryClient = useQueryClient();
-  const suffix = useShopSuffix();
+  const router       = useRouter();
+  const queryClient  = useQueryClient();
+  const suffix       = useShopSuffix();
   const autoSyncDone = useRef(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab,   setActiveTab  ] = useState<FilterTab>('all');
 
   const { data: products = [], isLoading } = useQuery({
     queryKey: ['products'],
-    queryFn: () => fetchProducts(),
+    queryFn:  () => fetchProducts(),
   });
   const { data: stats } = useQuery({
     queryKey: ['dashboard-stats'],
-    queryFn: getDashboardStats,
+    queryFn:  getDashboardStats,
   });
   const { data: recsData } = useQuery({
     queryKey: ['recommendations-list'],
-    queryFn: () => getRecommendationsList('all'),
+    queryFn:  () => getRecommendationsList('all'),
   });
   const syncMutation = useMutation({
     mutationFn: syncProductsFromShopify,
-    onSuccess: () => {
+    onSuccess:  () => {
       queryClient.invalidateQueries({ queryKey: ['products'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
       queryClient.invalidateQueries({ queryKey: ['recommendations-list'] });
     },
   });
 
-  const productIdsWithRec = new Set((recsData?.recommendations ?? []).map((r) => r.product_id));
-  const filteredProducts  = (products ?? []).filter((p) =>
-    p.title.toLowerCase().includes(searchQuery.toLowerCase())
+  const productIdsWithRec = new Set(
+    (recsData?.recommendations ?? []).map((r) => r.product_id)
   );
 
-  const totalProducts      = stats?.products_count ?? products.length;
-  const withRecommendation = stats?.products_with_recommendations ?? productIdsWithRec.size;
+  /* ── Derived counts (für Tabs) ── */
+  const totalProducts      = products.length || (stats?.products_count ?? 0);
+  const withRecommendation = productIdsWithRec.size || (stats?.products_with_recommendations ?? 0);
   const noStock            = (products ?? []).filter((p) => (p.inventory ?? 0) === 0).length;
-  const potentialRevenue   = stats?.missed_revenue?.total ?? 0;
-  const revenue            = `+€${Math.abs(potentialRevenue).toLocaleString('de-DE', { maximumFractionDigits: 0 })}`;
-  const recPercent         = totalProducts > 0 ? Math.round((withRecommendation / totalProducts) * 100) : 0;
+
+  /* ── Filter: zuerst Tab, dann Suche ── */
+  const tabFiltered = (products ?? []).filter((p) => {
+    if (activeTab === 'recommended') return productIdsWithRec.has(p.id);
+    if (activeTab === 'no-stock')    return (p.inventory ?? 0) === 0;
+    return true;
+  });
+  const filteredProducts = tabFiltered.filter((p) =>
+    p.title.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   useEffect(() => {
     if (
@@ -137,8 +97,7 @@ export default function ProductsPage() {
 
   const handleSync       = () => syncMutation.mutate();
   const handleAnalyzeAll = () => router.push(`/dashboard/pricing${suffix}`);
-
-  const backAction = JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix });
+  const backAction       = JSON.stringify({ content: 'Übersicht', url: '/dashboard' + suffix });
 
   /* ── Loading ── */
   if (isLoading) {
@@ -153,7 +112,7 @@ export default function ProductsPage() {
     );
   }
 
-  /* ── Empty State ── */
+  /* ── Empty State (keine Produkte im Shop) ── */
   if (products.length === 0 && !syncMutation.isPending) {
     return (
       <s-page title="Produkte" back-action={backAction}>
@@ -190,70 +149,57 @@ export default function ProductsPage() {
           </s-banner>
         )}
 
-        {/* ── Header Bar ── */}
-        <div className="piq-prod-header">
-          <div className="piq-prod-stats">
-            <span className="piq-prod-stat">{totalProducts} Produkte</span>
-            <span className="piq-prod-stat-sep">·</span>
-            <span className="piq-prod-stat piq-prod-stat--amber">{withRecommendation} mit Empfehlung</span>
-            {noStock > 0 && (
-              <>
-                <span className="piq-prod-stat-sep">·</span>
-                <span className="piq-prod-stat" style={{ color: 'var(--red)' }}>{noStock} kein Lager</span>
-              </>
-            )}
-          </div>
-          <div className="piq-prod-actions">
-            <s-button variant="secondary" size="slim" onClick={handleAnalyzeAll}>
-              Alle analysieren
-            </s-button>
-            <s-button
-              variant="primary"
-              size="slim"
-              onClick={handleSync}
-              disabled={syncMutation.isPending}
-              loading={syncMutation.isPending}
-            >
-              Synchronisieren
-            </s-button>
-          </div>
-        </div>
-
-        {/* ── KPI Strip — 4 Cards ── */}
-        <div className="piq-kpi piq-kpi--4col">
-
-          <div className="piq-kc piq-kc--navy">
-            <div className="piq-kc-icon piq-kc-icon--navy"><TotalIcon /></div>
-            <div className="piq-kc-lbl">Produkte gesamt</div>
-            <div className="piq-kc-val">{totalProducts}</div>
-            <div className="piq-kc-sub">synchronisierte Artikel</div>
-          </div>
-
-          <div className="piq-kc piq-kc--amber">
-            <div className="piq-kc-icon piq-kc-icon--amber"><RecommendIcon /></div>
-            <div className="piq-kc-lbl">Mit Empfehlung</div>
-            <div className="piq-kc-val piq-kc-val--amber">{withRecommendation}</div>
-            <div className="piq-kc-sub">{recPercent}% aller Produkte</div>
-          </div>
-
-          <div className="piq-kc piq-kc--red">
-            <div className="piq-kc-icon piq-kc-icon--red"><StockIcon /></div>
-            <div className="piq-kc-lbl">Kein Lagerbestand</div>
-            <div className="piq-kc-val" style={{ color: 'var(--red)' }}>{noStock}</div>
-            <div className="piq-kc-sub">Produkte prüfen</div>
-          </div>
-
-          <div className="piq-kc piq-kc--green">
-            <div className="piq-kc-icon piq-kc-icon--green"><RevenueIcon /></div>
-            <div className="piq-kc-lbl">Möglicher Mehrumsatz</div>
-            <div className="piq-kc-val" style={{ color: 'var(--green)' }}>{revenue}</div>
-            <div className="piq-kc-sub">bei Umsetzung aller Empfehlungen</div>
-          </div>
-
-        </div>
-
-        {/* ── Tabelle ── */}
+        {/* ══ TABELLE mit integrierter Tab-Navigation + Actions ══ */}
         <div className="piq-table-card">
+
+          {/* ── Tab-Bar: Tabs links, Actions rechts ── */}
+          <div className="piq-tab-bar">
+            <div className="piq-tabs" role="tablist">
+              <button
+                role="tab"
+                aria-selected={activeTab === 'all'}
+                className={`piq-tab${activeTab === 'all' ? ' piq-tab--active' : ''}`}
+                onClick={() => setActiveTab('all')}
+              >
+                Alle
+                <span className="piq-tab-badge">{totalProducts}</span>
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === 'recommended'}
+                className={`piq-tab${activeTab === 'recommended' ? ' piq-tab--active' : ''}`}
+                onClick={() => setActiveTab('recommended')}
+              >
+                Mit Empfehlung
+                <span className="piq-tab-badge piq-tab-badge--amber">{withRecommendation}</span>
+              </button>
+              <button
+                role="tab"
+                aria-selected={activeTab === 'no-stock'}
+                className={`piq-tab${activeTab === 'no-stock' ? ' piq-tab--active' : ''}`}
+                onClick={() => setActiveTab('no-stock')}
+              >
+                Kein Lagerbestand
+                <span className="piq-tab-badge piq-tab-badge--red">{noStock}</span>
+              </button>
+            </div>
+            <div className="piq-tab-actions">
+              <s-button
+                variant="secondary"
+                size="slim"
+                onClick={handleSync}
+                disabled={syncMutation.isPending}
+                loading={syncMutation.isPending}
+              >
+                Synchronisieren
+              </s-button>
+              <s-button variant="primary" size="slim" onClick={handleAnalyzeAll}>
+                Alle Empfehlungen
+              </s-button>
+            </div>
+          </div>
+
+          {/* ── Suchfeld + Anzahl ── */}
           <div className="piq-table-toolbar">
             <div className="piq-table-search">
               <span className="piq-table-search-icon" aria-hidden="true">
@@ -273,14 +219,15 @@ export default function ProductsPage() {
             <span className="piq-table-count">{filteredProducts.length} Produkte</span>
           </div>
 
+          {/* ── Tabelle ── */}
           <div style={{ overflowX: 'auto' }}>
             <table className="piq-table">
               <thead>
                 <tr>
                   <th>Produkt</th>
-                  <th>Preis</th>
-                  <th>Lagerbestand</th>
-                  <th>Empfehlung</th>
+                  <th style={{ textAlign: 'right' }}>Preis</th>
+                  <th style={{ textAlign: 'center' }}>Lagerbestand</th>
+                  <th style={{ textAlign: 'center' }}>Empfehlung</th>
                   <th></th>
                 </tr>
               </thead>
@@ -289,9 +236,28 @@ export default function ProductsPage() {
                   <tr>
                     <td colSpan={5}>
                       <div className="piq-table-empty">
-                        <div className="piq-table-empty-icon">🔍</div>
-                        <s-paragraph>Keine Ergebnisse für &bdquo;{searchQuery}&ldquo;</s-paragraph>
-                        <s-paragraph tone="subdued">Versuche einen anderen Suchbegriff.</s-paragraph>
+                        <div className="piq-table-empty-icon">
+                          {activeTab === 'no-stock' ? '📦' : '🔍'}
+                        </div>
+                        <s-paragraph>
+                          {activeTab === 'recommended'
+                            ? 'Keine Produkte mit ausstehenden Empfehlungen.'
+                            : activeTab === 'no-stock'
+                            ? 'Alle Produkte haben Lagerbestand.'
+                            : searchQuery
+                            ? `Keine Ergebnisse für „${searchQuery}"`
+                            : 'Keine Produkte gefunden.'}
+                        </s-paragraph>
+                        {activeTab === 'all' && searchQuery && (
+                          <s-paragraph tone="subdued">Versuche einen anderen Suchbegriff.</s-paragraph>
+                        )}
+                        {activeTab === 'all' && !searchQuery && (
+                          <div style={{ marginTop: 12 }}>
+                            <s-button variant="primary" size="slim" onClick={handleSync}>
+                              Jetzt synchronisieren
+                            </s-button>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -303,6 +269,7 @@ export default function ProductsPage() {
                       onClick={() => router.push(`/dashboard/products/${product.id}${suffix}`)}
                       onKeyDown={(e) => e.key === 'Enter' && router.push(`/dashboard/products/${product.id}${suffix}`)}
                     >
+                      {/* Produkt-Name + Avatar */}
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <div className="piq-product-avatar">
@@ -314,23 +281,31 @@ export default function ProductsPage() {
                           <span className="piq-product-name">{product.title}</span>
                         </div>
                       </td>
-                      <td className="piq-table-price">
+
+                      {/* Preis */}
+                      <td className="piq-table-price" style={{ textAlign: 'right' }}>
                         {product.price != null
                           ? `${product.price.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`
                           : '—'}
                       </td>
-                      <td>
+
+                      {/* Lagerbestand — nur 0 = roter Badge, sonst plain text */}
+                      <td style={{ textAlign: 'center' }}>
                         {(product.inventory ?? 0) === 0
                           ? <s-badge tone="critical">0 Stück</s-badge>
-                          : <s-badge tone="success">{product.inventory} Stück</s-badge>
+                          : <span className="piq-stock-text">{product.inventory} Stück</span>
                         }
                       </td>
-                      <td>
+
+                      {/* Empfehlung — warning für ausstehend, neutral für keine Daten */}
+                      <td style={{ textAlign: 'center' }}>
                         {productIdsWithRec.has(product.id)
                           ? <s-badge tone="warning">Ausstehend</s-badge>
                           : <span className="piq-table-muted">—</span>
                         }
                       </td>
+
+                      {/* Action — nur bei ausstehender Empfehlung */}
                       <td style={{ textAlign: 'right' }}>
                         <span className="piq-table-action-btn">
                           Ansehen <ArrowRightIcon />
@@ -342,20 +317,8 @@ export default function ProductsPage() {
               </tbody>
             </table>
           </div>
+
         </div>
-
-        {/* Sync hint */}
-        {!syncMutation.isPending && products.length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <s-button variant="plain" size="slim" onClick={handleSync}>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <SyncIcon />
-                Neu synchronisieren
-              </span>
-            </s-button>
-          </div>
-        )}
-
       </div>
     </s-page>
   );
