@@ -11,8 +11,8 @@ function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = React.useState(0);
   React.useEffect(() => {
     if (value === 0) { setDisplay(0); return; }
-    const steps = 28;
-    const duration = 700;
+    const steps = 32;
+    const duration = 800;
     const increment = value / steps;
     let current = 0;
     const timer = setInterval(() => {
@@ -42,42 +42,43 @@ function useShopSuffix(): string {
 
 function RevenueIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M9 2v14M13 6c0-1.1-.9-2-2-2H7a2 2 0 0 0 0 4h4a2 2 0 0 1 0 4H6" />
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#059669" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9.5 2v15M14 6.5c0-1.2-.9-2.2-2.2-2.2H7.5a2.2 2.2 0 0 0 0 4.4h4a2.2 2.2 0 0 1 0 4.4H6" />
     </svg>
   );
 }
 
 function PendingIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#d97706" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="9" cy="9" r="7" />
-      <path d="M9 5.5v4l2.5 1.5" />
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#d97706" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9.5" cy="9.5" r="7.5" />
+      <path d="M9.5 5.5v4.5l3 1.5" />
     </svg>
   );
 }
 
 function AvgIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#4f46e5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 13l4-5 4 3 4-7" />
+    <svg width="19" height="19" viewBox="0 0 19 19" fill="none" stroke="#4f46e5" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M2.5 14l5-6 4.5 3.5 4.5-8" />
+      <circle cx="16.5" cy="3.5" r="1.5" fill="#4f46e5" stroke="none" />
     </svg>
   );
 }
 
 function AlertIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#dc2626" strokeWidth="1.5" strokeLinecap="round">
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#dc2626" strokeWidth="1.6" strokeLinecap="round">
       <circle cx="7.5" cy="7.5" r="6" />
-      <path d="M7.5 4.5v3.5M7.5 10h.01" />
+      <path d="M7.5 4.5v3.5M7.5 10.2h.01" />
     </svg>
   );
 }
 
 function TaskIcon() {
   return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#4f46e5" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2.5" y="2.5" width="10" height="10" rx="2" />
+    <svg width="15" height="15" viewBox="0 0 15 15" fill="none" stroke="#4f46e5" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2.5" y="2.5" width="10" height="10" rx="2.5" />
       <path d="M5 7.5l2 2 3-3" />
     </svg>
   );
@@ -85,7 +86,7 @@ function TaskIcon() {
 
 function ArrowRight() {
   return (
-    <svg className="piq-step-arr" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg className="piq-step-arr" width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.6">
       <path d="M5 2.5l4 4.5-4 4.5" />
     </svg>
   );
@@ -94,7 +95,7 @@ function ArrowRight() {
 export default function DashboardPage() {
   const router  = useRouter();
   const suffix  = useShopSuffix();
-  const [bannerVisible, setBannerVisible] = useState(true);
+  const [noticeVisible, setNoticeVisible] = useState(true);
 
   const { data: stats, isLoading, error } = useQuery({
     queryKey: ['dashboard-stats'],
@@ -145,28 +146,40 @@ export default function DashboardPage() {
     <s-page title="Übersicht">
       <div className="piq-dashboard">
 
-        {/* ── Banner: ausstehende Empfehlungen ── */}
-        {bannerVisible && pendingCount > 0 && (
-          <s-banner
-            tone="info"
-            title={`${pendingCount} Preisempfehlungen ausstehend`}
-            onDismiss={() => setBannerVisible(false)}
-          >
-            <s-stack direction="inline" gap="2" align-items="center">
-              <s-paragraph>
-                Durchschnittlich +€{avgPerProduct.toFixed(0)} Mehrumsatz pro Produkt möglich.
-              </s-paragraph>
-              <s-button variant="primary" size="slim" onClick={() => router.push(`/dashboard/pricing${suffix}`)}>
+        {/* ── Notification Bar ── */}
+        {noticeVisible && pendingCount > 0 && (
+          <div className="piq-notice" role="status">
+            <div className="piq-notice-pip" aria-hidden="true" />
+            <div className="piq-notice-body">
+              <div className="piq-notice-title">
+                {pendingCount} Preisempfehlungen ausstehend
+              </div>
+              <div className="piq-notice-sub">
+                Durchschnittlich +€{Math.abs(Math.round(avgPerProduct))} Mehrumsatz pro Produkt möglich.
+              </div>
+            </div>
+            <div className="piq-notice-actions">
+              <s-button
+                variant="primary"
+                size="slim"
+                onClick={() => router.push(`/dashboard/pricing${suffix}`)}
+              >
                 Empfehlungen ansehen
               </s-button>
-            </s-stack>
-          </s-banner>
+              <button
+                className="piq-notice-dismiss"
+                onClick={() => setNoticeVisible(false)}
+                aria-label="Benachrichtigung schließen"
+              >
+                ×
+              </button>
+            </div>
+          </div>
         )}
 
-        {/* ── KPI Strip — 3 Cards ── */}
+        {/* ── KPI Strip — 3 gleich hohe Cards ── */}
         <div className="piq-kpi">
 
-          {/* Card 1: Mehrumsatz */}
           <div className="piq-kc piq-kc--green">
             <div className="piq-kc-icon piq-kc-icon--green">
               <RevenueIcon />
@@ -185,7 +198,6 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Card 2: Ausstehend */}
           <div className="piq-kc piq-kc--amber">
             <div className="piq-kc-icon piq-kc-icon--amber">
               <PendingIcon />
@@ -194,10 +206,9 @@ export default function DashboardPage() {
             <div className="piq-kc-val piq-kc-val--amber">
               <AnimatedNumber value={pendingCount} />
             </div>
-            <div className="piq-kc-sub">offene Empfehlungen</div>
+            <div className="piq-kc-sub">offene Empfehlungen warten auf Bearbeitung</div>
           </div>
 
-          {/* Card 3: Ø pro Produkt */}
           <div className="piq-kc piq-kc--indigo">
             <div className="piq-kc-icon piq-kc-icon--indigo">
               <AvgIcon />
@@ -206,7 +217,7 @@ export default function DashboardPage() {
             <div className="piq-kc-val piq-kc-val--indigo">
               €<AnimatedNumber value={Math.abs(Math.round(avgPerProduct))} />
             </div>
-            <div className="piq-kc-sub">möglicher Mehrumsatz</div>
+            <div className="piq-kc-sub">möglicher Mehrumsatz je Produkt</div>
           </div>
 
         </div>
@@ -214,7 +225,6 @@ export default function DashboardPage() {
         {/* ── Unteres Grid ── */}
         <div className={`piq-lower${!nextStepsCount ? ' piq-lower--single' : ''}`}>
 
-          {/* Nächste Schritte */}
           {nextStepsCount > 0 && (
             <div className="piq-card">
               <div className="piq-card-head">
@@ -245,7 +255,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Fortschritt + Schnellaktionen */}
           <FortschrittsCard
             level={stats?.progress?.level ?? 'bronze'}
             points={stats?.progress?.points ?? 0}

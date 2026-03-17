@@ -1367,13 +1367,12 @@ body {
 }
 
 /* ================================================
-   VLERAFY DASHBOARD v3 — STATE OF THE ART
+   VLERAFY DASHBOARD v4 — FINAL DESIGN
    100% BFS / Polaris Web Components konform.
    Nur piq-* Klassen, kein Override von Polaris-Komponenten.
    ================================================ */
 
 :root {
-  /* Dashboard Semantic Tokens — mapped to Polaris */
   --bg:           var(--p-color-bg, #f5f5f7);
   --surface:      var(--p-color-bg-surface, #ffffff);
   --border:       var(--p-color-border, #e4e4e7);
@@ -1394,6 +1393,14 @@ body {
   --indigo-bg:    #eef2ff;
   --indigo-border:#c7d2fe;
   --red:          #dc2626;
+  --red-bg:       #fef2f2;
+  --red-border:   #fecaca;
+}
+
+/* ── Eintritts-Animation ── */
+@keyframes piq-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
 /* ── Dashboard Container ── */
@@ -1401,155 +1408,223 @@ body {
   display: flex;
   flex-direction: column;
   gap: 20px;
-  animation: piq-in 0.22s ease both;
-}
-
-@keyframes piq-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  animation: piq-in 0.28s cubic-bezier(0.4,0,0.2,1) both;
 }
 
 .piq-loading {
   text-align: center;
-  padding: 48px 24px;
+  padding: 60px 24px;
   color: var(--faint);
-  font-size: 14px;
 }
 
-/* ── KPI Strip — 3 equal cards ── */
+/* ── Notification Bar (Custom styled, BFS s-banner wrapper) ── */
+.piq-notice {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--amber-border);
+  border-left: 4px solid var(--amber);
+  border-radius: 12px;
+  padding: 14px 18px;
+  box-shadow: 0 1px 4px rgba(217,119,6,0.08);
+}
+
+.piq-notice-pip {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--amber);
+  flex-shrink: 0;
+  animation: piq-pulse 2s ease-in-out infinite;
+}
+
+@keyframes piq-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.85); }
+}
+
+.piq-notice-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.piq-notice-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  margin-bottom: 2px;
+}
+
+.piq-notice-sub {
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.piq-notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.piq-notice-dismiss {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--ghost);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px;
+  font-family: inherit;
+  transition: color 0.12s;
+  display: flex;
+  align-items: center;
+}
+.piq-notice-dismiss:hover { color: var(--muted); }
+
+/* ── KPI Strip — 3 gleich hohe Cards ── */
 .piq-kpi {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  align-items: stretch;
 }
 
 .piq-kc {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 24px 24px 20px;
+  border-radius: 16px;
+  padding: 24px 24px 22px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
-  transition: box-shadow 0.18s ease, transform 0.18s ease;
+  display: flex;
+  flex-direction: column;
+  min-height: 176px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .piq-kc:hover {
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
-  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.09), 0 2px 8px rgba(0,0,0,0.05);
+  transform: translateY(-2px);
 }
 
-/* Farbige Akzentlinie oben */
+/* Farbige Top-Akzentlinie */
 .piq-kc::before {
   content: '';
   position: absolute;
   top: 0; left: 0; right: 0;
   height: 3px;
-  border-radius: 14px 14px 0 0;
+  border-radius: 16px 16px 0 0;
 }
-.piq-kc--green::before  { background: linear-gradient(90deg, var(--green), #34d399); }
-.piq-kc--amber::before  { background: linear-gradient(90deg, var(--amber), #fbbf24); }
-.piq-kc--indigo::before { background: linear-gradient(90deg, var(--indigo), #818cf8); }
+.piq-kc--green::before  { background: linear-gradient(90deg, #059669, #34d399, #6ee7b7); }
+.piq-kc--amber::before  { background: linear-gradient(90deg, #92400e, #d97706, #fbbf24); }
+.piq-kc--indigo::before { background: linear-gradient(90deg, #3730a3, #4f46e5, #818cf8); }
 
+/* Icon */
 .piq-kc-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
   flex-shrink: 0;
 }
 .piq-kc-icon--green  { background: var(--green-bg);  border: 1px solid var(--green-border); }
 .piq-kc-icon--amber  { background: var(--amber-bg);  border: 1px solid var(--amber-border); }
 .piq-kc-icon--indigo { background: var(--indigo-bg); border: 1px solid var(--indigo-border); }
 
+/* Label */
 .piq-kc-lbl {
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 10.5px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   color: var(--faint);
-  margin-bottom: 8px;
+  margin-bottom: 10px;
 }
 
+/* Value */
 .piq-kc-val {
-  font-size: 32px;
-  font-weight: 760;
-  letter-spacing: -0.04em;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
   line-height: 1;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
-
 .piq-kc-val--amber  { color: var(--amber); }
 .piq-kc-val--indigo { color: var(--indigo); }
 
+/* Sub-Label */
 .piq-kc-sub {
   font-size: 12px;
   color: var(--faint);
-  line-height: 1.4;
+  line-height: 1.45;
+  margin-top: auto;
 }
 
-/* Progress-Bar im ersten KPI-Card */
+/* Progress in KPI Card */
 .piq-kc-prog {
   margin-top: 14px;
 }
-
 .piq-kc-prog-row {
   display: flex;
   justify-content: space-between;
   font-size: 11px;
   color: var(--faint);
-  margin-bottom: 6px;
+  margin-bottom: 7px;
+  font-weight: 500;
 }
-
 .piq-kc-bar {
-  height: 4px;
+  height: 5px;
   background: var(--border-sub);
   border-radius: 99px;
   overflow: hidden;
 }
-
 .piq-kc-bar-fill {
   height: 100%;
   border-radius: 99px;
-  background: linear-gradient(90deg, var(--green-dark), var(--green));
-  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(90deg, var(--green-dark), var(--green), #34d399);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Lower grid ── */
+/* ── Lower Grid ── */
 .piq-lower {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 16px;
   align-items: start;
 }
-
 .piq-lower--single { grid-template-columns: 1fr; }
 
-/* ── Card base ── */
+/* ── Card Base ── */
 .piq-card {
   background: var(--surface);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
 }
 
 .piq-card-head {
-  padding: 18px 22px 16px;
+  padding: 18px 22px 15px;
   border-bottom: 1px solid var(--border-sub);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
 }
 
 .piq-card-ttl {
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ink);
   letter-spacing: -0.02em;
@@ -1560,90 +1635,82 @@ body {
   color: var(--faint);
   background: var(--bg);
   border: 1px solid var(--border);
-  padding: 2px 8px;
+  padding: 3px 10px;
   border-radius: 99px;
+  font-weight: 600;
+  white-space: nowrap;
 }
 
-.piq-card-body { padding: 4px 22px 16px; }
+.piq-card-body { padding: 6px 22px 18px; }
 
-/* ── Next-Steps ── */
+/* ── Next Steps ── */
 .piq-step {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 13px;
   padding: 14px 0;
   border-bottom: 1px solid var(--border-sub);
   cursor: pointer;
+  border-radius: 0;
   transition: all 0.15s;
+  text-decoration: none;
 }
-
 .piq-step:last-child { border-bottom: none; }
-
-.piq-step:hover { background: none; }
-.piq-step:hover .piq-step-ttl { color: var(--ink); }
-.piq-step:hover .piq-step-arr { transform: translateX(3px); opacity: 0.7; }
+.piq-step:hover .piq-step-ttl  { color: var(--ink); }
+.piq-step:hover .piq-step-arr  { transform: translateX(4px); color: var(--muted); }
+.piq-step:focus-visible { outline: 2px solid var(--indigo); outline-offset: 2px; border-radius: 8px; }
 
 .piq-step-ic {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
-
-.piq-step-ic--urgent { background: #fef2f2; border: 1px solid #fecaca; }
+.piq-step-ic--urgent { background: var(--red-bg);    border: 1px solid var(--red-border); }
 .piq-step-ic--normal { background: var(--indigo-bg); border: 1px solid var(--indigo-border); }
 
 .piq-step-ttl {
   font-size: 13px;
-  font-weight: 600;
+  font-weight: 650;
   color: var(--muted);
   line-height: 1.3;
-  margin-bottom: 2px;
+  margin-bottom: 3px;
   transition: color 0.15s;
   letter-spacing: -0.01em;
 }
-
 .piq-step-dsc {
   font-size: 11.5px;
   color: var(--faint);
   line-height: 1.5;
 }
-
 .piq-step-arr {
   margin-left: auto;
   color: var(--ghost);
   flex-shrink: 0;
-  transition: all 0.15s;
+  transition: all 0.2s;
 }
 
 /* ── Progress Card ── */
-.piq-progress-card {
-  display: flex;
-  flex-direction: column;
-}
+.piq-progress-card { display: flex; flex-direction: column; }
 
-.piq-prog-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.piq-prog-head { display: flex; align-items: center; gap: 8px; }
 
 .piq-tier {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 3px 10px;
+  gap: 5px;
+  padding: 4px 11px;
   border-radius: 99px;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   background: var(--amber-bg);
   color: var(--amber-dark);
   border: 1px solid var(--amber-border);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
 }
 
 .piq-prog-pts {
@@ -1651,48 +1718,44 @@ body {
   color: var(--faint);
   margin-left: auto;
   font-variant-numeric: tabular-nums;
-  font-weight: 500;
+  font-weight: 600;
 }
 
-.piq-prog-section {
-  padding: 0 22px 4px;
-}
+.piq-prog-section { padding: 0 22px 6px; }
 
 .piq-prog-track {
-  height: 5px;
+  height: 6px;
   background: var(--border-sub);
   border-radius: 99px;
-  margin: 14px 0 6px;
+  margin: 14px 0 7px;
   overflow: hidden;
 }
-
 .piq-prog-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--amber-dark), var(--amber), #fbbf24);
   border-radius: 99px;
-  transition: width 0.9s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .piq-prog-hint {
   font-size: 10.5px;
   color: var(--faint);
   text-align: right;
+  font-weight: 500;
 }
 
-/* ── Tasks ── */
+/* ── Task List ── */
 .piq-task {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 0;
+  gap: 11px;
+  padding: 11px 0;
   border-bottom: 1px solid var(--border-sub);
 }
-
 .piq-task:last-of-type { border-bottom: none; }
 
 .piq-task-circle {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   border: 1.5px solid var(--ghost);
   display: flex;
@@ -1700,64 +1763,108 @@ body {
   justify-content: center;
   flex-shrink: 0;
 }
-
-.piq-task-circle--done {
-  background: var(--green-bg);
-  border-color: var(--green);
-}
-
+.piq-task-circle--done { background: var(--green-bg); border-color: var(--green); }
 .piq-task-check {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-right: 2px solid var(--green);
   border-bottom: 2px solid var(--green);
   transform: rotate(45deg) translate(-1px, -1px);
 }
 
 .piq-task-label {
-  font-size: 12px;
+  font-size: 12.5px;
   color: var(--muted);
   flex: 1;
   line-height: 1.4;
   letter-spacing: -0.01em;
 }
-
 .piq-task-label--done {
   text-decoration: line-through;
   color: var(--ghost);
 }
-
 .piq-task-pts {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   color: var(--indigo);
   background: var(--indigo-bg);
-  padding: 2px 8px;
+  padding: 3px 9px;
   border-radius: 99px;
   border: 1px solid var(--indigo-border);
   white-space: nowrap;
   flex-shrink: 0;
+  letter-spacing: 0.02em;
 }
 
-/* ── Quick Actions ── */
+/* ── Quick Action Cards ── */
 .piq-qa-wrap {
-  padding: 14px 22px 18px;
+  padding: 16px 22px 20px;
   border-top: 1px solid var(--border-sub);
 }
-
 .piq-qa-lbl {
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.12em;
   color: var(--ghost);
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
-
 .piq-qa-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.piq-qa-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 8px;
+  padding: 18px 10px 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.18s ease;
+  text-align: center;
+  outline: none;
+}
+.piq-qa-card:hover {
+  background: var(--surface);
+  border-color: var(--ghost);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  transform: translateY(-2px);
+}
+.piq-qa-card:focus-visible {
+  outline: 2px solid var(--indigo);
+  outline-offset: 2px;
+}
+.piq-qa-card:active { transform: translateY(0); }
+
+.piq-qa-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 11px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.piq-qa-icon--green  { background: var(--green-bg);  border: 1px solid var(--green-border); }
+.piq-qa-icon--amber  { background: var(--amber-bg);  border: 1px solid var(--amber-border); }
+.piq-qa-icon--gray   { background: var(--bg);        border: 1px solid var(--border); }
+
+.piq-qa-ttl {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.piq-qa-sub {
+  font-size: 10.5px;
+  color: var(--faint);
+  line-height: 1.3;
 }
 
 /* ── Responsive ── */
@@ -1766,7 +1873,7 @@ body {
   .piq-lower { grid-template-columns: 1fr; }
 }
 
-/* ── TOPBAR (legacy — wird durch s-banner ersetzt, bleibt für Fallback) ── */
+/* ── TOPBAR legacy ── */
 .piq-topbar {
   display: flex;
   align-items: center;

@@ -18,14 +18,41 @@ const TIER_LABELS: Record<string, string> = {
 const NEXT_LABELS: Record<string, string> = {
   bronze: 'Silber', silver: 'Gold', gold: 'Platin', platinum: 'Max',
 };
+const TIER_COLORS: Record<string, string> = {
+  bronze: '#cd7f32', silver: '#94a3b8', gold: '#f59e0b', platinum: '#6366f1',
+};
 
-function TierIcon({ level }: { level: string }) {
-  const colors: Record<string, string> = {
-    bronze: '#cd7f32', silver: '#94a3b8', gold: '#f59e0b', platinum: '#6366f1',
-  };
+function TierStar({ level }: { level: string }) {
   return (
-    <svg width="10" height="10" viewBox="0 0 10 10" fill={colors[level] ?? '#cd7f32'}>
-      <polygon points="5,0.5 6.5,3.5 9.8,4 7.4,6.3 8.1,9.8 5,8.1 1.9,9.8 2.6,6.3 0.2,4 3.5,3.5" />
+    <svg width="11" height="11" viewBox="0 0 11 11" fill={TIER_COLORS[level] ?? '#cd7f32'}>
+      <polygon points="5.5,0.5 7,3.8 10.5,4.3 8,6.8 8.6,10.3 5.5,8.6 2.4,10.3 3,6.8 0.5,4.3 4,3.8" />
+    </svg>
+  );
+}
+
+function PriceActionIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#059669" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M9 1.5v15M12.5 5.5c0-1.1-.9-2-2-2H7.5a2 2 0 0 0 0 4h3a2 2 0 0 1 0 4H6" />
+    </svg>
+  );
+}
+
+function ProductActionIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#d97706" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 3h3l2 9h7l1.5-6H6.5" />
+      <circle cx="9" cy="15.5" r="1" />
+      <circle cx="14" cy="15.5" r="1" />
+    </svg>
+  );
+}
+
+function SettingsActionIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#6b7280" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="9" r="3" />
+      <path d="M9 1.5v2M9 14.5v2M1.5 9h2M14.5 9h2M3.5 3.5l1.4 1.4M13.1 13.1l1.4 1.4M3.5 14.5l1.4-1.4M13.1 4.9l1.4-1.4" />
     </svg>
   );
 }
@@ -47,6 +74,12 @@ export function FortschrittsCard({
     ? Math.min((points / nextLevelPoints) * 100, 100)
     : 0;
 
+  const actions = [
+    { label: 'Preise', sub: 'Empfehlungen', icon: <PriceActionIcon />, color: 'green', onClick: onPriceAction },
+    { label: 'Produkte', sub: 'Synchronisieren', icon: <ProductActionIcon />, color: 'amber', onClick: onProductsAction },
+    { label: 'Einstellungen', sub: 'Konfiguration', icon: <SettingsActionIcon />, color: 'gray', onClick: onSettingsAction },
+  ] as const;
+
   return (
     <div className="piq-card piq-progress-card">
 
@@ -55,7 +88,7 @@ export function FortschrittsCard({
         <div className="piq-prog-head">
           <div className="piq-card-ttl">Fortschritt</div>
           <div className="piq-tier">
-            <TierIcon level={level} />
+            <TierStar level={level} />
             {tierLabel}
           </div>
         </div>
@@ -82,7 +115,6 @@ export function FortschrittsCard({
             </span>
           </div>
         ))}
-
         {(pendingSteps ?? []).map((step, i) => (
           <div key={`pending-${i}`} className="piq-task">
             <div className="piq-task-circle" />
@@ -94,19 +126,27 @@ export function FortschrittsCard({
         ))}
       </div>
 
-      {/* ── Schnellaktionen ── */}
+      {/* ── Schnellaktionen — Icon Cards ── */}
       <div className="piq-qa-wrap">
         <div className="piq-qa-lbl">Schnellaktionen</div>
         <div className="piq-qa-grid">
-          <s-button variant="secondary" size="slim" onClick={onPriceAction}>
-            Preise
-          </s-button>
-          <s-button variant="secondary" size="slim" onClick={onProductsAction}>
-            Produkte
-          </s-button>
-          <s-button variant="secondary" size="slim" onClick={onSettingsAction}>
-            Einstellungen
-          </s-button>
+          {actions.map((action) => (
+            <div
+              key={action.label}
+              className="piq-qa-card"
+              onClick={action.onClick}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && action.onClick?.()}
+              aria-label={action.label}
+            >
+              <div className={`piq-qa-icon piq-qa-icon--${action.color}`}>
+                {action.icon}
+              </div>
+              <div className="piq-qa-ttl">{action.label}</div>
+              <div className="piq-qa-sub">{action.sub}</div>
+            </div>
+          ))}
         </div>
       </div>
 
