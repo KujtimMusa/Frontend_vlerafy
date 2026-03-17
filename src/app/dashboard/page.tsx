@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useSearchParams } from 'next/navigation';
 import { getDashboardStats, getRecommendationsList } from '@/lib/api';
 import { FortschrittsCard } from '@/components/FortschrittsCard';
-import { TopProductsChart } from '@/components/TopProductsChart';
+import { TopRecommendations } from '@/components/TopProductsChart';
 
 function AnimatedNumber({ value }: { value: number }) {
   const [display, setDisplay] = React.useState(0);
@@ -192,20 +192,22 @@ export default function DashboardPage() {
 
         </div>
 
-        {/* ══ Top-Produkte Chart ══ */}
+        {/* ══ Top Empfehlungen ══ */}
         {(recsData?.recommendations?.length ?? 0) > 0 && (
           <div className="piq-chart-section">
             <div className="piq-chart-header">
-              <div className="piq-chart-title">Top 5 Produkte nach Potenzial</div>
+              <div className="piq-chart-title">Top Empfehlungen</div>
               <span className="piq-chart-badge">
                 {recsData!.recommendations.filter(
-                  (r: { recommended_price: number; current_price: number }) =>
-                    r.recommended_price > r.current_price
+                  (r: { applied_at: string | null }) => r.applied_at == null
                 ).length}{' '}
-                Produkte
+                offen
               </span>
             </div>
-            <TopProductsChart recommendations={recsData!.recommendations} />
+            <TopRecommendations
+              recommendations={recsData!.recommendations}
+              suffix={suffix}
+            />
           </div>
         )}
 

@@ -2703,64 +2703,152 @@ body {
   padding: 2px 9px;
   border-radius: 99px;
 }
-.piq-chart-wrap {
-  padding: 4px 0 0;
+/* ══ Top Empfehlungen Liste ══ */
+.piq-toprec-list {
+  display: flex;
+  flex-direction: column;
+}
+.piq-toprec-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 6px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.12s;
+  border-radius: 8px;
+}
+.piq-toprec-row:last-child { border-bottom: none; }
+.piq-toprec-row:hover { background: var(--bg); }
+.piq-toprec-row:focus-visible { outline: 2px solid var(--indigo); outline-offset: -2px; }
+
+.piq-toprec-rank {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--faint);
+  flex-shrink: 0;
 }
 
-/* Tooltip */
-.piq-chart-tip {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 10px 14px;
-  box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+.piq-toprec-info {
+  flex: 1;
+  min-width: 120px;
 }
-.piq-chart-tip-name {
+.piq-toprec-name {
   font-size: 13px;
   font-weight: 650;
   color: var(--ink);
-  margin-bottom: 4px;
+  line-height: 1.25;
 }
-.piq-chart-tip-val {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--green);
-  margin-bottom: 2px;
+.piq-toprec-strat {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--faint);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 2px;
 }
-.piq-chart-tip-conf {
-  font-size: 11px;
+
+/* Price: current → recommended */
+.piq-toprec-prices {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.piq-toprec-cur {
+  font-size: 12px;
   color: var(--faint);
 }
-
-/* Legende */
-.piq-chart-legend {
-  display: flex;
-  gap: 16px;
-  flex-wrap: wrap;
-  margin-top: 14px;
-  padding-top: 12px;
-  border-top: 1px solid var(--border);
-}
-.piq-chart-leg {
+.piq-toprec-arrow {
   font-size: 11px;
-  font-weight: 500;
+  color: var(--ghost);
 }
-.piq-chart-leg--green  { color: var(--green); }
-.piq-chart-leg--indigo { color: var(--indigo); }
-.piq-chart-leg--amber  { color: var(--amber); }
+.piq-toprec-rec {
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.piq-toprec-rec--up   { color: var(--green); }
+.piq-toprec-rec--down { color: var(--amber); }
+
+/* Change badge */
+.piq-toprec-change {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.piq-toprec-change--up {
+  color: var(--green);
+  background: var(--green-bg);
+  border: 1px solid var(--green-border);
+}
+.piq-toprec-change--down {
+  color: var(--amber);
+  background: var(--amber-bg);
+  border: 1px solid var(--amber-border);
+}
+
+/* Confidence dots */
+.piq-conf-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+.piq-conf-dots {
+  display: flex;
+  gap: 3px;
+}
+.piq-conf-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--border);
+}
+.piq-conf-dot--filled {
+  background: var(--indigo);
+}
+.piq-conf-pct {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--faint);
+  min-width: 28px;
+}
+
+/* Go arrow */
+.piq-toprec-go {
+  color: var(--ghost);
+  flex-shrink: 0;
+  transition: color 0.12s, transform 0.12s;
+}
+.piq-toprec-row:hover .piq-toprec-go {
+  color: var(--indigo);
+  transform: translateX(2px);
+}
 
 /* Empty State */
-.piq-chart-empty {
-  padding: 36px 16px;
+.piq-toprec-empty {
+  padding: 32px 16px;
   text-align: center;
 }
-.piq-chart-empty-title {
+.piq-toprec-empty-title {
   font-size: 14px;
   font-weight: 650;
   color: var(--ink);
   margin-bottom: 4px;
 }
-.piq-chart-empty-sub {
+.piq-toprec-empty-sub {
   font-size: 13px;
   color: var(--faint);
 }
@@ -2772,6 +2860,9 @@ body {
   .piq-hero-grid  { grid-template-columns: 1fr; }
   .piq-steps-grid { grid-template-columns: 1fr; }
   .piq-bottom-grid{ grid-template-columns: 1fr; }
+  .piq-prod-kpi-strip { flex-wrap: wrap; gap: 12px; }
+  .piq-prod-kpi-sep { display: none; }
+  .piq-toprec-prices { display: none; }
 }
 
 /* ── TOPBAR legacy ── */
